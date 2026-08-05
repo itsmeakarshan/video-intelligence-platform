@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+backend/.venv/
+.venv/
+
+# Environment variables
+backend/.env
+.env
+
+# Databases
+backend/*.db
+*.db
+*.sqlite3
+
+# Uploaded files
+backend/uploads/
+backend/outputs/
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
