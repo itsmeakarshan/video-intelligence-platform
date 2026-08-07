@@ -102,7 +102,7 @@ video-intelligence-platform/
 
 ## ⚡ Quick Start
 
-The complete installation guide is available in **SETUP.md**.
+👉 **[View the Setup Guide](SETUP.md)**.
 
 It includes:
 
