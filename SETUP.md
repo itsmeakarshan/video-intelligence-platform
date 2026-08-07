@@ -6,7 +6,7 @@ Follow the steps below to set up and run the Video Intelligence Platform on your
 
 # System Requirements
 
-This project was developed and tested with:
+We will install the follwoing Software versions:
 
 | Software | Version |
 |----------|----------|
@@ -16,6 +16,8 @@ This project was developed and tested with:
 | FFmpeg | 8.1.2 |
 
 ---
+# Run the following commands in your terminal.
+
 
 # Step 1 - Install Python
 
