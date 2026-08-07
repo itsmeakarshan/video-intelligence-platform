@@ -47,7 +47,7 @@ Upload videos, generate transcripts, chat with your content, create summaries, s
 
 ## 📸 Screenshots
 
-> Add screenshots after deployment.
+> Will add them soon xD.
 
 - Dashboard
 - AI Chat
