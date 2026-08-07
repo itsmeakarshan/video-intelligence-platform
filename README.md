@@ -104,29 +104,6 @@ video-intelligence-platform/
 
 👉 **[View the Setup Guide](SETUP.md)**.
 
-It includes:
-
-- Python installation
-- FFmpeg installation
-- Backend setup
-- Frontend setup
-- Gemini API setup
-- Running the application
-
----
-
-## 🚀 Future Improvements
-
-- Voice chat with videos
-- Flashcard generation
-- AI podcast generation
-- OCR support
-- Multi-language transcription
-- User authentication
-- Docker deployment
-- AWS deployment
-
----
 
 ## 👨‍💻 Author
 
