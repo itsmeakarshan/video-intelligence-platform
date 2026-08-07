@@ -2,124 +2,135 @@ import axios from "axios";
 
 export const api = axios.create({
 
-baseURL:"http://127.0.0.1:8000",
+    baseURL: "http://127.0.0.1:8000",
 
-headers:{
+    headers: {
 
-"Content-Type":"application/json"
+        "Content-Type": "application/json"
 
-}
+    }
 
 });
 
-export async function chat(
-
-question:string,
-
-conversation_id?:string
-
-){
-
-const response=await api.post(
-
-"/chat/",
-
-{
-
-question,
-
-conversation_id
-
-}
-
-);
-
-return response.data;
-
-}
-
 export async function uploadVideo(
 
-file:File
+    file: File
 
-){
+) {
 
-const formData=new FormData();
+    const formData = new FormData();
 
-formData.append(
+    formData.append(
 
-"file",
+        "file",
 
-file
+        file
 
-);
+    );
 
-const response=await api.post(
+    const response = await api.post(
 
-"/videos/upload",
+        "/videos/upload",
 
-formData,
+        formData,
 
-{
+        {
 
-headers:{
+            headers: {
 
-"Content-Type":"multipart/form-data"
+                "Content-Type": "multipart/form-data"
+
+            }
+
+        }
+
+    );
+
+    return response.data;
 
 }
 
-}
+export async function getVideos() {
 
-);
+    const response = await api.get(
 
-return response.data;
+        "/videos"
+
+    );
+
+    return response.data;
 
 }
 
 export async function generateTranscript(
 
-videoId:number
+    videoId: number,
 
-){
+    whisperModel: string
 
-const response=await api.post(
+) {
 
-`/transcripts/${videoId}`
+    const response = await api.post(
 
-);
+        `/transcripts/${videoId}`,
 
-return response.data;
+        null,
+
+        {
+
+            params: {
+
+                whisper_model: whisperModel
+
+            }
+
+        }
+
+    );
+
+    return response.data;
 
 }
 
 export async function getTranscript(
 
-videoId:number
+    videoId: number
 
-){
+) {
 
-const response=await api.get(
+    const response = await api.get(
 
-`/transcripts/${videoId}`
+        `/transcripts/${videoId}`
 
-);
+    );
 
-return response.data;
+    return response.data;
 
 }
 
 export async function getSegments(
 
-videoId:number
+    videoId: number
 
-){
+) {
 
-const response=await api.get(
+    const response = await api.get(
 
-`/transcripts/${videoId}/segments`
+        `/transcripts/${videoId}/segments`
 
-);
+    );
 
-return response.data;
+    return response.data;
 
+}
+
+
+export async function deleteVideo(
+    videoId: number
+) {
+    const response = await api.delete(
+        `/videos/${videoId}`
+    );
+
+    return response.data;
 }

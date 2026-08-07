@@ -1,9 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+
 import { Toaster } from "react-hot-toast";
 
 import App from "./App";
+
+import theme from "./theme/theme";
 
 import { ChatProvider } from "./context/ChatContext";
 import { VideoProvider } from "./context/VideoContext";
@@ -16,27 +21,43 @@ ReactDOM.createRoot(
 
     <React.StrictMode>
 
-        <VideoProvider>
+        <ThemeProvider theme={theme}>
 
-            <ChatProvider>
+            <CssBaseline />
 
-                <Toaster
-                    position="top-right"
-                    toastOptions={{
-                        duration: 3000,
-                        style: {
-                            borderRadius: "12px",
-                            background: "#111827",
-                            color: "#ffffff"
-                        }
-                    }}
-                />
+            <VideoProvider>
 
-                <App />
+                <ChatProvider>
 
-            </ChatProvider>
+                    <Toaster
 
-        </VideoProvider>
+                        position="top-right"
+
+                        toastOptions={{
+
+                            duration:3000,
+
+                            style:{
+
+                                borderRadius:"16px",
+
+                                background:"#111827",
+
+                                color:"#fff"
+
+                            }
+
+                        }}
+
+                    />
+
+                    <App />
+
+                </ChatProvider>
+
+            </VideoProvider>
+
+        </ThemeProvider>
 
     </React.StrictMode>
 

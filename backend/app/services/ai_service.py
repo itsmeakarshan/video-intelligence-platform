@@ -6,8 +6,15 @@ from app.services.memory_service import (
     get_history,
 )
 
-from app.services.rag_service import ask_video
-from app.services.gemini_service import ask_gemini
+from app.services.rag_service import (
+    ask_video,
+    ask_video_stream,
+)
+
+from app.services.gemini_service import (
+    ask_gemini,
+    ask_gemini_stream,
+)
 
 
 GENERAL_PATTERNS = [
@@ -38,16 +45,42 @@ def is_general_chat(question: str):
     question = question.lower().strip()
 
     return any(
+
         re.search(pattern, question)
+
         for pattern in GENERAL_PATTERNS
+
     )
+
+
+def build_prompt(
+
+    question: str,
+
+    history_text: str
+
+):
+
+    return f"""
+
+Conversation
+
+{history_text}
+
+User
+
+{question}
+
+"""
 
 
 def chat_with_ai(
 
     question: str,
 
-    conversation_id: str | None = None
+    conversation_id: str | None = None,
+
+    video_ids: list[int] | None = None
 
 ):
 
@@ -56,7 +89,9 @@ def chat_with_ai(
         conversation_id = str(uuid.uuid4())
 
     history = get_history(
+
         conversation_id
+
     )
 
     history_text = ""
@@ -91,21 +126,17 @@ def chat_with_ai(
 
     else:
 
-        enhanced_question = f"""
-
-Conversation
-
-{history_text}
-
-User
-
-{question}
-
-"""
-
         response = ask_video(
 
-            enhanced_question
+            build_prompt(
+
+                question,
+
+                history_text
+
+            ),
+
+            video_ids=video_ids
 
         )
 
@@ -132,3 +163,96 @@ User
     response["conversation_id"] = conversation_id
 
     return response
+
+
+def chat_with_ai_stream(
+
+    question: str,
+
+    conversation_id: str | None = None,
+
+    video_ids: list[int] | None = None
+
+):
+
+    if conversation_id is None:
+
+        conversation_id = str(uuid.uuid4())
+
+    history = get_history(
+
+        conversation_id
+
+    )
+
+    history_text = ""
+
+    for message in history:
+
+        history_text += (
+
+            f"{message['role']}: "
+
+            f"{message['text']}\n"
+
+        )
+
+    if is_general_chat(question):
+
+        stream = ask_gemini_stream(
+
+            question=question,
+
+            context=""
+
+        )
+
+    else:
+
+        stream = ask_video_stream(
+
+            build_prompt(
+
+                question,
+
+                history_text
+
+            ),
+
+            video_ids=video_ids
+
+        )
+
+    answer = []
+
+    def event_stream():
+
+        nonlocal answer
+
+        for chunk in stream:
+
+            answer.append(chunk)
+
+            yield chunk
+
+        add_message(
+
+            conversation_id,
+
+            "User",
+
+            question
+
+        )
+
+        add_message(
+
+            conversation_id,
+
+            "Assistant",
+
+            "".join(answer)
+
+        )
+
+    return event_stream(), conversation_id

@@ -3,49 +3,38 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.so
 
 # Virtual environments
-backend/.venv/
 .venv/
+venv/
+backend/.venv/
 
 # Environment variables
-backend/.env
 .env
-
-# Databases
-backend/*.db
-*.db
-*.sqlite3
-
-# Uploaded files
-backend/uploads/
-backend/outputs/
-
-# ChromaDB
-backend/chroma_db/
-chroma_db/
-
-# Whisper temporary audio
-backend/temp_audio/
-temp_audio/
+backend/.env
 
 # Python cache
 .pytest_cache/
 .mypy_cache/
+.coverage
+htmlcov/
 
-# VS Code
-.vscode/
-
-# Node
+# Node.js
 node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Build
+# Build files
 dist/
 build/
-
-# Vite
 frontend/.vite/
 
-# macOS / Windows
+# IDE settings
+.vscode/
+.idea/
+
+# Operating system files
 .DS_Store
 Thumbs.db

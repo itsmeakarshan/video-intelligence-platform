@@ -1,51 +1,141 @@
-# ?? Video Intelligence Platform
+# 🎥 Video Intelligence Platform
 
-An AI-powered platform for uploading videos, generating multilingual transcripts, semantic chunking, AI summaries, and conversational Q&A over video content.
+An AI-powered platform for understanding videos using **Faster-Whisper**, **Google Gemini**, and **Retrieval-Augmented Generation (RAG)**.
 
-## ?? Current Features
+Upload videos, generate transcripts, chat with your content, create summaries, study notes, and quizzes—all from a modern web interface.
 
-- FastAPI backend
-- SQLite database
-- SQLAlchemy ORM
-- Alembic migrations
-- Video upload API
-- Faster-Whisper integration
-- Automatic language detection
-- Multilingual transcription
-- Transcript storage
+---
 
-## ?? Tech Stack
+## 🚀 Features
+
+- 🎥 Upload and manage multiple videos
+- 🎙️ Manual transcription with Faster-Whisper
+- 🤖 Choose Whisper model before processing
+- 💬 AI Chat with conversation memory
+- 📄 AI-generated summaries
+- 📝 AI-generated study notes
+- 🧠 AI-generated quizzes
+- 🎯 Select which videos to use for AI features
+- 📍 Timestamped source references
+- ▶️ Built-in video player
+- 🗑️ Delete uploaded videos
+- 🔍 Semantic search using ChromaDB
+- 🌙 Modern dark glassmorphism UI
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- React
+- TypeScript
+- Material UI
+- Axios
 
 ### Backend
-- Python 3.13
+
 - FastAPI
 - SQLAlchemy
-- Alembic
 - SQLite
 - Faster-Whisper
-- FFmpeg
+- ChromaDB
+- Sentence Transformers
+- Google Gemini
 
-### Planned Features
-- Transcript Segmentation
-- Semantic Chunking
-- Vector Embeddings
-- RAG
+---
+
+## 📸 Screenshots
+
+> Add screenshots after deployment.
+
+- Dashboard
 - AI Chat
-- AI Summaries
-- React Frontend
-- Authentication
-- AWS Deployment
+- Video Library
+- AI Summary
+- AI Notes
+- AI Quiz
 
-## ?? Project Structure
+---
 
+## 🧠 AI Workflow
+
+```text
+Video Upload
+      │
+      ▼
+Whisper Transcription
+      │
+      ▼
+Transcript Chunking
+      │
+      ▼
+Embeddings
+      │
+      ▼
+ChromaDB
+      │
+      ▼
+Semantic Search (RAG)
+      │
+      ▼
+Google Gemini
+      │
+      ▼
+AI Response
+```
+
+---
+
+## 📂 Project Structure
+
+```text
 video-intelligence-platform/
-+-- backend/
-�   +-- app/
-�   +-- alembic/
-�   +-- uploads/
-�   +-- requirements.txt
-+-- frontend/
 
-## ?? Status
+├── backend/
+├── frontend/
+├── README.md
+└── SETUP.md
+```
 
-?? Currently under active development.
+---
+
+## ⚡ Quick Start
+
+The complete installation guide is available in **SETUP.md**.
+
+It includes:
+
+- Python installation
+- FFmpeg installation
+- Backend setup
+- Frontend setup
+- Gemini API setup
+- Running the application
+
+---
+
+## 🚀 Future Improvements
+
+- Voice chat with videos
+- Flashcard generation
+- AI podcast generation
+- OCR support
+- Multi-language transcription
+- User authentication
+- Docker deployment
+- AWS deployment
+
+---
+
+## 👨‍💻 Author
+
+**Akarshan Rasyal**
+
+MSc Data Science
+
+Northumbria University
+
+---
+
+⭐ If you found this project interesting, consider giving it a star.

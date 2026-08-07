@@ -82,27 +82,55 @@ def index_video(video_id, db):
     db.commit()
 
 
-def search(query: str):
+def search(
+
+    query: str,
+
+    video_ids: list[int] | None = None
+
+):
 
     total_start = time.perf_counter()
 
     model_start = time.perf_counter()
+
     model = get_embedding_model()
+
     model_end = time.perf_counter()
 
     embedding_start = time.perf_counter()
+
     embedding = model.encode(query).tolist()
+
     embedding_end = time.perf_counter()
 
     chroma_start = time.perf_counter()
 
-    result = collection.query(
+    query_kwargs = {
 
-        query_embeddings=[
+        "query_embeddings": [
             embedding
         ],
 
-        n_results=5
+        "n_results": 10
+
+    }
+
+    if video_ids:
+
+        query_kwargs["where"] = {
+
+            "video_id": {
+
+                "$in": video_ids
+
+            }
+
+        }
+
+    result = collection.query(
+
+        **query_kwargs
 
     )
 
@@ -122,9 +150,13 @@ def search(query: str):
     distances = result.get("distances", [[]])[0]
 
     for document, metadata, distance in zip(
+
         documents,
+
         metadatas,
+
         distances
+
     ):
 
         formatted_results.append(

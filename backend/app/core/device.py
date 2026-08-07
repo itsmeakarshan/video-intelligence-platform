@@ -17,6 +17,8 @@ class HardwareProfile:
 
 def get_hardware_profile() -> HardwareProfile:
 
+    # NVIDIA GPU
+
     if torch.cuda.is_available():
 
         return HardwareProfile(
@@ -31,21 +33,28 @@ def get_hardware_profile() -> HardwareProfile:
 
         )
 
+    # Apple Silicon
+    #
+    # Faster-Whisper (CTranslate2) does NOT support MPS.
+    # Run on CPU instead.
+
     if hasattr(torch.backends, "mps"):
 
         if torch.backends.mps.is_available():
 
             return HardwareProfile(
 
-                device="mps",
+                device="cpu",
 
-                compute_type="float16",
+                compute_type="int8",
 
-                accelerator="Apple Metal",
+                accelerator="Apple Silicon (CPU)",
 
                 gpu_name="Apple Silicon"
 
             )
+
+    # Default
 
     return HardwareProfile(
 

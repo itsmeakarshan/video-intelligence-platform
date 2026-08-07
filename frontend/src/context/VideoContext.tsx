@@ -1,107 +1,148 @@
 import {
-
-createContext,
-
-useContext,
-
-useRef,
-
-useState
-
+    createContext,
+    useContext,
+    useRef,
+    useState
 } from "react";
+
+export interface VideoItem {
+
+    id:number;
+
+    filename:string;
+
+    original_filename:string;
+
+    file_path:string;
+
+    file_size:number;
+
+    status:string;
+
+    created_at:string;
+
+}
 
 interface VideoContextType{
 
-videoUrl:string;
+    videos:VideoItem[];
 
-setVideoUrl:(url:string)=>void;
+    setVideos:(videos:VideoItem[])=>void;
 
-videoId:number|null;
+    selectedVideo:VideoItem|null;
 
-setVideoId:(id:number|null)=>void;
+    setSelectedVideo:(video:VideoItem|null)=>void;
 
-processing:boolean;
+    videoUrl:string;
 
-setProcessing:(value:boolean)=>void;
+    setVideoUrl:(url:string)=>void;
 
-playerRef:React.RefObject<HTMLVideoElement|null>;
+    videoTitle:string;
 
-seekTo:(time:number)=>void;
+    setVideoTitle:(title:string)=>void;
+
+    videoId:number|null;
+
+    setVideoId:(id:number|null)=>void;
+
+    processing:boolean;
+
+    setProcessing:(value:boolean)=>void;
+
+    playerRef:React.RefObject<HTMLVideoElement|null>;
+
+    seekTo:(time:number)=>void;
 
 }
 
 const VideoContext=createContext<VideoContextType>(
-
-{} as VideoContextType
-
+    {} as VideoContextType
 );
 
 export function VideoProvider({
 
-children
+    children
 
 }:{
 
-children:React.ReactNode
+    children:React.ReactNode
 
 }){
 
-const[videoUrl,setVideoUrl]=useState("");
+    const[videos,setVideos]=useState<VideoItem[]>([]);
 
-const[videoId,setVideoId]=useState<number|null>(null);
+    const[selectedVideo,setSelectedVideo]=useState<VideoItem|null>(null);
 
-const[processing,setProcessing]=useState(false);
+    const[videoUrl,setVideoUrl]=useState("");
 
-const playerRef=useRef<HTMLVideoElement>(null);
+    const[videoTitle,setVideoTitle]=useState("");
 
-function seekTo(time:number){
+    const[videoId,setVideoId]=useState<number|null>(null);
 
-if(playerRef.current){
+    const[processing,setProcessing]=useState(false);
 
-playerRef.current.currentTime=time;
+    const playerRef=useRef<HTMLVideoElement>(null);
 
-playerRef.current.play();
+    function seekTo(time:number){
 
-}
+        if(playerRef.current){
 
-}
+            playerRef.current.currentTime=time;
 
-return(
+            playerRef.current.play();
 
-<VideoContext.Provider
+        }
 
-value={{
+    }
 
-videoUrl,
+    return(
 
-setVideoUrl,
+        <VideoContext.Provider
 
-videoId,
+            value={{
 
-setVideoId,
+                videos,
 
-processing,
+                setVideos,
 
-setProcessing,
+                selectedVideo,
 
-playerRef,
+                setSelectedVideo,
 
-seekTo
+                videoUrl,
 
-}}
+                setVideoUrl,
 
->
+                videoTitle,
 
-{children}
+                setVideoTitle,
 
-</VideoContext.Provider>
+                videoId,
 
-);
+                setVideoId,
+
+                processing,
+
+                setProcessing,
+
+                playerRef,
+
+                seekTo
+
+            }}
+
+        >
+
+            {children}
+
+        </VideoContext.Provider>
+
+    );
 
 }
 
 export function useVideo(){
 
-return useContext(VideoContext);
+    return useContext(VideoContext);
 
 }

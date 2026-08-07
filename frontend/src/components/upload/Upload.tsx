@@ -1,80 +1,104 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
-    Box,
-    Button,
-    CircularProgress,
-    LinearProgress,
-    Typography
+    Button
 } from "@mui/material";
 
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+
 import toast from "react-hot-toast";
 
-import { api, uploadVideo } from "../../api/api";
+import {
+
+    getVideos,
+
+    uploadVideo
+
+} from "../../api/api";
+
 import { useVideo } from "../../context/VideoContext";
 
 export default function Upload() {
 
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const [uploading, setUploading] = useState(false);
+
     const {
-        setVideoUrl,
+
+        setVideos,
+
+        setSelectedVideo,
+
         setVideoId,
-        processing,
-        setProcessing
+
+        setVideoTitle,
+
+        setVideoUrl
+
     } = useVideo();
 
-    const [loading, setLoading] = useState(false);
-
-    async function handleUpload(
-        e: React.ChangeEvent<HTMLInputElement>
-    ) {
-
-        const file = e.target.files?.[0];
-
-        if (!file) return;
-
-        setLoading(true);
+    async function upload(file: File) {
 
         try {
 
+            setUploading(true);
+
             const result = await uploadVideo(file);
 
-            setVideoId(result.id);
+            const videos = await getVideos();
 
-            setVideoUrl(
-                `http://127.0.0.1:8000/uploads/${result.filename}`
+            setVideos(videos);
+
+            const current = videos.find(
+
+                (video: any) => video.id === result.id
+
             );
 
-            setProcessing(true);
+            if (current) {
 
-            await api.post(
-                `/transcripts/${result.id}`
-            );
+                setSelectedVideo(current);
 
-            setProcessing(false);
+                setVideoId(current.id);
+
+                setVideoTitle(
+
+                    current.original_filename
+
+                );
+
+                setVideoUrl(
+
+                    `http://127.0.0.1:8000/uploads/${current.filename}`
+
+                );
+
+            }
 
             toast.success(
-                "Video processed successfully."
+
+                "Video uploaded successfully."
+
             );
 
         }
-        catch (error) {
 
-            console.error(error);
-            console.log(error.response);
-            console.log(error.response?.data);
-
-            setProcessing(false);
+        catch (error: any) {
 
             toast.error(
+
                 error.response?.data?.detail ??
-                "Video upload failed."
+
+                "Upload failed."
+
             );
 
         }
+
         finally {
 
-            setLoading(false);
+            setUploading(false);
 
         }
 
@@ -82,112 +106,81 @@ export default function Upload() {
 
     return (
 
-        <Box
-            sx={{
-                border: "2px dashed #CBD5E1",
-                borderRadius: 5,
-                p: 6,
-                textAlign: "center",
-                background: "#FFFFFF",
-                transition: "0.3s",
-                cursor: "pointer",
+        <>
 
-                "&:hover": {
-                    borderColor: "#2563EB",
-                    transform: "translateY(-3px)",
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.08)"
-                }
-            }}
-        >
+            <input
 
-            <CloudUploadIcon
-                sx={{
-                    fontSize: 70,
-                    color: "#2563EB",
-                    mb: 2
+                hidden
+
+                ref={inputRef}
+
+                type="file"
+
+                accept="video/*"
+
+                onChange={event => {
+
+                    const file = event.target.files?.[0];
+
+                    if (file) {
+
+                        upload(file);
+
+                    }
+
+                    event.target.value = "";
+
                 }}
+
             />
 
-            <Typography
-                variant="h5"
-                sx={{
-                    fontWeight: 700,
-                    mb: 2
-                }}
-            >
-                Upload Video
-            </Typography>
-
-            <Typography
-                sx={{
-                    color: "#6B7280",
-                    mb: 4
-                }}
-            >
-                Drag & Drop your video here
-                <br />
-                or click below to browse
-                <br />
-                <br />
-                Supported formats:
-                <br />
-                MP4 • MOV • AVI • MKV
-            </Typography>
-
             <Button
+
+                fullWidth
+
                 variant="contained"
-                component="label"
-                disabled={loading || processing}
-                sx={{
-                    px: 4,
-                    py: 1.5,
-                    borderRadius: 3
-                }}
-            >
-                {
-                    loading ? (
-                        <CircularProgress
-                            size={22}
-                            color="inherit"
-                        />
-                    ) : processing ? (
-                        "Processing..."
-                    ) : (
-                        "Choose Video"
-                    )
+
+                disabled={uploading}
+
+                startIcon={
+
+                    <CloudUploadRoundedIcon />
+
                 }
 
-                <input
-                    hidden
-                    type="file"
-                    accept="video/*"
-                    onChange={handleUpload}
-                />
+                sx={{
+
+                    py: 1.5,
+
+                    borderRadius: 2,
+
+                    textTransform: "none",
+
+                    fontWeight: 700
+
+                }}
+
+                onClick={() =>
+
+                    inputRef.current?.click()
+
+                }
+
+            >
+
+                {
+
+                    uploading
+
+                        ? "Uploading..."
+
+                        : "Upload New Video"
+
+                }
 
             </Button>
 
-            {
-                processing && (
-
-                    <Box sx={{ mt: 4 }}>
-
-                        <LinearProgress />
-
-                        <Typography
-                            sx={{
-                                mt: 2,
-                                color: "#6B7280"
-                            }}
-                        >
-                            Generating transcript and AI embeddings...
-                        </Typography>
-
-                    </Box>
-
-                )
-            }
-
-        </Box>
+        </>
 
     );
 

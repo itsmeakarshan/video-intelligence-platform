@@ -1,146 +1,212 @@
 import {
-
-Paper,
-
-Typography,
-
-Button,
-
-CircularProgress,
-
-Box
-
+    Box,
+    Button,
+    CircularProgress,
+    Paper,
+    Typography
 } from "@mui/material";
 
 import { useState } from "react";
 
 import { askAI } from "../../services/chatService";
+import VideoSelectionDialog from "../common/VideoSelectionDialog";
 
-export default function Summary(){
+export default function Summary() {
 
-const[summary,setSummary]=useState("");
+    const [summary, setSummary] = useState("");
 
-const[loading,setLoading]=useState(false);
+    const [loading, setLoading] = useState(false);
 
-async function generate(){
+    const [dialogOpen, setDialogOpen] = useState(false);
 
-setLoading(true);
+    function openDialog() {
 
-try{
+        setDialogOpen(true);
 
-const result=await askAI(
+    }
 
-"Provide a detailed summary of the uploaded video."
+    async function generateSummary(
 
-);
+        videoIds: number[]
 
-setSummary(
+    ) {
 
-result.answer
+        setDialogOpen(false);
 
-);
+        setLoading(true);
 
-}
+        try {
 
-finally{
+            const result = await askAI(
 
-setLoading(false);
+                "Provide a detailed summary of the selected videos.",
 
-}
+                undefined,
 
-}
+                videoIds
 
-return(
+            );
 
-<Paper
+            setSummary(
 
-sx={{
+                result.answer
 
-p:3,
+            );
 
-borderRadius:4,
+        }
 
-mt:3
+        catch {
 
-}}
+            console.error("Unable to generate summary.");
 
->
+        }
 
-<Typography
+        finally {
 
-variant="h6"
+            setLoading(false);
 
-sx={{
+        }
 
-fontWeight:700,
+    }
 
-mb:2
+    return (
 
-}}
+        <>
 
->
+            <Paper
 
-AI Summary
+                sx={{
 
-</Typography>
+                    p: 3,
 
-<Button
+                    borderRadius: 2,
 
-variant="contained"
+                    background: "transparent",
 
-onClick={generate}
+                    boxShadow: "none"
 
-disabled={loading}
+                }}
 
->
+            >
 
-{
+                <Typography
 
-loading
+                    variant="h6"
 
-?
+                    sx={{
 
-<CircularProgress
+                        fontWeight: 700,
 
-size={20}
+                        mb: 2
 
-color="inherit"
+                    }}
 
-/>
+                >
 
-:
+                    📄 AI Summary
 
-"Generate Summary"
+                </Typography>
 
-}
+                <Typography
 
-</Button>
+                    sx={{
 
-{
+                        color: "#94A3B8",
 
-summary&&
+                        mb: 3,
 
-<Box
+                        fontSize: 14
 
-sx={{
+                    }}
 
-mt:3,
+                >
 
-whiteSpace:"pre-wrap",
+                    Generate an AI summary from one or more processed videos.
 
-lineHeight:1.8
+                </Typography>
 
-}}
+                <Button
 
->
+                    variant="contained"
 
-{summary}
+                    onClick={openDialog}
 
-</Box>
+                    disabled={loading}
 
-}
+                >
 
-</Paper>
+                    {
 
-);
+                        loading
+
+                            ?
+
+                            <CircularProgress
+
+                                size={20}
+
+                                color="inherit"
+
+                            />
+
+                            :
+
+                            "Generate Summary"
+
+                    }
+
+                </Button>
+
+                {
+
+                    summary &&
+
+                    <Box
+
+                        sx={{
+
+                            mt: 3,
+
+                            whiteSpace: "pre-wrap",
+
+                            lineHeight: 1.8,
+
+                            color: "#F8FAFC"
+
+                        }}
+
+                    >
+
+                        {summary}
+
+                    </Box>
+
+                }
+
+            </Paper>
+
+            <VideoSelectionDialog
+
+                open={dialogOpen}
+
+                title="Generate AI Summary"
+
+                buttonText="Generate Summary"
+
+                loading={loading}
+
+                onClose={() =>
+
+                    setDialogOpen(false)
+
+                }
+
+                onConfirm={generateSummary}
+
+            />
+
+        </>
+
+    );
+
 }

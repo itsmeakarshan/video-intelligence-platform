@@ -1,27 +1,17 @@
 import time
 
 from app.services.embedding_service import search
-from app.services.gemini_service import ask_gemini
+
+from app.services.gemini_service import (
+    ask_gemini,
+    ask_gemini_stream,
+)
 
 
 MIN_RELEVANCE = 1.30
 
 
-def ask_video(question: str):
-
-    print("=" * 60)
-    print("Semantic Search...")
-    print("=" * 60)
-
-    search_start = time.perf_counter()
-
-    results = search(question)
-
-    print(
-        f"Semantic search took {time.perf_counter()-search_start:.2f} sec"
-    )
-
-    matches = results["matches"]
+def build_context(matches):
 
     relevant_matches = [
 
@@ -33,11 +23,13 @@ def ask_video(question: str):
 
     ]
 
-    if relevant_matches:
+    if not relevant_matches:
 
-        context = "\n\n".join(
+        return "NO_RELEVANT_VIDEO_CONTEXT", []
 
-            f"""
+    context = "\n\n".join(
+
+        f"""
 Timestamp:
 {match['start_time']:.2f} - {match['end_time']:.2f}
 
@@ -48,53 +40,125 @@ Transcript:
 {match['text']}
 """
 
-            for match in relevant_matches
+        for match in relevant_matches
 
-        )
+    )
 
-    else:
+    sources = [
 
-        context = "NO_RELEVANT_VIDEO_CONTEXT"
+        {
+
+            "video_id": match["video_id"],
+
+            "chunk_id": match["chunk_id"],
+
+            "start_time": match["start_time"],
+
+            "end_time": match["end_time"]
+
+        }
+
+        for match in relevant_matches
+
+    ]
+
+    return context, sources
+
+
+def ask_video(
+
+    question: str,
+
+    video_ids: list[int] | None = None
+
+):
 
     print("=" * 60)
-    print(f"Relevant Chunks : {len(relevant_matches)}")
+    print("Semantic Search...")
+    print("=" * 60)
+
+    start = time.perf_counter()
+
+    results = search(
+
+        question,
+
+        video_ids
+
+    )
+
+    print(
+
+        f"Semantic search took {time.perf_counter()-start:.2f} sec"
+
+    )
+
+    context, sources = build_context(
+
+        results["matches"]
+
+    )
+
+    print("=" * 60)
+    print(f"Relevant Chunks : {len(sources)}")
     print(f"Context Size    : {len(context)}")
     print("=" * 60)
 
     answer = ask_gemini(
 
-        question,
+        question=question,
 
-        context
+        context=context
 
     )
 
-    response = {
+    return {
 
         "answer": answer,
 
-        "sources": []
+        "sources": sources
 
     }
 
-    if relevant_matches:
 
-        response["sources"] = [
+def ask_video_stream(
 
-            {
+    question: str,
 
-                "video_id": match["video_id"],
+    video_ids: list[int] | None = None
 
-                "chunk_id": match["chunk_id"],
+):
 
-                "start_time": match["start_time"],
+    print("=" * 60)
+    print("Semantic Search...")
+    print("=" * 60)
 
-                "end_time": match["end_time"]
+    start = time.perf_counter()
 
-            }
+    results = search(
 
-            for match in relevant_matches
+        question,
 
-        ]
+        video_ids
 
-    return response
+    )
+
+    print(
+
+        f"Semantic search took {time.perf_counter()-start:.2f} sec"
+
+    )
+
+    context, _ = build_context(
+
+        results["matches"]
+
+    )
+
+    return ask_gemini_stream(
+
+        question=question,
+
+        context=context
+
+    )
