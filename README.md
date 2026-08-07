@@ -45,9 +45,7 @@ Upload videos, generate transcripts, chat with your content, create summaries, s
 
 ---
 
-## 📸 Screenshots
-
-> Will add them soon xD.
+## 📸 Screenshots -- i will add it soon.xD
 
 - Dashboard
 - AI Chat
@@ -104,6 +102,7 @@ video-intelligence-platform/
 
 👉 **[View the Setup Guide](SETUP.md)**.
 
+---
 
 ## 👨‍💻 Author
 
