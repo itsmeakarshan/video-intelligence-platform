@@ -5,14 +5,13 @@ __pycache__/
 *.pyd
 *.so
 
-# Virtual environments
-.venv/
-venv/
+# Virtual environment
 backend/.venv/
 
 # Environment variables
 .env
 backend/.env
+*.local
 
 # Python cache
 .pytest_cache/
@@ -23,17 +22,25 @@ htmlcov/
 # Node.js
 node_modules/
 npm-debug.log*
+yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # Build files
 dist/
+dist-ssr/
 build/
 frontend/.vite/
 
 # IDE settings
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj*
+*.sln
+*.sw?
 
 # Operating system files
 .DS_Store
