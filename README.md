@@ -268,7 +268,7 @@ Quiz questions are generated from the processed video content.
 
 The complete installation and configuration instructions are available in:
 
-**SETUP.md**
+**[Setup Guide](SETUP.md)**
 
 
 # 🔐 API Keys & Environment Variables
