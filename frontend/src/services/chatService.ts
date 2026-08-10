@@ -6,16 +6,124 @@ export async function askAI(
     videoIds?: number[]
 ) {
 
-    const response = await api.post(
-        "/chat",
-        {
+    try {
+
+        const response = await api.post("/chat", {
             question,
             conversation_id: conversationId,
             video_ids: videoIds
-        }
+        });
+
+        return response.data;
+
+    } catch (error: any) {
+
+        handleError(error);
+
+    }
+
+}
+
+export async function generateSummary(
+    videoIds: number[]
+) {
+
+    try {
+
+        const response = await api.post(
+            "/chat/summary",
+            {
+                video_ids: videoIds
+            }
+        );
+
+        return response.data;
+
+    } catch (error: any) {
+
+        handleError(error);
+
+    }
+
+}
+
+export async function generateNotes(
+    videoIds: number[]
+) {
+
+    try {
+
+        const response = await api.post(
+            "/chat/notes",
+            {
+                video_ids: videoIds
+            }
+        );
+
+        return response.data;
+
+    } catch (error: any) {
+
+        handleError(error);
+
+    }
+
+}
+
+export async function generateQuiz(
+    videoIds: number[],
+    difficulty: string,
+    questions: number
+) {
+
+    try {
+
+        const response = await api.post(
+            "/chat/quiz",
+            {
+                video_ids: videoIds,
+                difficulty,
+                questions
+            }
+        );
+
+        return response.data;
+
+    } catch (error: any) {
+
+        handleError(error);
+
+    }
+
+}
+
+function handleError(
+    error: any
+): never {
+
+    if (error.response?.status === 404) {
+        throw new Error(
+            "No processed videos are available yet."
+        );
+    }
+
+    if (error.response?.status === 500) {
+        throw new Error(
+            "The AI is temporarily unavailable."
+        );
+    }
+
+    if (error.code === "ERR_NETWORK") {
+        throw new Error(
+            "Cannot connect to the backend."
+        );
+    }
+
+    throw new Error(
+        error.response?.data?.detail ||
+        "Something went wrong."
     );
 
-    return response.data;
 }
 
 export async function askAIStream(
@@ -42,16 +150,34 @@ export async function askAIStream(
     );
 
     if (!response.ok) {
-        throw new Error("Streaming failed.");
+
+        const text = await response.text();
+
+        throw new Error(
+            text || "Streaming failed."
+        );
+
     }
 
-    const id = response.headers.get("x-conversation-id");
+    const id = response.headers.get(
+        "x-conversation-id"
+    );
 
     if (id) {
+
         onConversationId(id);
+
     }
 
-    const reader = response.body!.getReader();
+    const reader = response.body?.getReader();
+
+    if (!reader) {
+
+        throw new Error(
+            "No response stream."
+        );
+
+    }
 
     const decoder = new TextDecoder();
 
@@ -74,5 +200,7 @@ export async function askAIStream(
                 }
             )
         );
+
     }
+
 }

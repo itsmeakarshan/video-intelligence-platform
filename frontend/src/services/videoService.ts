@@ -1,15 +1,17 @@
-import { uploadVideo } from "../api/api";
+import {
+    uploadVideo
+} from "../api/api";
+
+
 
 export async function upload(
+    file: File,
+    onProgress?: (progress: number) => void
+) {
 
-file:File
-
-){
-
-return await uploadVideo(
-
-file
-
-);
+    return await uploadVideo(
+        file,
+        onProgress
+    );
 
 }

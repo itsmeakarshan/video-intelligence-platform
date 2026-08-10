@@ -1,187 +1,105 @@
 import { useRef, useState } from "react";
-
-import {
-    Button
-} from "@mui/material";
-
+import { Box, Button, LinearProgress, Paper, Stack, Typography } from "@mui/material";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
-
 import toast from "react-hot-toast";
-
-import {
-
-    getVideos,
-
-    uploadVideo
-
-} from "../../api/api";
-
+import { getVideos } from "../../api/api";
+import { upload } from "../../services/videoService";
 import { useVideo } from "../../context/VideoContext";
 
 export default function Upload() {
-
     const inputRef = useRef<HTMLInputElement>(null);
-
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const { setVideos } = useVideo();
 
-    const {
+    async function uploadFiles(files: FileList | File[]) {
+        setUploading(true);
+        setProgress(0);
 
-        setVideos,
+        const fileArray = Array.from(files);
 
-        setSelectedVideo,
-
-        setVideoId,
-
-        setVideoTitle,
-
-        setVideoUrl
-
-    } = useVideo();
-
-    async function upload(file: File) {
-
-        try {
-
-            setUploading(true);
-
-            const result = await uploadVideo(file);
-
-            const videos = await getVideos();
-
-            setVideos(videos);
-
-            const current = videos.find(
-
-                (video: any) => video.id === result.id
-
-            );
-
-            if (current) {
-
-                setSelectedVideo(current);
-
-                setVideoId(current.id);
-
-                setVideoTitle(
-
-                    current.original_filename
-
-                );
-
-                setVideoUrl(
-
-                    `http://127.0.0.1:8000/uploads/${current.filename}`
-
-                );
-
+        for (const file of fileArray) {
+            try {
+                await upload(file, p => setProgress(p));
+            } catch {
+                toast.error(`${file.name} failed`);
             }
-
-            toast.success(
-
-                "Video uploaded successfully."
-
-            );
-
         }
 
-        catch (error: any) {
-
-            toast.error(
-
-                error.response?.data?.detail ??
-
-                "Upload failed."
-
-            );
-
-        }
-
-        finally {
-
-            setUploading(false);
-
-        }
-
+        const videos = await getVideos();
+        setVideos(videos);
+        setUploading(false);
+        setProgress(0);
+        toast.success("Upload complete.");
     }
 
     return (
-
         <>
-
             <input
-
                 hidden
-
+                multiple
                 ref={inputRef}
-
                 type="file"
-
                 accept="video/*"
-
-                onChange={event => {
-
-                    const file = event.target.files?.[0];
-
-                    if (file) {
-
-                        upload(file);
-
-                    }
-
-                    event.target.value = "";
-
+                onChange={e => {
+                    if (!e.target.files?.length) return;
+                    uploadFiles(e.target.files);
+                    e.target.value = "";
                 }}
-
             />
 
-            <Button
-
-                fullWidth
-
-                variant="contained"
-
-                disabled={uploading}
-
-                startIcon={
-
-                    <CloudUploadRoundedIcon />
-
-                }
-
+            <Paper
+                elevation={0}
                 sx={{
-
-                    py: 1.5,
-
-                    borderRadius: 2,
-
-                    textTransform: "none",
-
-                    fontWeight: 700
-
+                    border: "2px dashed",
+                    borderColor: "divider",
+                    borderRadius: 4,
+                    p: 4,
+                    textAlign: "center",
+                    transition: ".25s",
+                    cursor: "pointer",
+                    "&:hover": {
+                        borderColor: "primary.main",
+                        bgcolor: "action.hover"
+                    }
                 }}
-
-                onClick={() =>
-
-                    inputRef.current?.click()
-
-                }
-
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => {
+                    e.preventDefault();
+                    if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+                }}
             >
+                <Stack spacing={2} alignItems="center">
+                    <CloudUploadRoundedIcon sx={{ fontSize: 70 }} />
+                    <Typography variant="h6" fontWeight={700}>
+                        Drag & Drop Videos
+                    </Typography>
+                    <Typography color="text.secondary">
+                        or
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        disabled={uploading}
+                        onClick={() => inputRef.current?.click()}
+                    >
+                        Browse Videos
+                    </Button>
+                </Stack>
 
-                {
-
-                    uploading
-
-                        ? "Uploading..."
-
-                        : "Upload New Video"
-
-                }
-
-            </Button>
-
+                {uploading && (
+                    <Box mt={4}>
+                        <Typography mb={1}>Uploading...</Typography>
+                        <LinearProgress
+                            variant="determinate"
+                            value={progress}
+                            sx={{ height: 10, borderRadius: 10 }}
+                        />
+                        <Typography mt={1} fontWeight={700}>
+                            {progress}%
+                        </Typography>
+                    </Box>
+                )}
+            </Paper>
         </>
-
     );
-
 }

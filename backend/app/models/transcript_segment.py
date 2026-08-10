@@ -1,9 +1,15 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, Text
+from sqlalchemy import (
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.database import Base
+from app.models.base import Base
 
 
 class TranscriptSegment(Base):
@@ -39,6 +45,12 @@ class TranscriptSegment(Base):
     text: Mapped[str] = mapped_column(
         Text,
         nullable=False
+    )
+
+    # Whisper word timestamps stored as JSON
+    words_json: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(

@@ -9,7 +9,11 @@ class VideoResponse(BaseModel):
     original_filename: str
     file_path: str
     file_size: int
+
     status: str
+    progress: float
+    current_step: str
+
     created_at: datetime
 
     model_config = {

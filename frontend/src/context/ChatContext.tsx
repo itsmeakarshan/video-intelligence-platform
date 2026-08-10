@@ -1,89 +1,61 @@
 import {
-
-createContext,
-
-useContext,
-
-useState
-
+    createContext,
+    useContext,
+    useState
 } from "react";
 
-export interface ChatMessage{
-
-id:string;
-
-role:"user"|"assistant";
-
-text:string;
-
-sources?:any[];
-
+export interface ChatMessage {
+    id: string;
+    role: "user" | "assistant";
+    text: string;
+    sources?: any;
 }
 
-interface ChatContextType{
+interface ChatContextType {
+    messages: ChatMessage[];
+    setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 
-messages:ChatMessage[];
+    conversationId: string;
+    setConversationId: (id: string) => void;
 
-setMessages:React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-
-conversationId:string;
-
-setConversationId:(id:string)=>void;
-
+    selectedVideos: number[];
+    setSelectedVideos: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
-const ChatContext=createContext<ChatContextType>(
-
-{} as ChatContextType
-
+const ChatContext = createContext(
+    {} as ChatContextType
 );
 
 export function ChatProvider({
+    children
+}: {
+    children: React.ReactNode;
+}) {
 
-children
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
 
-}:{
+    const [conversationId, setConversationId] = useState("");
 
-children:React.ReactNode
+    const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
 
-}){
+    return (
+        <ChatContext.Provider
+            value={{
+                messages,
+                setMessages,
 
-const[messages,setMessages]=useState<ChatMessage[]>([]);
+                conversationId,
+                setConversationId,
 
-const[conversationId,setConversationId]=useState("");
-
-return(
-
-<ChatContext.Provider
-
-value={{
-    
-messages,
-
-setMessages,
-
-conversationId,
-
-setConversationId
-
-}}
-
->
-
-{children}
-
-</ChatContext.Provider>
-
-);
-
+                selectedVideos,
+                setSelectedVideos
+            }}
+        >
+            {children}
+        </ChatContext.Provider>
+    );
 }
 
-export function useChat(){
-
-return useContext(
-
-ChatContext
-
-);
-
+export function useChat() {
+    return useContext(ChatContext);
 }

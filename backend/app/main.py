@@ -1,28 +1,70 @@
+from contextlib import asynccontextmanager
+import threading
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
+from app.db.database import Base, engine
 
-from app.api.videos import router as video_router
-from app.api.transcripts import router as transcript_router
-from app.api.search import router as search_router
-from app.api.chat import router as chat_router
+import app.models.video
+import app.models.transcript
+import app.models.transcript_segment
+import app.models.transcript_chunk
+import app.models.user
+
+from app.api import videos
+from app.api import transcripts
+from app.api import chat
+from app.routes import auth
+from app.api import youtube
+
+from app.services.queue_worker import queue_worker
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    print("=" * 60)
+    print("INITIALIZING DATABASE")
+    print("=" * 60)
+
+    Base.metadata.create_all(bind=engine)
+
+    print("=" * 60)
+    print("DATABASE READY")
+    print("=" * 60)
+
+    worker = threading.Thread(
+        target=queue_worker,
+        daemon=True
+    )
+
+    worker.start()
+
+    print("=" * 60)
+    print("BACKGROUND QUEUE WORKER STARTED")
+    print("=" * 60)
+
+    yield
+
+    print("=" * 60)
+    print("APPLICATION SHUTDOWN")
+    print("=" * 60)
+
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.API_VERSION,
+    title="Video Intelligence Platform",
+    lifespan=lifespan
 )
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 
@@ -32,13 +74,16 @@ app.mount(
     name="uploads"
 )
 
-app.include_router(video_router)
-app.include_router(transcript_router)
-app.include_router(search_router)
-app.include_router(chat_router)
+
+app.include_router(auth.router)
+app.include_router(videos.router)
+app.include_router(transcripts.router)
+app.include_router(chat.router)
+app.include_router(youtube.router)
 
 @app.get("/")
 def root():
+
     return {
-        "message": "Video Intelligence Platform API is running!"
+        "message": "Video Intelligence Platform API"
     }

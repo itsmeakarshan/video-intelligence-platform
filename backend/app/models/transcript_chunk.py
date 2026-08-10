@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.database import Base
+from app.models.base import Base
 
 
 class TranscriptChunk(Base):

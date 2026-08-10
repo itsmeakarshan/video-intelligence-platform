@@ -1,9 +1,7 @@
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Integer, Text, String
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.database import Base
+from app.models.base import Base
 
 
 class Transcript(Base):
@@ -21,17 +19,9 @@ class Transcript(Base):
     )
 
     language: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False
+        String(20)
     )
 
     transcript: Mapped[str] = mapped_column(
-        Text,
-        nullable=False
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
+        Text
     )

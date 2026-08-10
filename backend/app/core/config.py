@@ -29,7 +29,18 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
 
     CHROMA_PATH: str = "chroma_db"
-    CHROMA_COLLECTION: str = "video_chunks"
+
+    CHROMA_CHUNK_COLLECTION: str = "rag_chunks"
+
+    CHROMA_SEGMENT_COLLECTION: str = "rag_segments"
+
+    # --------------------------------------------------
+    # Authentication
+    # --------------------------------------------------
+
+    JWT_SECRET_KEY: str
+
+    JWT_ALGORITHM: str = "HS256"
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import DateTime, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.database import Base
+from app.models.base import Base
 
 
 class Video(Base):
@@ -39,6 +39,16 @@ class Video(Base):
         String(50),
         default="uploaded",
         nullable=False
+    )
+
+    progress: Mapped[float] = mapped_column(
+        Float,
+        default=0
+    )
+
+    current_step: Mapped[str] = mapped_column(
+        String(100),
+        default="Waiting..."
     )
 
     created_at: Mapped[datetime] = mapped_column(
