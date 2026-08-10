@@ -1,9 +1,15 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Float, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.quiz_attempt import QuizAttempt
+    from app.models.transcript import Transcript
+    from app.models.user import User
 
 
 class Video(Base):
@@ -12,6 +18,12 @@ class Video(Base):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
+        index=True
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
         index=True
     )
 
@@ -56,3 +68,7 @@ class Video(Base):
         default=datetime.utcnow,
         nullable=False
     )
+
+    user: Mapped["User"] = relationship(back_populates="videos")
+    transcripts: Mapped[list["Transcript"]] = relationship(back_populates="video", cascade="all, delete-orphan")
+    quiz_attempts: Mapped[list["QuizAttempt"]] = relationship(back_populates="video")

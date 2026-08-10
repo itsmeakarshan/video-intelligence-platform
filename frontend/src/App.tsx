@@ -3,6 +3,7 @@ import {
     Routes,
     Route
 } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
 import Summary from "./pages/Summary";
@@ -15,6 +16,9 @@ import { ChatProvider } from "./context/ChatContext";
 import { VideoProvider } from "./context/VideoContext";
 
 export default function App() {
+
+    const requireAuth = (element: React.ReactNode) =>
+        localStorage.getItem("access_token") ? element : <Navigate to="/login" replace />;
 
     return (
 
@@ -38,22 +42,22 @@ export default function App() {
 
                         <Route
                             path="/"
-                            element={<Dashboard />}
+                            element={requireAuth(<Dashboard />)}
                         />
 
                         <Route
                             path="/summary"
-                            element={<Summary />}
+                            element={requireAuth(<Summary />)}
                         />
 
                         <Route
                             path="/notes"
-                            element={<Notes />}
+                            element={requireAuth(<Notes />)}
                         />
 
                         <Route
                             path="/quiz"
-                            element={<Quiz />}
+                            element={requireAuth(<Quiz />)}
                         />
 
                     </Routes>

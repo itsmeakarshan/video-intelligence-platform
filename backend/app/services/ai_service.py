@@ -1,9 +1,11 @@
 import re
-import uuid
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from app.services.memory_service import (
     add_message,
     get_history,
+    get_or_create_conversation,
 )
 
 from app.services.query_rewriter_service import (
@@ -54,17 +56,31 @@ def is_general_chat(question: str):
     )
 
 
+def _owned_video_ids(db: Session, user_id: int, video_ids: list[int] | None) -> list[int] | None:
+    if not video_ids:
+        return None
+    from app.models.video import Video
+    clean_ids = list({int(video_id) for video_id in video_ids})
+    owned = db.query(Video.id).filter(Video.user_id == user_id, Video.id.in_(clean_ids)).all()
+    if len(owned) != len(clean_ids):
+        raise HTTPException(status_code=404, detail="Video not found.")
+    return clean_ids
+
+
 def chat_with_ai(
     question: str,
+    db: Session,
+    user_id: int,
     conversation_id: str | None = None,
     video_ids: list[int] | None = None
 ):
 
-    if conversation_id is None:
-        conversation_id = str(uuid.uuid4())
+    conversation = get_or_create_conversation(db, user_id, conversation_id)
+    conversation_id = conversation.id
+    video_ids = _owned_video_ids(db, user_id, video_ids)
 
     history = get_history(
-        conversation_id
+        db, conversation_id, user_id
     )
 
     if is_general_chat(question):
@@ -95,17 +111,18 @@ def chat_with_ai(
 
         response = ask_video(
             question=rewritten_question,
+            user_id=user_id,
             video_ids=video_ids
         )
 
     add_message(
-        conversation_id,
+        db, conversation_id, user_id,
         "User",
         question
     )
 
     add_message(
-        conversation_id,
+        db, conversation_id, user_id,
         "Assistant",
         response["answer"]
     )
@@ -117,15 +134,18 @@ def chat_with_ai(
 
 def chat_with_ai_stream(
     question: str,
+    db: Session,
+    user_id: int,
     conversation_id: str | None = None,
     video_ids: list[int] | None = None
 ):
 
-    if conversation_id is None:
-        conversation_id = str(uuid.uuid4())
+    conversation = get_or_create_conversation(db, user_id, conversation_id)
+    conversation_id = conversation.id
+    video_ids = _owned_video_ids(db, user_id, video_ids)
 
     history = get_history(
-        conversation_id
+        db, conversation_id, user_id
     )
 
     if is_general_chat(question):
@@ -151,6 +171,7 @@ def chat_with_ai_stream(
 
         stream = ask_video_stream(
             question=rewritten_question,
+            user_id=user_id,
             video_ids=video_ids
         )
 
@@ -166,13 +187,13 @@ def chat_with_ai_stream(
             yield chunk
 
         add_message(
-            conversation_id,
+            db, conversation_id, user_id,
             "User",
             question
         )
 
         add_message(
-            conversation_id,
+            db, conversation_id, user_id,
             "Assistant",
             "".join(answer)
         )
@@ -181,31 +202,34 @@ def chat_with_ai_stream(
 
 
 def summary_with_ai(
+    db: Session,
+    user_id: int,
     video_ids: list[int] | None = None
 ):
 
-    return generate_summary(
-        video_ids
-    )
+    return generate_summary(user_id, _owned_video_ids(db, user_id, video_ids))
 
 
 def notes_with_ai(
+    db: Session,
+    user_id: int,
     video_ids: list[int] | None = None
 ):
 
-    return generate_notes(
-        video_ids
-    )
+    return generate_notes(user_id, _owned_video_ids(db, user_id, video_ids))
 
 
 def quiz_with_ai(
+    db: Session,
+    user_id: int,
     difficulty: str = "Medium",
     questions: int = 10,
     video_ids: list[int] | None = None
 ):
 
     return generate_quiz(
+        user_id=user_id,
         difficulty=difficulty,
         questions=questions,
-        video_ids=video_ids
+        video_ids=_owned_video_ids(db, user_id, video_ids)
     )

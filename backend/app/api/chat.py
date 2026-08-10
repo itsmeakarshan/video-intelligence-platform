@@ -1,6 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.db.database import get_db
+from app.models.user import User
 
 from app.services.ai_service import (
     chat_with_ai,
@@ -37,20 +42,24 @@ class QuizRequest(BaseModel):
 
 
 @router.post("")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     return chat_with_ai(
         question=request.question,
+        db=db,
+        user_id=current_user.id,
         conversation_id=request.conversation_id,
         video_ids=request.video_ids,
     )
 
 
 @router.post("/stream")
-def chat_stream(request: ChatRequest):
+def chat_stream(request: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     stream, conversation_id = chat_with_ai_stream(
         question=request.question,
+        db=db,
+        user_id=current_user.id,
         conversation_id=request.conversation_id,
         video_ids=request.video_ids,
     )
@@ -65,26 +74,26 @@ def chat_stream(request: ChatRequest):
 
 
 @router.post("/summary")
-def summary(request: SummaryRequest):
+def summary(request: SummaryRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     return summary_with_ai(
-        video_ids=request.video_ids
+        db=db, user_id=current_user.id, video_ids=request.video_ids
     )
 
 
 @router.post("/notes")
-def notes(request: NotesRequest):
+def notes(request: NotesRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     return notes_with_ai(
-        video_ids=request.video_ids
+        db=db, user_id=current_user.id, video_ids=request.video_ids
     )
 
 
 @router.post("/quiz")
-def quiz(request: QuizRequest):
+def quiz(request: QuizRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     return quiz_with_ai(
-        difficulty=request.difficulty,
+        db=db, user_id=current_user.id, difficulty=request.difficulty,
         questions=request.questions,
         video_ids=request.video_ids,
     )

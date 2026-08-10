@@ -4,6 +4,28 @@ export const api = axios.create({
     baseURL: "http://127.0.0.1:8000"
 });
 
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+api.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user");
+            if (!window.location.pathname.startsWith("/login")) {
+                window.location.assign("/login");
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export async function uploadVideo(
     file: File,
     onProgress?: (progress: number) => void
@@ -72,6 +94,21 @@ export async function deleteVideo(
         `/videos/${videoId}`
     );
 
+    return response.data;
+}
+
+export async function saveQuizAttempt(
+    score: number,
+    totalQuestions: number,
+    difficulty: string,
+    videoId?: number
+) {
+    const response = await api.post("/quiz-attempts", {
+        score,
+        total_questions: totalQuestions,
+        difficulty,
+        video_id: videoId
+    });
     return response.data;
 }
 

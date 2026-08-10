@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.api.deps import get_current_user
+from app.models.user import User
 
 from app.services.youtube_downloader import (
     download_youtube_video
@@ -31,7 +33,8 @@ class YouTubeDownloadRequest(BaseModel):
 @router.post("/download")
 def download_video(
     request: YouTubeDownloadRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
 
     url = request.url.strip()
@@ -93,7 +96,8 @@ def download_video(
         video = save_downloaded_video(
             filepath=file_path,
             original_filename=original_filename,
-            db=db
+            db=db,
+            user_id=current_user.id,
         )
 
         return {

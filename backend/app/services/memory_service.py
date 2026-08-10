@@ -1,108 +1,41 @@
-from collections import defaultdict
+import uuid
+
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from app.models.conversation import Conversation, Message
 
 MAX_HISTORY = 20
 
-memory = defaultdict(list)
+
+def get_or_create_conversation(db: Session, user_id: int, conversation_id: str | None) -> Conversation:
+    if conversation_id:
+        conversation = db.query(Conversation).filter(
+            Conversation.id == conversation_id, Conversation.user_id == user_id
+        ).first()
+        if conversation is None:
+            raise HTTPException(status_code=404, detail="Conversation not found.")
+        return conversation
+
+    conversation = Conversation(id=str(uuid.uuid4()), user_id=user_id)
+    db.add(conversation)
+    db.commit()
+    db.refresh(conversation)
+    return conversation
 
 
-def add_message(
-    conversation_id: str,
-    role: str,
-    text: str
-):
-
-    memory[conversation_id].append(
-
-        {
-            "role": role,
-            "text": text
-        }
-
-    )
-
-    if len(memory[conversation_id]) > MAX_HISTORY:
-
-        memory[conversation_id] = (
-
-            memory[conversation_id][-MAX_HISTORY:]
-
-        )
+def get_history(db: Session, conversation_id: str, user_id: int) -> list[dict]:
+    messages = db.query(Message).join(Conversation).filter(
+        Message.conversation_id == conversation_id, Conversation.user_id == user_id
+    ).order_by(Message.created_at.desc(), Message.id.desc()).limit(MAX_HISTORY).all()
+    return [{"role": message.role, "text": message.text} for message in reversed(messages)]
 
 
-def get_history(
-    conversation_id: str
-):
-
-    return memory.get(
-        conversation_id,
-        []
-    )
-
-
-def clear_history(
-    conversation_id: str
-):
-
-    memory.pop(
-        conversation_id,
-        None
-    )
-
-
-def get_last_messages(
-    conversation_id: str,
-    limit: int = 6
-):
-
-    return memory.get(
-        conversation_id,
-        []
-    )[-limit:]
-
-
-def get_last_user_message(
-    conversation_id: str
-):
-
-    history = memory.get(
-        conversation_id,
-        []
-    )
-
-    for message in reversed(history):
-
-        if message["role"].lower() == "user":
-
-            return message["text"]
-
-    return ""
-
-
-def get_last_assistant_message(
-    conversation_id: str
-):
-
-    history = memory.get(
-        conversation_id,
-        []
-    )
-
-    for message in reversed(history):
-
-        if message["role"].lower() == "assistant":
-
-            return message["text"]
-
-    return ""
-
-
-def conversation_exists(
-    conversation_id: str
-):
-
-    return conversation_id in memory
-
-
-def total_conversations():
-
-    return len(memory)
+def add_message(db: Session, conversation_id: str, user_id: int, role: str, text: str) -> None:
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id, Conversation.user_id == user_id
+    ).first()
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    db.add(Message(conversation_id=conversation_id, role=role, text=text))
+    db.commit()

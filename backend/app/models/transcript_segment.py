@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     DateTime,
@@ -7,9 +8,12 @@ from sqlalchemy import (
     Integer,
     Text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.transcript import Transcript
 
 
 class TranscriptSegment(Base):
@@ -57,3 +61,5 @@ class TranscriptSegment(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    transcript: Mapped["Transcript"] = relationship(back_populates="segments")

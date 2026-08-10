@@ -77,6 +77,10 @@ def index_video(
         print(f"INDEX ERROR: Video with ID {video_id} not found.")
         return
 
+    if video.user_id is None:
+        print(f"INDEX ERROR: Video {video_id} has no owner and will not be indexed.")
+        return
+
     transcript = (
         db.query(Transcript)
         .filter(Transcript.video_id == video_id)
@@ -161,6 +165,7 @@ def index_video(
 
             chunk_metadatas.append(
                 {
+                    "user_id": int(video.user_id),
                     "video_id": int(video.id),
                     "video_title": video_title,
                     "filename": filename,
@@ -195,6 +200,7 @@ def index_video(
 
             segment_metadatas.append(
                 {
+                    "user_id": int(video.user_id),
                     "video_id": int(video.id),
                     "video_title": video_title,
                     "filename": filename,
@@ -240,6 +246,7 @@ def index_video(
 
 def search_chunks(
     query: str,
+    user_id: int,
     video_ids: list | int | str | None = None
 ):
 
@@ -270,11 +277,12 @@ def search_chunks(
 
     clean_vids = _clean_video_ids(video_ids)
 
+    user_filter = {"user_id": int(user_id)}
     if clean_vids:
-        if len(clean_vids) == 1:
-            kwargs["where"] = {"video_id": clean_vids[0]}
-        else:
-            kwargs["where"] = {"video_id": {"$in": clean_vids}}
+        video_filter = {"video_id": clean_vids[0]} if len(clean_vids) == 1 else {"video_id": {"$in": clean_vids}}
+        kwargs["where"] = {"$and": [user_filter, video_filter]}
+    else:
+        kwargs["where"] = user_filter
 
     result = chunk_collection.query(**kwargs)
 
@@ -329,6 +337,7 @@ def search_chunks(
 
 def search_segments(
     query: str,
+    user_id: int,
     video_id: int,
     chunk_start: float,
     chunk_end: float
@@ -355,7 +364,7 @@ def search_segments(
     result = segment_collection.query(
         query_embeddings=[embedding],
         n_results=100,
-        where={"video_id": clean_video_id}
+        where={"$and": [{"user_id": int(user_id)}, {"video_id": clean_video_id}]}
     )
 
     documents = result.get("documents", [[]])[0] or []

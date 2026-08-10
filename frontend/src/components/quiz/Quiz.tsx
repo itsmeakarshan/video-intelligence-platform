@@ -13,16 +13,15 @@ import {
     RadioGroup,
     FormControlLabel,
     Alert,
-    Chip,
     Stack
 } from "@mui/material";
 
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { generateQuiz } from "../../services/chatService";
-import { getVideos } from "../../api/api";
+import { getVideos, saveQuizAttempt } from "../../api/api";
 
 import VideoSelectionDialog from "../common/VideoSelectionDialog";
 
@@ -44,6 +43,55 @@ interface QuizResponse {
 
 }
 
+function parseQuizResponse(response: unknown): QuizResponse {
+    let quizPayload = response;
+
+    if (
+        typeof response === "object" &&
+        response !== null &&
+        "answer" in response
+    ) {
+        quizPayload = (response as { answer: unknown }).answer;
+    }
+
+    if (typeof quizPayload === "string") {
+        const json = quizPayload
+            .trim()
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/\s*```$/, "");
+
+        quizPayload = JSON.parse(json);
+    }
+
+    if (
+        typeof quizPayload !== "object" ||
+        quizPayload === null ||
+        !Array.isArray((quizPayload as QuizResponse).questions)
+    ) {
+        throw new Error("The quiz response did not include questions.");
+    }
+
+    const parsedQuiz = quizPayload as QuizResponse;
+
+    parsedQuiz.questions.forEach((question, index) => {
+        if (
+            typeof question.question !== "string" ||
+            !Array.isArray(question.options) ||
+            question.options.length !== 4 ||
+            !question.options.every(option => typeof option === "string") ||
+            !Number.isInteger(question.answer) ||
+            question.answer < 0 ||
+            question.answer > 3 ||
+            typeof question.explanation !== "string"
+        ) {
+            throw new Error(`Question ${index + 1} has an invalid format.`);
+        }
+    });
+
+    return parsedQuiz;
+}
+
 export default function Quiz() {
 
     const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
@@ -57,6 +105,7 @@ export default function Quiz() {
     >({});
 
     const [loading, setLoading] = useState(false);
+    const [quizError, setQuizError] = useState("");
 
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -65,6 +114,12 @@ export default function Quiz() {
     const [questions, setQuestions] = useState(10);
 
     const [hasVideos, setHasVideos] = useState(true);
+    const [attemptVideoId, setAttemptVideoId] = useState<number | undefined>();
+    const [attemptSaved, setAttemptSaved] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+    const [finalScore, setFinalScore] = useState<number | null>(null);
+    const submissionInFlight = useRef(false);
 
     useEffect(() => {
 
@@ -108,6 +163,7 @@ export default function Quiz() {
         setDialogOpen(false);
 
         setLoading(true);
+        setQuizError("");
 
         try {
 
@@ -117,10 +173,7 @@ export default function Quiz() {
                 questions
             );
 
-            const parsed: QuizResponse =
-                JSON.parse(
-                    result.answer
-                );
+            const parsed = parseQuizResponse(result);
 
             setQuiz(
                 parsed.questions
@@ -129,10 +182,20 @@ export default function Quiz() {
             setSelectedAnswers({});
 
             setShowAnswer({});
+            setAttemptVideoId(videoIds.length === 1 ? videoIds[0] : undefined);
+            setAttemptSaved(false);
+            setSubmitting(false);
+            setSubmitError("");
+            setFinalScore(null);
+            submissionInFlight.current = false;
 
         } catch (error) {
 
-            console.error(error);
+            console.error("Unable to generate quiz:", error);
+            setQuiz([]);
+            setQuizError(
+                "The quiz could not be displayed because the generated response was not valid quiz JSON. Please try again."
+            );
 
         } finally {
 
@@ -140,6 +203,43 @@ export default function Quiz() {
 
         }
 
+    }
+
+    function checkAnswer(index: number) {
+        if (attemptSaved) return;
+        setShowAnswer(prev => ({ ...prev, [index]: true }));
+    }
+
+    async function submitQuiz() {
+        if (attemptSaved || submissionInFlight.current) return;
+
+        if (Object.keys(selectedAnswers).length !== quiz.length) {
+            setSubmitError("Please answer all questions before submitting.");
+            return;
+        }
+
+        const score = quiz.filter(
+            (question, index) =>
+                selectedAnswers[index] === question.answer
+        ).length;
+
+        submissionInFlight.current = true;
+        setSubmitting(true);
+        setSubmitError("");
+
+        try {
+            await saveQuizAttempt(score, quiz.length, difficulty, attemptVideoId);
+            setFinalScore(score);
+            setAttemptSaved(true);
+        } catch (error) {
+            console.error("Unable to save quiz attempt", error);
+            setSubmitError(
+                "Your quiz was scored, but the result could not be saved. Please try again."
+            );
+            submissionInFlight.current = false;
+        } finally {
+            setSubmitting(false);
+        }
     }
 
     const extraContent = (
@@ -280,6 +380,12 @@ export default function Quiz() {
 
                 }
 
+                {quizError && (
+                    <Alert severity="error" sx={{ mt: 3 }}>
+                        {quizError}
+                    </Alert>
+                )}
+
                 {quiz.length > 0 && (
 
                     <Stack
@@ -370,6 +476,7 @@ export default function Quiz() {
                                                         control={
                                                             <Radio />
                                                         }
+                                                        disabled={attemptSaved}
                                                         label={
                                                             option
                                                         }
@@ -387,16 +494,10 @@ export default function Quiz() {
                                         <Button
                                             variant="contained"
                                             disabled={
-                                                selected === undefined
+                                                selected === undefined ||
+                                                attemptSaved
                                             }
-                                            onClick={() =>
-                                                setShowAnswer(
-                                                    prev => ({
-                                                        ...prev,
-                                                        [index]: true
-                                                    })
-                                                )
-                                            }
+                                            onClick={() => checkAnswer(index)}
                                             sx={{
                                                 mt: 2,
                                                 bgcolor: "#14B8A6",
@@ -493,28 +594,44 @@ export default function Quiz() {
 
                         })}
 
-                        <Chip
-                            color="success"
-                            label={`Score: ${
-                                Object.keys(
-                                    showAnswer
-                                ).filter(i =>
-                                    selectedAnswers[
-                                        Number(i)
-                                    ] ===
-                                    quiz[
-                                        Number(i)
-                                    ].answer
-                                ).length
-                            } / ${quiz.length}`}
-                            sx={{
-                                alignSelf: "center",
-                                mt: 2,
-                                fontSize: 18,
-                                px: 2,
-                                py: 3
-                            }}
-                        />
+                        {submitError && (
+                            <Alert severity="warning">
+                                {submitError}
+                            </Alert>
+                        )}
+
+                        {attemptSaved && finalScore !== null ? (
+                            <Alert
+                                severity="success"
+                                sx={{ alignSelf: "center", textAlign: "center" }}
+                            >
+                                <Typography fontWeight={700}>
+                                    Quiz Complete 🎉
+                                </Typography>
+                                <Typography>
+                                    Score: {finalScore} / {quiz.length}
+                                </Typography>
+                                <Typography>
+                                    Percentage: {Math.round((finalScore / quiz.length) * 100)}%
+                                </Typography>
+                                <Typography>
+                                    Difficulty: {difficulty}
+                                </Typography>
+                            </Alert>
+                        ) : (
+                            <Button
+                                variant="contained"
+                                onClick={submitQuiz}
+                                disabled={submitting}
+                                sx={{
+                                    alignSelf: "center",
+                                    bgcolor: "#14B8A6",
+                                    "&:hover": { bgcolor: "#10B981" }
+                                }}
+                            >
+                                {submitting ? "Submitting..." : "Submit Quiz"}
+                            </Button>
+                        )}
 
                     </Stack>
 

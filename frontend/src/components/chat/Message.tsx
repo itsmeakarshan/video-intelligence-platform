@@ -127,9 +127,6 @@ export default function Message({
                         <Box sx={{ mt: 2 }}>
 
                             <SourceCard
-
-                                sx={{ borderRadius: 1.5 }}
-
                                 videoId={sources[0].video_id}
 
                                 start={sources[0].start_time}

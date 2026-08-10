@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.api.deps import get_current_user
+from app.models.user import User
 
 from app.models.video import Video
 from app.models.transcript import Transcript
@@ -16,12 +18,13 @@ router = APIRouter(
 @router.post("/{video_id}")
 def create_transcript(
     video_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
 
     video = (
         db.query(Video)
-        .filter(Video.id == video_id)
+        .filter(Video.id == video_id, Video.user_id == current_user.id)
         .first()
     )
 
@@ -80,9 +83,13 @@ def create_transcript(
 @router.get("/{video_id}")
 def get_transcript(
     video_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
 
+    video = db.query(Video).filter(Video.id == video_id, Video.user_id == current_user.id).first()
+    if video is None:
+        raise HTTPException(status_code=404, detail="Video not found.")
     transcript = (
         db.query(Transcript)
         .filter(
@@ -103,9 +110,13 @@ def get_transcript(
 @router.get("/{video_id}/segments")
 def get_segments(
     video_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
 
+    video = db.query(Video).filter(Video.id == video_id, Video.user_id == current_user.id).first()
+    if video is None:
+        raise HTTPException(status_code=404, detail="Video not found.")
     transcript = (
         db.query(Transcript)
         .filter(

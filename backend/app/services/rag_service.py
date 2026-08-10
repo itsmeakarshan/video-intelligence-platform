@@ -323,7 +323,8 @@ TRANSCRIPT:
 
 def _refine_timestamps(
     matches,
-    question
+    question,
+    user_id: int,
 ):
 
     refined = []
@@ -372,6 +373,7 @@ def _refine_timestamps(
 
             segments = search_segments(
                 question,
+                user_id,
                 int(video_id),
                 float(chunk_start),
                 float(chunk_end)
@@ -462,6 +464,7 @@ def _refine_timestamps(
 
 def ask_video(
     question: str,
+    user_id: int,
     video_ids: list | None = None
 ):
 
@@ -488,6 +491,7 @@ def ask_video(
 
     results = search_chunks(
         question,
+        user_id,
         clean_vids
     )
 
@@ -496,11 +500,6 @@ def ask_video(
         []
     )
     
-    # FALLBACK: If specific video search fails, try searching across all videos
-    if not matches and clean_vids is not None:
-        print("NO MATCHES WITH EXACT VIDEO_ID. FALLING BACK TO GLOBAL SEARCH.")
-        results = search_chunks(question, None)
-        matches = results.get("matches", [])
 
     print(
         f"Semantic Search took "
@@ -574,7 +573,8 @@ def ask_video(
 
     refined_matches = _refine_timestamps(
         selected_matches,
-        question
+        question,
+        user_id
     )
 
     print("=" * 80)
@@ -656,6 +656,7 @@ def ask_video(
 
 def ask_video_stream(
     question: str,
+    user_id: int,
     video_ids: list | None = None
 ):
 
@@ -663,6 +664,7 @@ def ask_video_stream(
 
     results = search_chunks(
         question,
+        user_id,
         clean_vids
     )
 
@@ -671,9 +673,6 @@ def ask_video_stream(
         []
     )
     
-    if not matches and clean_vids is not None:
-        results = search_chunks(question, None)
-        matches = results.get("matches", [])
 
     if not matches:
 
@@ -688,7 +687,8 @@ def ask_video_stream(
 
     refined_matches = _refine_timestamps(
         selected_matches,
-        question
+        question,
+        user_id
     )
 
     context, _ = build_context(
@@ -709,6 +709,7 @@ def ask_video_stream(
 # ============================================================
 
 def generate_summary(
+    user_id: int,
     video_ids: list | None = None
 ):
 
@@ -716,6 +717,7 @@ def generate_summary(
 
     results = search_chunks(
         "Summarize the uploaded videos.",
+        user_id,
         clean_vids
     )
 
@@ -724,9 +726,6 @@ def generate_summary(
         []
     )
     
-    if not matches and clean_vids is not None:
-        results = search_chunks("Summarize the uploaded videos.", None)
-        matches = results.get("matches", [])
 
     selected_matches = _select_context_matches(
         matches
@@ -751,6 +750,7 @@ def generate_summary(
 # ============================================================
 
 def generate_notes(
+    user_id: int,
     video_ids: list | None = None
 ):
 
@@ -758,6 +758,7 @@ def generate_notes(
 
     results = search_chunks(
         "Create detailed study notes from the uploaded videos.",
+        user_id,
         clean_vids
     )
 
@@ -766,9 +767,6 @@ def generate_notes(
         []
     )
     
-    if not matches and clean_vids is not None:
-        results = search_chunks("Create detailed study notes from the uploaded videos.", None)
-        matches = results.get("matches", [])
 
     selected_matches = _select_context_matches(
         matches
@@ -793,6 +791,7 @@ def generate_notes(
 # ============================================================
 
 def generate_quiz(
+    user_id: int,
     difficulty: str = "Medium",
     questions: int = 10,
     video_ids: list | None = None
@@ -802,6 +801,7 @@ def generate_quiz(
 
     results = search_chunks(
         "Generate a quiz from the uploaded videos.",
+        user_id,
         clean_vids
     )
 
@@ -810,9 +810,6 @@ def generate_quiz(
         []
     )
     
-    if not matches and clean_vids is not None:
-        results = search_chunks("Generate a quiz from the uploaded videos.", None)
-        matches = results.get("matches", [])
 
     selected_matches = _select_context_matches(
         matches

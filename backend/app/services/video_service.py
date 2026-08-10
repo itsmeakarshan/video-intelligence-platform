@@ -61,7 +61,8 @@ def sanitize_filename(filename: str) -> str:
 
 def save_video(
     file: UploadFile,
-    db: Session
+    db: Session,
+    user_id: int,
 ):
     """
     Save a normal uploaded video.
@@ -87,6 +88,7 @@ def save_video(
     )
 
     video = Video(
+        user_id=user_id,
         filename=filename,
         original_filename=file.filename,
         file_path=filepath,
@@ -107,7 +109,8 @@ def save_video(
 def save_downloaded_video(
     filepath: str,
     original_filename: str,
-    db: Session
+    db: Session,
+    user_id: int,
 ):
     """
     Create a Video database record for a video
@@ -155,6 +158,7 @@ def save_downloaded_video(
     )
 
     video = Video(
+        user_id=user_id,
         filename=filename,
         original_filename=original_filename,
         file_path=safe_filepath,
@@ -173,11 +177,13 @@ def save_downloaded_video(
 
 
 def get_all_videos(
-    db: Session
+    db: Session,
+    user_id: int,
 ):
 
     return (
         db.query(Video)
+        .filter(Video.user_id == user_id)
         .order_by(
             Video.id.desc()
         )
@@ -187,14 +193,13 @@ def get_all_videos(
 
 def delete_video(
     video_id: int,
-    db: Session
+    db: Session,
+    user_id: int,
 ):
 
     video = (
         db.query(Video)
-        .filter(
-            Video.id == video_id
-        )
+        .filter(Video.id == video_id, Video.user_id == user_id)
         .first()
     )
 

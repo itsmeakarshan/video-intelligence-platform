@@ -3,7 +3,6 @@ import threading
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.db.database import Base, engine
 
@@ -12,12 +11,15 @@ import app.models.transcript
 import app.models.transcript_segment
 import app.models.transcript_chunk
 import app.models.user
+import app.models.conversation
+import app.models.quiz_attempt
 
 from app.api import videos
 from app.api import transcripts
 from app.api import chat
 from app.routes import auth
 from app.api import youtube
+from app.api import quiz_attempts
 
 from app.services.queue_worker import queue_worker
 
@@ -68,18 +70,13 @@ app.add_middleware(
 )
 
 
-app.mount(
-    "/uploads",
-    StaticFiles(directory="uploads"),
-    name="uploads"
-)
-
 
 app.include_router(auth.router)
 app.include_router(videos.router)
 app.include_router(transcripts.router)
 app.include_router(chat.router)
 app.include_router(youtube.router)
+app.include_router(quiz_attempts.router)
 
 @app.get("/")
 def root():

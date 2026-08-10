@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.transcript import Transcript
 
 
 class TranscriptChunk(Base):
@@ -50,3 +54,5 @@ class TranscriptChunk(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    transcript: Mapped["Transcript"] = relationship(back_populates="chunks")
