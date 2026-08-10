@@ -6,18 +6,16 @@ Follow the steps below to set up and run the Video Intelligence Platform on your
 
 # System Requirements
 
-We will install the follwoing Software versions:
+We will install the following software versions:
 
 | Software | Version |
-|----------|----------|
-| Python | 3.13.14 |
-| Node.js | 26.5.1 |
-| npm | 11.17.0 |
-| FFmpeg | 8.1.2 |
+| -------- | ------- |
+| Python   | 3.13.14 |
+| Node.js  | 26.5.1  |
+| npm      | 11.17.0 |
+| FFmpeg   | 8.1.2   |
 
 ---
-# Run the following commands in your terminal.
-
 
 # Step 1 - Install Python
 
@@ -37,7 +35,6 @@ brew install python@3.13
 
 ```bash
 sudo apt update
-
 sudo apt install python3 python3-venv python3-pip
 ```
 
@@ -61,7 +58,6 @@ brew install node
 
 ```bash
 sudo apt update
-
 sudo apt install nodejs npm
 ```
 
@@ -85,7 +81,6 @@ brew install ffmpeg
 
 ```bash
 sudo apt update
-
 sudo apt install ffmpeg
 ```
 
@@ -109,7 +104,7 @@ Navigate to the backend folder.
 cd backend
 ```
 
-Create a virtual environment.
+Create a Python virtual environment.
 
 ### Windows
 
@@ -137,7 +132,7 @@ Activate the virtual environment.
 source .venv/bin/activate
 ```
 
-Install the required packages.
+Install the required Python packages.
 
 ```bash
 pip install -r requirements.txt
@@ -147,13 +142,17 @@ pip install -r requirements.txt
 
 # Step 6 - Configure Environment Variables
 
-Inside the **backend** folder you'll find:
+Inside the **backend** folder you will find:
 
-```
+```text
 .env.example
 ```
 
-Create a copy named `.env`.
+Create a copy named:
+
+```text
+.env
+```
 
 ### Windows
 
@@ -167,21 +166,125 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Open the `.env` file and replace:
+Your backend folder should now contain:
+
+```text
+backend/
+├── .env
+├── .env.example
+├── app/
+├── uploads/
+└── ...
+```
+
+Open the `.env` file.
+
+You will need to configure both the **Gemini API key** and the **JWT secret key**.
+
+---
+
+## 🔑 Gemini API Key
+
+Find:
 
 ```env
 GEMINI_API_KEY=PASTE_YOUR_GEMINI_API_KEY_HERE
 ```
 
-with your own Gemini API key.
+Replace the placeholder with your own Gemini API key.
 
-You can generate a free API key here:
+You can create a Gemini API key here:
 
 https://aistudio.google.com/app/apikey
 
+For example:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Do not share your API key or commit it to GitHub.
+
 ---
 
-# Step 7 - Start the Backend
+## 🔐 JWT Secret Key
+
+The application uses **JSON Web Tokens (JWT)** for authentication.
+
+The JWT secret key is used by the backend to securely sign and verify authentication tokens.
+
+Find these lines in your `.env` file:
+
+```env
+JWT_SECRET_KEY=your_jwt_secret_key_here
+JWT_ALGORITHM=HS256
+```
+
+You need to generate your own secret key.
+
+### macOS / Linux
+
+Run:
+
+```bash
+openssl rand -hex 32
+```
+
+This will generate a random secret similar to:
+
+```text
+8f4c2a7b9d1e6fxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Copy the generated value.
+
+### Windows
+
+If OpenSSL is available, run:
+
+```powershell
+openssl rand -hex 32
+```
+
+If OpenSSL is not available, PowerShell can generate a random value:
+
+```powershell
+[Convert]::ToHexString((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+Copy the generated value.
+
+### Add the secret to `.env`
+
+Replace:
+
+```env
+JWT_SECRET_KEY=your_jwt_secret_key_here
+```
+
+with your generated secret:
+
+```env
+JWT_SECRET_KEY=YOUR_GENERATED_SECRET
+JWT_ALGORITHM=HS256
+```
+
+For example:
+
+```env
+JWT_SECRET_KEY=8f4c2a7b9d1e6fxxxxxxxxxxxxxxxxxxxxxxxx
+JWT_ALGORITHM=HS256
+```
+
+Do **not** use the example value above. Generate your own secret.
+
+---
+
+# Step 6 - Start the Backend
+
+Make sure your virtual environment is activated.
+
+From the `backend` directory:
 
 ```bash
 uvicorn app.main:app --reload
@@ -189,27 +292,35 @@ uvicorn app.main:app --reload
 
 The backend will run on:
 
-```
+```text
 http://127.0.0.1:8000
+```
+
+You can also access the FastAPI documentation at:
+
+```text
+http://127.0.0.1:8000/docs
 ```
 
 ---
 
-# Step 8 - Frontend Setup
+# Step 7 - Frontend Setup
 
-Open a new terminal.
+Open a **new terminal**.
+
+Navigate to the project directory:
 
 ```bash
-cd frontend
+cd video-intelligence-platform/frontend
 ```
 
-Install the required packages.
+Install the required packages:
 
 ```bash
 npm install
 ```
 
-Start the frontend.
+Start the frontend:
 
 ```bash
 npm run dev
@@ -217,90 +328,148 @@ npm run dev
 
 The frontend will run on:
 
-```
+```text
 http://localhost:5173
 ```
 
 ---
 
-# Step 9 - Using the Application
+# Step 8 - Using the Application
 
-### Upload Videos
+Once both the backend and frontend are running, open:
 
-Upload one or more videos.
-
-Videos remain in the **Uploaded** state until you manually process them.
-
-### Process Videos
-
-Click **Process** and choose one of the available Whisper models:
-
-- Tiny – Fastest
-- Base – Recommended
-- Small
-- Medium
-- Large-v3 – Best Quality
-
-### AI Chat
-
-Ask questions about one or more processed videos.
-
-### AI Summary
-
-Generate summaries from selected videos.
-
-### AI Notes
-
-Generate study notes from selected videos.
-
-### AI Quiz
-
-Select one or more videos, choose the difficulty and number of questions, then generate a quiz.
+```text
+http://localhost:5173
+```
 
 ---
 
-# Step 10 - Demo Data
+## 🎥 Upload Videos
 
-The repository already includes:
+Upload one or more videos through the application.
 
-- Preprocessed demo videos
+Videos remain in the **Uploaded** state until you manually process them.
+
+---
+
+## 🎙️ Process Videos
+
+Click **Process**
+
+The Whisper model will be downloaded automatically the first time it is used.
+
+Processing includes:
+
+```text
+Video
+ ↓
+Audio Processing
+ ↓
+Open AI Whisper
+ ↓
+Transcript
+ ↓
+Transcript Segments
+ ↓
+Transcript Chunks
+ ↓
+Embeddings
+ ↓
+ChromaDB
+```
+
+---
+
+## 💬 AI Chat
+
+After a video has been processed, select the video and ask questions about its content.
+
+Example:
+
+```text
+What is this video about?
+```
+
+You can also ask questions about specific topics or moments:
+
+```text
+When is this topic discussed?
+```
+
+The application uses semantic search and RAG to retrieve relevant information before sending the context to Google Gemini.
+
+---
+
+## 🔊 Speak Aloud
+
+AI responses can also be read aloud using the browser's speech synthesis functionality.
+
+Use the **Speak Aloud** button on an AI response to listen to the generated answer.
+
+---
+
+## 📄 AI Summary
+
+Select one or more processed videos and generate an AI summary.
+
+---
+
+# Demo Data
+
+The repository contains **pre-processed demonstration content**.
+
+This includes:
+
+- Pre-processed demo videos
 - SQLite database
 - ChromaDB vector database
+- Processed transcript data
 
-Simply add your Gemini API key and the application is ready to use.
+This allows you to test the AI features without having to process the demonstration videos yourself.
+
+Simply configure your Gemini API key and JWT secret, start the backend and frontend, and open the application.
 
 You can also upload and process your own videos.
 
 ---
 
-# Troubleshooting
+# 🎬 Demo Video Content
 
-### Missing Gemini API Key
+The current demonstration uses educational videos from the following Computer Basics playlist:
 
-Copy:
+https://www.youtube.com/playlist?list=PL4316FC411AD077AA
 
-```
-.env.example
-```
+The videos are used as demonstration content for the platform.
 
-to:
+All original videos, audio, educational material, and associated content belong to their respective copyright owners.
 
-```
-.env
-```
+This project does not claim ownership of the original video content.
 
-and replace:
-
-```env
-GEMINI_API_KEY=PASTE_YOUR_GEMINI_API_KEY_HERE
-```
-
-with your own API key.
-
-### Whisper Models
-
-The first time a Whisper model is selected, it will be downloaded automatically.
+If you use your own videos, make sure you have the appropriate rights or permission to process and use them.
 
 ---
 
-If you encounter any issues, feel free to mail @akarshanrasyal4@gmail.com
+### `uploads/`
+
+Stores uploaded video files.
+
+### `chroma_db/`
+
+Stores the vector database used for semantic search and RAG.
+
+### `video_intelligence.db`
+
+Stores application data such as videos, transcripts, users, and other database records.
+
+---
+
+
+# 📧 Contact
+
+If you encounter any issues with the project, feel free to contact:
+
+**Akarshan Rasyal**
+
+Email:
+
+akarshanrasyal4@gmail.com

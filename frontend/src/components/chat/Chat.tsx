@@ -1,26 +1,56 @@
 import { useEffect, useRef, useState } from "react";
-
 import {
     Box,
     Button,
     Divider,
+    IconButton,
     TextField,
+    Tooltip,
     Typography
 } from "@mui/material";
-
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import MicRoundedIcon from "@mui/icons-material/MicRounded";
+import MicOffRoundedIcon from "@mui/icons-material/MicOffRounded";
 
 import { useChat } from "../../context/ChatContext";
 import { askAI } from "../../services/chatService";
-
 import TypingIndicator from "./TypingIndicator";
 import Message from "./Message";
 
+interface SpeechRecognitionEventLike extends Event {
+    results: SpeechRecognitionResultList;
+    resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEventLike extends Event {
+    error: string;
+}
+
+interface SpeechRecognitionInstance {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start: () => void;
+    stop: () => void;
+    abort: () => void;
+    onstart: (() => void) | null;
+    onend: (() => void) | null;
+    onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+}
+
+interface SpeechRecognitionConstructor {
+    new (): SpeechRecognitionInstance;
+}
+
+interface SpeechRecognitionWindow extends Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
 
 export default function Chat() {
-
     const {
         messages,
         setMessages,
@@ -31,90 +61,283 @@ export default function Chat() {
 
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [listening, setListening] = useState(false);
+    const [interimText, setInterimText] = useState("");
+    const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
-    const [speakingMessageId, setSpeakingMessageId] =
-        useState<string | null>(null);
+    const messagesRef = useRef<HTMLDivElement>(null);
+    const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+    const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const sessionRef = useRef(0);
+    const speechTextRef = useRef("");
+    const interimTextRef = useRef("");
+    
+    // Create a ref to always hold the latest version of the send function
+    const sendRef = useRef<((explicitText?: string) => Promise<void>) | null>(null);
 
-    const messagesRef =
-        useRef<HTMLDivElement>(null);
+    function clearSilenceTimer() {
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+    }
 
+    function stopListening() {
+        clearSilenceTimer();
 
-    // =========================================================
-    // CLEAN UP SPEECH WHEN COMPONENT IS UNMOUNTED
-    // =========================================================
+        const recognition = recognitionRef.current;
+
+        if (recognition) {
+            try {
+                recognition.stop();
+            } catch {
+                // Recognition may already be stopped.
+            }
+        }
+
+        setListening(false);
+    }
 
     useEffect(() => {
-
         return () => {
-
+            clearSilenceTimer();
             window.speechSynthesis.cancel();
 
+            if (recognitionRef.current) {
+                try {
+                    recognitionRef.current.abort();
+                } catch {
+                    // Ignore cleanup errors.
+                }
+            }
         };
-
     }, []);
 
-
-    // =========================================================
-    // AUTO SCROLL
-    // =========================================================
-
     useEffect(() => {
-
-        if (!messagesRef.current) {
-            return;
-        }
+        if (!messagesRef.current) return;
 
         messagesRef.current.scrollTo({
             top: messagesRef.current.scrollHeight,
             behavior: "smooth"
         });
-
     }, [messages, loading]);
 
+    // Keep the sendRef updated with the latest closure state
+    useEffect(() => {
+        sendRef.current = send;
+    });
 
-    // =========================================================
-    // SPEAK AI ANSWER
-    // =========================================================
+    function startListening() {
+        const speechWindow = window as SpeechRecognitionWindow;
+
+        const SpeechRecognition =
+            speechWindow.SpeechRecognition ||
+            speechWindow.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            alert(
+                "Speech recognition is not supported in this browser. Please use Google Chrome."
+            );
+            return;
+        }
+
+        if (recognitionRef.current) {
+            try {
+                recognitionRef.current.stop();
+            } catch {
+                // Ignore.
+            }
+        }
+
+        clearSilenceTimer();
+
+        const sessionId = ++sessionRef.current;
+
+        speechTextRef.current = "";
+        interimTextRef.current = "";
+
+        setInterimText("");
+        setListening(true);
+
+        const recognition = new SpeechRecognition();
+
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-GB";
+
+        recognition.onstart = () => {
+            if (sessionRef.current !== sessionId) return;
+            setListening(true);
+        };
+
+        recognition.onresult = (
+            event: SpeechRecognitionEventLike
+        ) => {
+            if (sessionRef.current !== sessionId) {
+                return;
+            }
+
+            let newFinalText = "";
+            let newInterimText = "";
+
+            for (
+                let i = event.resultIndex;
+                i < event.results.length;
+                i++
+            ) {
+                const result = event.results[i];
+                const text = result[0]?.transcript?.trim() ?? "";
+
+                if (!text) {
+                    continue;
+                }
+
+                if (result.isFinal) {
+                    newFinalText += ` ${text}`;
+                } else {
+                    newInterimText += ` ${text}`;
+                }
+            }
+
+            if (newFinalText.trim()) {
+                speechTextRef.current =
+                    `${speechTextRef.current} ${newFinalText}`
+                        .replace(/\s+/g, " ")
+                        .trim();
+            }
+
+            interimTextRef.current =
+                newInterimText
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            setInterimText(interimTextRef.current);
+
+            const combinedText =
+                `${speechTextRef.current} ${interimTextRef.current}`
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            if (combinedText) {
+                setInput(combinedText);
+            }
+
+            clearSilenceTimer();
+
+            // When user stops speaking for 1.5s, trigger stop which fires onend
+            silenceTimerRef.current = setTimeout(() => {
+                stopListening();
+            }, 1500);
+        };
+
+        recognition.onerror = (
+            event: SpeechRecognitionErrorEventLike
+        ) => {
+            console.error(
+                "Speech recognition error:",
+                event.error
+            );
+
+            clearSilenceTimer();
+
+            const completeText =
+                `${speechTextRef.current} ${interimTextRef.current}`
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            speechTextRef.current = "";
+            interimTextRef.current = "";
+
+            setInterimText("");
+            setListening(false);
+            recognitionRef.current = null;
+
+            // If an error happens but we captured text, send it
+            if (completeText && sendRef.current) {
+                sendRef.current(completeText);
+            }
+        };
+
+        recognition.onend = () => {
+            if (sessionRef.current !== sessionId) {
+                return;
+            }
+
+            clearSilenceTimer();
+
+            const finalText =
+                speechTextRef.current.trim();
+
+            const remainingInterim =
+                interimTextRef.current.trim();
+
+            const completeText =
+                `${finalText} ${remainingInterim}`
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            speechTextRef.current = "";
+            interimTextRef.current = "";
+
+            setInterimText("");
+            setListening(false);
+            recognitionRef.current = null;
+
+            // Trigger the auto-send once recognition fully stops
+            if (completeText && sendRef.current) {
+                sendRef.current(completeText);
+            }
+        };
+
+        recognitionRef.current = recognition;
+
+        try {
+            recognition.start();
+        } catch (error) {
+            console.error(
+                "Unable to start speech recognition:",
+                error
+            );
+
+            recognitionRef.current = null;
+            setListening(false);
+        }
+    }
+
+    function toggleMicrophone() {
+        if (listening) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    }
 
     function speakAnswer(
         text: string,
         messageId: string
     ) {
-
-        // Stop anything currently speaking.
         window.speechSynthesis.cancel();
 
-        // If this message was already speaking,
-        // clicking again simply stops it.
-        if (
-            speakingMessageId === messageId
-        ) {
-
+        if (speakingMessageId === messageId) {
             setSpeakingMessageId(null);
-
             return;
         }
 
-        if (
-            !("speechSynthesis" in window)
-        ) {
-
+        if (!("speechSynthesis" in window)) {
             return;
         }
 
-        // Remove common Markdown formatting before speaking.
-        const cleanText =
-            text
-                .replace(/[*_`#]/g, "")
-                .replace(
-                    /\[([^\]]+)\]\([^)]+\)/g,
-                    "$1"
-                )
-                .replace(
-                    /^\s*[-•]\s*/gm,
-                    ""
-                )
-                .trim();
+        const cleanText = text
+            .replace(/[*_`#]/g, "")
+            .replace(
+                /\[([^\]]+)\]\([^)]+\)/g,
+                "$1"
+            )
+            .replace(
+                /^\s*[-•]\s*/gm,
+                ""
+            )
+            .trim();
 
         if (!cleanText) {
             return;
@@ -125,25 +348,8 @@ export default function Chat() {
                 cleanText
             );
 
-
-        // =====================================================
-        // NATURAL BRITISH FEMALE VOICE
-        // =====================================================
-
         const voices =
             window.speechSynthesis.getVoices();
-
-        /*
-         * Prefer common British female voices.
-         *
-         * macOS commonly provides voices such as:
-         * - Serena
-         * - Karen
-         * - Moira
-         *
-         * Different browsers/macOS versions may expose
-         * different names, so we use several fallbacks.
-         */
 
         const preferredVoiceNames = [
             "Serena",
@@ -154,138 +360,84 @@ export default function Chat() {
             "Microsoft Sonia"
         ];
 
-        let britishFemaleVoice =
-            voices.find((voice) => {
+        let voice = voices.find(voice => {
+            const name =
+                voice.name.toLowerCase();
 
-                const name =
-                    voice.name.toLowerCase();
+            const language =
+                voice.lang.toLowerCase();
 
-                const language =
-                    voice.lang.toLowerCase();
+            const british =
+                language === "en-gb" ||
+                language.startsWith("en-gb");
 
-                const isBritish =
-                    language === "en-gb" ||
-                    language.startsWith("en-gb");
-
-                const isPreferred =
-                    preferredVoiceNames.some(
-                        preferred =>
-                            name.includes(
-                                preferred.toLowerCase()
-                            )
-                    );
-
-                return (
-                    isBritish &&
-                    isPreferred
+            const preferred =
+                preferredVoiceNames.some(
+                    namePart =>
+                        name.includes(
+                            namePart.toLowerCase()
+                        )
                 );
 
-            });
+            return british && preferred;
+        });
 
-
-        // If a preferred voice isn't available,
-        // choose any British English voice.
-        if (!britishFemaleVoice) {
-
-            britishFemaleVoice =
-                voices.find((voice) => {
-
-                    const language =
-                        voice.lang.toLowerCase();
-
-                    return (
-                        language === "en-gb" ||
-                        language.startsWith("en-gb")
-                    );
-
-                });
-
+        if (!voice) {
+            voice = voices.find(voice =>
+                voice.lang
+                    .toLowerCase()
+                    .startsWith("en-gb")
+            );
         }
 
-
-        // Final fallback to any English voice.
-        if (!britishFemaleVoice) {
-
-            britishFemaleVoice =
-                voices.find((voice) => {
-
-                    const language =
-                        voice.lang.toLowerCase();
-
-                    return language.startsWith(
-                        "en"
-                    );
-
-                });
-
+        if (!voice) {
+            voice = voices.find(voice =>
+                voice.lang
+                    .toLowerCase()
+                    .startsWith("en")
+            );
         }
 
-
-        if (britishFemaleVoice) {
-
-            utterance.voice =
-                britishFemaleVoice;
-
+        if (voice) {
+            utterance.voice = voice;
         }
 
-
-        // Natural conversational settings.
         utterance.rate = 0.95;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-
-
-        // =====================================================
-        // SPEECH EVENTS
-        // =====================================================
+        utterance.pitch = 1;
+        utterance.volume = 1;
 
         utterance.onstart = () => {
-
-            setSpeakingMessageId(
-                messageId
-            );
-
+            setSpeakingMessageId(messageId);
         };
-
 
         utterance.onend = () => {
-
             setSpeakingMessageId(null);
-
         };
-
 
         utterance.onerror = () => {
-
             setSpeakingMessageId(null);
-
         };
-
 
         window.speechSynthesis.speak(
             utterance
         );
     }
 
-
-    // =========================================================
-    // SEND MESSAGE
-    // =========================================================
-
-    async function send() {
-
-        if (
-            !input.trim() ||
-            loading
-        ) {
-
+    // Allow sending explicit text (from speech recognition) or falling back to the text input
+    async function send(explicitText?: string) {
+        const question = (explicitText !== undefined ? explicitText : input).trim();
+        
+        if (!question || loading) {
             return;
         }
 
-        const question =
-            input.trim();
+        // Only turn off the microphone if the user clicked the manual send button while it was on
+        if (listening && explicitText === undefined) {
+            stopListening();
+        }
 
         setInput("");
+        setInterimText("");
 
         setMessages(prev => [
             ...prev,
@@ -299,7 +451,6 @@ export default function Chat() {
         setLoading(true);
 
         try {
-
             const result =
                 await askAI(
                     question,
@@ -309,17 +460,11 @@ export default function Chat() {
                         : undefined
                 );
 
-
-            if (
-                result.conversation_id
-            ) {
-
+            if (result.conversation_id) {
                 setConversationId(
                     result.conversation_id
                 );
-
             }
-
 
             setMessages(prev => [
                 ...prev,
@@ -331,9 +476,7 @@ export default function Chat() {
                         result.sources ?? []
                 }
             ]);
-
         } catch (error: any) {
-
             setMessages(prev => [
                 ...prev,
                 {
@@ -345,22 +488,12 @@ export default function Chat() {
                     sources: []
                 }
             ]);
-
         } finally {
-
             setLoading(false);
-
         }
-
     }
 
-
-    // =========================================================
-    // UI
-    // =========================================================
-
     return (
-
         <Box
             sx={{
                 display: "flex",
@@ -368,18 +501,12 @@ export default function Chat() {
                 height: "100%"
             }}
         >
-
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
             <Box
                 sx={{
                     px: 3,
                     py: 2.5
                 }}
             >
-
                 <Typography
                     variant="h5"
                     sx={{
@@ -389,9 +516,7 @@ export default function Chat() {
                 >
                     🤖 AI Assistant
                 </Typography>
-
             </Box>
-
 
             <Divider
                 sx={{
@@ -399,11 +524,6 @@ export default function Chat() {
                         "rgba(255,255,255,.08)"
                 }}
             />
-
-
-            {/* =================================================
-                MESSAGES
-            ================================================= */}
 
             <Box
                 ref={messagesRef}
@@ -416,15 +536,12 @@ export default function Chat() {
                     display: "flex",
                     flexDirection: "column",
                     gap: 2,
-
                     "&::-webkit-scrollbar": {
                         width: "6px"
                     },
-
                     "&::-webkit-scrollbar-track": {
                         background: "transparent"
                     },
-
                     "&::-webkit-scrollbar-thumb": {
                         background:
                             "rgba(20,184,166,.2)",
@@ -432,11 +549,7 @@ export default function Chat() {
                     }
                 }}
             >
-
-                {/* Empty state */}
-
                 {messages.length === 0 && (
-
                     <Typography
                         sx={{
                             color:
@@ -447,14 +560,9 @@ export default function Chat() {
                     >
                         👋 Upload a video and ask me anything!
                     </Typography>
-
                 )}
 
-
-                {/* Messages */}
-
                 {messages.map(message => (
-
                     <Box
                         key={message.id}
                         sx={{
@@ -462,21 +570,14 @@ export default function Chat() {
                             flexDirection: "column"
                         }}
                     >
-
                         <Message
                             role={message.role}
                             text={message.text}
                             sources={message.sources}
                         />
 
-
-                        {/* =================================================
-                            SPEAK ALOUD
-                            Only displayed for AI messages
-                        ================================================= */}
-
-                        {message.role === "assistant" && (
-
+                        {message.role ===
+                            "assistant" && (
                             <Box
                                 sx={{
                                     mt: 0.75,
@@ -486,7 +587,6 @@ export default function Chat() {
                                     }
                                 }}
                             >
-
                                 <Button
                                     size="small"
                                     onClick={() =>
@@ -515,65 +615,40 @@ export default function Chat() {
                                             message.id
                                                 ? "#f87171"
                                                 : "#14b8a6",
-
                                         border:
                                             "1px solid rgba(20,184,166,.25)",
-
                                         borderRadius: 2,
-
                                         px: 1.5,
-
                                         py: 0.5,
-
                                         textTransform:
                                             "none",
-
                                         fontSize:
                                             "0.78rem",
-
                                         fontWeight: 600,
-
                                         background:
                                             "rgba(20,184,166,.05)",
-
                                         "&:hover": {
                                             background:
                                                 "rgba(20,184,166,.12)",
-
                                             borderColor:
                                                 "rgba(20,184,166,.45)"
                                         }
                                     }}
                                 >
-
                                     {speakingMessageId ===
                                     message.id
                                         ? "Stop Speaking"
                                         : "Speak Aloud"}
-
                                 </Button>
-
                             </Box>
-
                         )}
-
                     </Box>
-
                 ))}
-
-
-                {/* Typing indicator */}
 
                 {loading && (
                     <TypingIndicator />
                 )}
-
             </Box>
-
-
-            {/* =================================================
-                INPUT DIVIDER
-            ================================================= */}
 
             <Divider
                 sx={{
@@ -582,110 +657,264 @@ export default function Chat() {
                 }}
             />
 
-
-            {/* =================================================
-                INPUT
-            ================================================= */}
-
             <Box
                 component="form"
-                onSubmit={(e) => {
-
+                onSubmit={e => {
                     e.preventDefault();
-
                     send();
-
                 }}
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 2,
+                    gap: 1.5,
                     px: 3,
                     py: 2.5
                 }}
             >
-
-                <TextField
-                    fullWidth
-                    placeholder="Ask anything about your uploaded videos..."
-                    value={input}
-                    onChange={(e) =>
-                        setInput(
-                            e.target.value
-                        )
-                    }
-                    onKeyDown={(e) => {
-
-                        if (
-                            e.key === "Enter" &&
-                            !e.shiftKey
-                        ) {
-
-                            e.preventDefault();
-
-                            send();
-
-                        }
-
-                    }}
-                    disabled={loading}
+                <Box
                     sx={{
-                        "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            color: "#f8fafc",
-                            backgroundColor:
-                                "rgba(0,0,0,.2)",
-
-                            "& fieldset": {
-                                borderColor:
-                                    "rgba(20,184,166,.3)"
-                            },
-
-                            "&:hover fieldset": {
-                                borderColor:
-                                    "rgba(20,184,166,.6)"
-                            },
-
-                            "&.Mui-focused fieldset": {
-                                borderColor:
-                                    "#14b8a6"
-                            }
-                        },
-
-                        "& .MuiInputBase-input::placeholder": {
-                            color:
-                                "rgba(255,255,255,.4)",
-                            opacity: 1
-                        }
+                        position: "relative",
+                        flex: 1
                     }}
-                />
+                >
+                    <TextField
+                        fullWidth
+                        placeholder={
+                            listening
+                                ? "Listening..."
+                                : "Ask anything..."
+                        }
+                        value={input}
+                        onChange={e =>
+                            setInput(
+                                e.target.value
+                            )
+                        }
+                        onKeyDown={e => {
+                            if (
+                                e.key === "Enter" &&
+                                !e.shiftKey
+                            ) {
+                                e.preventDefault();
+                                send();
+                            }
+                        }}
+                        disabled={loading}
+                        sx={{
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: 2,
+                                color: "#f8fafc",
+                                backgroundColor:
+                                    "rgba(0,0,0,.2)",
+                                pr:
+                                    listening
+                                        ? 7
+                                        : 2,
+                                "& fieldset": {
+                                    borderColor:
+                                        listening
+                                            ? "rgba(20,184,166,.65)"
+                                            : "rgba(20,184,166,.3)"
+                                },
+                                "&:hover fieldset": {
+                                    borderColor:
+                                        "rgba(20,184,166,.6)"
+                                },
+                                "&.Mui-focused fieldset": {
+                                    borderColor:
+                                        "#14b8a6"
+                                }
+                            },
+                            "& .MuiInputBase-input::placeholder": {
+                                color:
+                                    "rgba(255,255,255,.4)",
+                                opacity: 1
+                            }
+                        }}
+                    />
 
+                    {listening && (
+                        <Box
+                            sx={{
+                                position:
+                                    "absolute",
+                                right: 14,
+                                top: "50%",
+                                transform:
+                                    "translateY(-50%)",
+                                display: "flex",
+                                alignItems:
+                                    "center",
+                                gap: 0.35,
+                                height: 30,
+                                pointerEvents:
+                                    "none"
+                            }}
+                        >
+                            {[0, 1, 2, 3, 4].map(
+                                index => (
+                                    <Box
+                                        key={index}
+                                        sx={{
+                                            width: 3,
+                                            height:
+                                                index % 2 ===
+                                                0
+                                                    ? 18
+                                                    : 11,
+                                            borderRadius:
+                                                3,
+                                            background:
+                                                "linear-gradient(180deg,#14b8a6,#10b981)",
+                                            animation:
+                                                "voiceWave 0.8s ease-in-out infinite",
+                                            animationDelay:
+                                                `${index * 0.12}s`,
+                                            "@keyframes voiceWave":
+                                                {
+                                                    "0%, 100%":
+                                                        {
+                                                            transform:
+                                                                "scaleY(.45)",
+                                                            opacity:
+                                                                0.45
+                                                        },
+                                                    "50%":
+                                                        {
+                                                            transform:
+                                                                "scaleY(1.15)",
+                                                            opacity:
+                                                                1
+                                                        }
+                                                }
+                                        }}
+                                    />
+                                )
+                            )}
+                        </Box>
+                    )}
+
+                    {listening &&
+                        interimText && (
+                            <Box
+                                sx={{
+                                    position:
+                                        "absolute",
+                                    left: 16,
+                                    bottom: -25,
+                                    color:
+                                        "rgba(20,184,166,.7)",
+                                    fontSize:
+                                        "0.72rem",
+                                    pointerEvents:
+                                        "none",
+                                    whiteSpace:
+                                        "nowrap",
+                                    overflow:
+                                        "hidden",
+                                    textOverflow:
+                                        "ellipsis",
+                                    maxWidth:
+                                        "80%"
+                                }}
+                            >
+                                {interimText}
+                            </Box>
+                        )}
+                </Box>
+
+                <Tooltip
+                    title={
+                        listening
+                            ? "Stop listening"
+                            : "Speak"
+                    }
+                >
+                    <IconButton
+                        type="button"
+                        onClick={
+                            toggleMicrophone
+                        }
+                        disabled={loading}
+                        sx={{
+                            width: 56,
+                            height: 56,
+                            flexShrink: 0,
+                            borderRadius: 2,
+                            color:
+                                listening
+                                    ? "#ffffff"
+                                    : "#14b8a6",
+                            background:
+                                listening
+                                    ? "linear-gradient(135deg,#ef4444,#f97316)"
+                                    : "rgba(20,184,166,.08)",
+                            border:
+                                listening
+                                    ? "1px solid rgba(255,255,255,.25)"
+                                    : "1px solid rgba(20,184,166,.3)",
+                            boxShadow:
+                                listening
+                                    ? "0 0 0 5px rgba(239,68,68,.08), 0 0 22px rgba(20,184,166,.25)"
+                                    : "none",
+                            animation:
+                                listening
+                                    ? "micPulse 1.5s ease-in-out infinite"
+                                    : "none",
+                            "@keyframes micPulse": {
+                                "0%, 100%": {
+                                    transform:
+                                        "scale(1)"
+                                },
+                                "50%": {
+                                    transform:
+                                        "scale(1.06)"
+                                }
+                            },
+                            "&:hover": {
+                                background:
+                                    listening
+                                        ? "linear-gradient(135deg,#dc2626,#ea580c)"
+                                        : "rgba(20,184,166,.15)"
+                            }
+                        }}
+                    >
+                        {listening
+                            ? (
+                                <MicOffRoundedIcon />
+                            )
+                            : (
+                                <MicRoundedIcon />
+                            )}
+                    </IconButton>
+                </Tooltip>
 
                 <Button
                     type="submit"
                     variant="contained"
-                    disabled={loading}
+                    disabled={
+                        loading ||
+                        !input.trim()
+                    }
                     sx={{
                         minWidth: 60,
                         height: 56,
                         borderRadius: 2,
-
                         background:
                             "linear-gradient(135deg,#14b8a6,#10b981)",
-
                         "&:hover": {
                             transform:
                                 "translateY(-2px)"
+                        },
+                        "&.Mui-disabled": {
+                            background:
+                                "rgba(20,184,166,.25)"
                         }
                     }}
                 >
-
                     <SendRoundedIcon />
-
                 </Button>
-
             </Box>
-
         </Box>
     );
 }
