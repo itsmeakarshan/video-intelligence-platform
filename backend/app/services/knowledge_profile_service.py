@@ -1,0 +1,229 @@
+"""
+Learner Knowledge Profile & Performance Service for Video Intelligence Platform.
+
+Computes comprehensive learner analytics strictly scoped to user_id:
+1. Total completed quiz attempts: COUNT(quiz_attempts WHERE user_id = user_id)
+2. Average quiz score percentage: AVG(percentage WHERE user_id = user_id)
+3. Highest quiz score percentage: MAX(percentage WHERE user_id = user_id)
+4. Overall topic mastery percentage
+5. Quiz performance breakdown by difficulty (Easy, Medium, Hard)
+6. Concept mastery breakdown across all answered questions
+"""
+
+import re
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from app.models.quiz_attempt import QuizAttempt
+from app.models.quiz_attempt_question import QuizAttemptQuestion
+
+
+def normalize_topic_name(raw_topic: str) -> str:
+    """
+    Normalizes raw topic strings to consolidate semantically equivalent concepts.
+    Removes generic placeholders ('Topic A', 'Topic B') and standardizes plurals.
+    """
+    if not raw_topic or not raw_topic.strip():
+        return "General Computer Concepts"
+
+    cleaned = raw_topic.strip()
+    
+    # Filter out artificial placeholder strings
+    if re.match(r"^topic\s+[a-z0-9]$", cleaned, re.IGNORECASE):
+        return "General Computer Concepts"
+
+    # Specific normalization rules
+    lower = cleaned.lower()
+    if "optical mouse" in lower or "mouse sensor" in lower:
+        return "Optical Mouse Sensors"
+    if "storage sense" in lower:
+        return "Windows Storage Sense"
+    if "touch screen" in lower or "touchscreen" in lower:
+        return "Touch Screen Navigation"
+    if "processor" in lower or "cpu" in lower:
+        return "Processor Architecture"
+    if "memory" in lower or "ram" in lower:
+        return "System Memory"
+    if "cleaning" in lower or "maintenance" in lower:
+        return "Computer Maintenance"
+    if "button" in lower or "port" in lower:
+        return "Computer Buttons & Ports"
+    if "application" in lower or "app" in lower:
+        return "Software Applications"
+    if "slogan" in lower or "gcf" in lower:
+        return "Digital Literacy Basics"
+
+    # Plural to singular normalization fallback
+    if cleaned.endswith("s") and not cleaned.endswith("ss") and len(cleaned) > 4:
+        singular = cleaned[:-1]
+        return " ".join(word.capitalize() for word in singular.split())
+
+    return " ".join(word.capitalize() for word in cleaned.split())
+
+
+def get_user_knowledge_profile(user_id: int, db: Session) -> dict:
+    """
+    Extracts topic performance history and overall quiz statistics strictly scoped to user_id.
+    """
+    # 1. Authoritative Quiz Attempt Aggregates for user_id
+    total_attempts = db.query(func.count(QuizAttempt.id)).filter(QuizAttempt.user_id == user_id).scalar() or 0
+    
+    avg_score_raw = db.query(func.avg(QuizAttempt.percentage)).filter(QuizAttempt.user_id == user_id).scalar()
+    avg_score = round(float(avg_score_raw), 1) if avg_score_raw is not None else 0.0
+
+    max_score_raw = db.query(func.max(QuizAttempt.percentage)).filter(QuizAttempt.user_id == user_id).scalar()
+    max_score = round(float(max_score_raw), 1) if max_score_raw is not None else 0.0
+
+    # 2. Difficulty performance breakdown for user_id
+    diff_rows = (
+        db.query(
+            QuizAttempt.difficulty,
+            func.count(QuizAttempt.id).label("attempts_count"),
+            func.avg(QuizAttempt.percentage).label("avg_percentage")
+        )
+        .filter(QuizAttempt.user_id == user_id)
+        .group_by(QuizAttempt.difficulty)
+        .all()
+    )
+
+    difficulty_performance = []
+    diff_map = {row.difficulty.capitalize(): row for row in diff_rows}
+    
+    for diff in ["Easy", "Medium", "Hard"]:
+        if diff in diff_map:
+            row = diff_map[diff]
+            difficulty_performance.append({
+                "difficulty": diff,
+                "attempts_count": row.attempts_count,
+                "avg_percentage": round(float(row.avg_percentage), 1),
+                "has_data": True
+            })
+        else:
+            difficulty_performance.append({
+                "difficulty": diff,
+                "attempts_count": 0,
+                "avg_percentage": None,
+                "has_data": False
+            })
+
+    # 3. Topic Question breakdown for user_id
+    questions = (
+        db.query(QuizAttemptQuestion)
+        .join(QuizAttempt, QuizAttemptQuestion.quiz_attempt_id == QuizAttempt.id)
+        .filter(QuizAttempt.user_id == user_id)
+        .all()
+    )
+
+    if not questions:
+        return {
+            "has_data": total_attempts > 0,
+            "total_quiz_attempts": total_attempts,
+            "total_questions_answered": 0,
+            "average_quiz_score_percentage": avg_score,
+            "highest_quiz_score_percentage": max_score,
+            "overall_mastery_percentage": avg_score,
+            "topics_breakdown": [],
+            "strong_areas": [],
+            "improving_areas": [],
+            "weak_areas": [],
+            "strong_concepts": [],
+            "weak_concepts": [],
+            "concept_mastery": [],
+            "difficulty_performance": difficulty_performance,
+            "summary": {
+                "strong_count": 0,
+                "improving_count": 0,
+                "needs_review_count": 0
+            },
+            "message": "Complete at least 1 quiz to build your personalized Knowledge Profile."
+        }
+
+    topic_stats: dict[str, dict] = {}
+
+    for q in questions:
+        norm_topic = normalize_topic_name(q.topic)
+        
+        if norm_topic not in topic_stats:
+            topic_stats[norm_topic] = {"correct": 0, "total": 0}
+
+        topic_stats[norm_topic]["total"] += 1
+        if q.is_correct:
+            topic_stats[norm_topic]["correct"] += 1
+
+    topics_breakdown = []
+    strong_areas = []
+    improving_areas = []
+    weak_areas = []
+    concept_mastery = []
+    strong_concepts_list = []
+    weak_concepts_list = []
+
+    total_mastery_sum = 0.0
+
+    for topic_name, stats in topic_stats.items():
+        mastery_pct = round((stats["correct"] / stats["total"]) * 100.0, 1)
+        total_mastery_sum += mastery_pct
+
+        sample_size = stats["total"]
+        if sample_size < 3:
+            confidence = "Low (Limited Data)"
+        elif sample_size < 7:
+            confidence = "Moderate"
+        else:
+            confidence = "High"
+
+        if mastery_pct >= 75.0:
+            level = "Strong"
+            strong_concepts_list.append(topic_name)
+        elif mastery_pct >= 60.0:
+            level = "Improving"
+        else:
+            level = "Needs Review"
+            weak_concepts_list.append(topic_name)
+
+        item = {
+            "topic": topic_name,
+            "concept": topic_name,
+            "mastery_percentage": mastery_pct,
+            "correct_count": stats["correct"],
+            "total_count": stats["total"],
+            "attempts_count": stats["total"],
+            "confidence": confidence,
+            "level": level
+        }
+        topics_breakdown.append(item)
+        concept_mastery.append(item)
+
+        if mastery_pct >= 75.0:
+            strong_areas.append(item)
+        elif mastery_pct >= 60.0:
+            improving_areas.append(item)
+        else:
+            weak_areas.append(item)
+
+    topics_breakdown.sort(key=lambda x: x["mastery_percentage"], reverse=True)
+    concept_mastery.sort(key=lambda x: x["mastery_percentage"], reverse=True)
+
+    overall_mastery = round(total_mastery_sum / len(topic_stats), 1) if topic_stats else 0.0
+
+    return {
+        "has_data": True,
+        "total_quiz_attempts": total_attempts,
+        "total_questions_answered": len(questions),
+        "average_quiz_score_percentage": avg_score,
+        "highest_quiz_score_percentage": max_score,
+        "overall_mastery_percentage": overall_mastery,
+        "topics_breakdown": topics_breakdown,
+        "strong_areas": strong_areas,
+        "improving_areas": improving_areas,
+        "weak_areas": weak_areas,
+        "strong_concepts": strong_concepts_list,
+        "weak_concepts": weak_concepts_list,
+        "concept_mastery": concept_mastery,
+        "difficulty_performance": difficulty_performance,
+        "summary": {
+            "strong_count": len(strong_areas),
+            "improving_count": len(improving_areas),
+            "needs_review_count": len(weak_areas)
+        },
+        "message": None
+    }

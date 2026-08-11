@@ -8,6 +8,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.quiz_attempt import QuizAttempt
+    from app.models.quiz_attempt_video import QuizAttemptVideo
     from app.models.transcript import Transcript
     from app.models.user import User
 
@@ -72,3 +73,4 @@ class Video(Base):
     user: Mapped["User"] = relationship(back_populates="videos")
     transcripts: Mapped[list["Transcript"]] = relationship(back_populates="video", cascade="all, delete-orphan")
     quiz_attempts: Mapped[list["QuizAttempt"]] = relationship(back_populates="video")
+    quiz_attempt_videos: Mapped[list["QuizAttemptVideo"]] = relationship(back_populates="video", cascade="all, delete-orphan")

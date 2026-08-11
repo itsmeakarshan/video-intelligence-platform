@@ -1,0 +1,29 @@
+{
+  "total_learners_analyzed": 101,
+  "total_learners_excluded": 6,
+  "total_learners_retained": 95,
+  "excluded_user_ids": [
+    94,
+    95,
+    96,
+    101,
+    102,
+    103
+  ],
+  "exclusion_thresholds": {
+    "min_score_std_threshold": 17.5,
+    "min_avg_abs_delta_threshold": 20.0,
+    "min_large_reversals_25pct": 4,
+    "max_attempt_score_corr": 0.35
+  },
+  "clean_cohort_stats": {
+    "mean_score_std": 9.320315789473685,
+    "mean_slope": 3.352484210526315,
+    "mean_attempt_score_corr": 0.8354736842105264
+  },
+  "excluded_cohort_stats": {
+    "mean_score_std": 21.78,
+    "mean_slope": -1.8818333333333335,
+    "mean_attempt_score_corr": -0.22366666666666668
+  }
+}

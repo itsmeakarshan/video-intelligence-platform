@@ -15,6 +15,7 @@ from app.models.transcript_chunk import TranscriptChunk
 from app.models.user import User
 from app.models.conversation import Conversation, Message
 from app.models.quiz_attempt import QuizAttempt
+from app.models.quiz_attempt_video import QuizAttemptVideo
 
 config = context.config
 

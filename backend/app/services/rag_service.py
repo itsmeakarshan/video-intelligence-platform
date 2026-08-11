@@ -1,4 +1,6 @@
+import json
 import time
+from fastapi import HTTPException
 
 from app.services.embedding_service import (
     search_chunks,
@@ -462,188 +464,136 @@ def _refine_timestamps(
 # ASK VIDEO
 # ============================================================
 
+import re
+from app.services.prompt_service import build_mention_prompt
+
+def format_seconds_to_timestamp(seconds: float) -> str:
+    total_sec = int(round(seconds))
+    hrs = total_sec // 3600
+    mins = (total_sec % 3600) // 60
+    secs = total_sec % 60
+    if hrs > 0:
+        return f"{hrs}:{mins:02d}:{secs:02d}"
+    else:
+        return f"{mins}:{secs:02d}"
+
+def is_mention_question(question: str) -> bool:
+    q = question.lower().strip()
+    patterns = [
+        r"\bwhere\b", r"\bwhen\b", r"\bhow many times\b", r"\bwhere do\b", r"\bwhere does\b",
+        r"\bis .* mentioned\b", r"\btalk about\b", r"\bdiscussed\b", r"\bappear\b", r"\boccur\b"
+    ]
+    return any(re.search(p, q) for p in patterns)
+
+def cluster_mention_occurrences(matches: list) -> list:
+    if not matches:
+        return []
+    sorted_matches = sorted(matches, key=lambda m: float(m.get("start_time", 0.0)))
+    clusters = []
+    for m in sorted_matches:
+        st = float(m.get("start_time", 0.0))
+        et = float(m.get("end_time", 0.0))
+        v_title = m.get("video_title", "Video")
+        v_id = m.get("video_id")
+        text = m.get("text", "").strip()
+        if not text:
+            continue
+        merged = False
+        for c in clusters:
+            if c["video_id"] == v_id and abs(st - c["start_time"]) <= 60.0:
+                c["end_time"] = max(c["end_time"], et)
+                c["text"] += " " + text
+                merged = True
+                break
+        if not merged:
+            clusters.append({
+                "video_id": v_id,
+                "video_title": v_title,
+                "start_time": st,
+                "end_time": et,
+                "timestamp_str": format_seconds_to_timestamp(st),
+                "text": text
+            })
+    return clusters
+
 def ask_video(
     question: str,
     user_id: int,
     video_ids: list | None = None
 ):
-
     print("=" * 80)
     print("VIDEO QUESTION")
+    print(f"Question: {question}")
     print("=" * 80)
 
-    print(
-        f"Question: {question}"
-    )
-
-    print("=" * 80)
-
-    # --------------------------------------------------------
-    # SANITIZE VIDEO IDS
-    # --------------------------------------------------------
     clean_vids = _clean_video_ids(video_ids)
-
-    # --------------------------------------------------------
-    # STEP 1 — CHROMA SEARCH
-    # --------------------------------------------------------
-
     start = time.perf_counter()
 
-    results = search_chunks(
-        question,
-        user_id,
-        clean_vids
-    )
+    results = search_chunks(question, user_id, clean_vids)
+    matches = results.get("matches", [])
 
-    matches = results.get(
-        "matches",
-        []
-    )
-    
-
-    print(
-        f"Semantic Search took "
-        f"{time.perf_counter() - start:.2f} sec"
-    )
-
-    print("=" * 80)
-    print(
-        f"CHROMA MATCHES: {len(matches)}"
-    )
-    print("=" * 80)
+    print(f"Semantic Search took {time.perf_counter() - start:.2f} sec")
+    print(f"CHROMA MATCHES: {len(matches)}")
 
     if not matches:
+        if is_mention_question(question):
+            return {
+                "answer": "I couldn't find a relevant mention of the requested topic in the available transcript.",
+                "sources": []
+            }
+        answer = ask_gemini(question=question, context="NO_RELEVANT_VIDEO_CONTEXT")
+        return {"answer": answer, "sources": []}
 
-        print(
-            "NO CHROMA MATCHES FOUND"
-        )
+    selected_matches = _select_context_matches(matches)
+    refined_matches = _refine_timestamps(selected_matches, question, user_id)
 
-        answer = ask_gemini(
-            question=question,
-            context="NO_RELEVANT_VIDEO_CONTEXT"
-        )
+    # --------------------------------------------------------
+    # SPECIAL HANDLING: MULTI-MENTION / LOCATION QUESTIONS
+    # --------------------------------------------------------
+    if is_mention_question(question):
+        occurrences = cluster_mention_occurrences(refined_matches)
+        if not occurrences:
+            return {
+                "answer": "I couldn't find a relevant mention of the requested topic in the available transcript.",
+                "sources": []
+            }
 
+        occ_blocks = []
+        sources = []
+        for idx, occ in enumerate(occurrences, start=1):
+            occ_blocks.append(
+                f"OCCURRENCE {idx}\nTimestamp: {occ['timestamp_str']}\nStart Seconds: {occ['start_time']:.1f}\nVideo Title: {occ['video_title']}\nTranscript Text: {occ['text']}"
+            )
+            sources.append({
+                "video_id": occ["video_id"],
+                "video_title": occ["video_title"],
+                "start_time": occ["start_time"],
+                "end_time": occ["end_time"]
+            })
+
+        occ_summary = "\n\n".join(occ_blocks)
+        prompt = build_mention_prompt(question, occ_summary, len(occurrences))
+
+        print("=" * 80)
+        print("CALLING GEMINI FOR MENTION QUESTION")
+        print("=" * 80)
+
+        answer = ask_gemini(question=prompt, context="")
         return {
             "answer": answer,
-            "sources": []
+            "sources": sources
         }
 
-    # --------------------------------------------------------
-    # PRINT ALL MATCHES
-    # --------------------------------------------------------
+    # Standard Q&A flow
+    context, sources = build_context(refined_matches)
 
-    for index, match in enumerate(
-        matches,
-        start=1
-    ):
-
-        print(
-            f"[{index}] "
-            f'{match.get("start_time"):.2f} - '
-            f'{match.get("end_time"):.2f}'
-        )
-
-        print(
-            match.get(
-                "text",
-                ""
-            )
-        )
-
-        print("-" * 60)
-
-    # --------------------------------------------------------
-    # STEP 2 — SELECT USEFUL MATCHES
-    # --------------------------------------------------------
-
-    selected_matches = _select_context_matches(
-        matches
-    )
-
-    print("=" * 80)
-    print(
-        f"SELECTED MATCHES: "
-        f"{len(selected_matches)}"
-    )
-    print("=" * 80)
-
-    # --------------------------------------------------------
-    # STEP 3 — REFINE TIMESTAMPS
-    # --------------------------------------------------------
-
-    refined_matches = _refine_timestamps(
-        selected_matches,
-        question,
-        user_id
-    )
-
-    print("=" * 80)
-    print("REFINED MATCHES")
-    print("=" * 80)
-
-    for index, match in enumerate(
-        refined_matches,
-        start=1
-    ):
-
-        print(
-            f"[{index}] "
-            f'{match.get("start_time"):.2f} - '
-            f'{match.get("end_time"):.2f}'
-        )
-
-        print(
-            match.get(
-                "text",
-                ""
-            )
-        )
-
-        print("-" * 60)
-
-    # --------------------------------------------------------
-    # STEP 4 — BUILD CONTEXT
-    # --------------------------------------------------------
-
-    context, sources = build_context(
-        refined_matches
-    )
-
-    # --------------------------------------------------------
-    # SAFETY CHECK
-    # --------------------------------------------------------
-
-    if (
-        not context
-        or context.strip() == ""
-        or context == "NO_RELEVANT_VIDEO_CONTEXT"
-    ):
-
-        print("=" * 80)
-        print("ERROR: CONTEXT IS EMPTY")
-        print("=" * 80)
-
+    if not context or context.strip() == "" or context == "NO_RELEVANT_VIDEO_CONTEXT":
         return {
-            "answer": (
-                "I couldn't find enough relevant "
-                "information in the uploaded video to answer your question."
-            ),
+            "answer": "I couldn't find enough relevant information in the uploaded video to answer your question.",
             "sources": []
         }
 
-    # --------------------------------------------------------
-    # STEP 5 — GEMINI
-    # --------------------------------------------------------
-
-    print("=" * 80)
-    print("CALLING GEMINI")
-    print("=" * 80)
-
-    answer = ask_gemini(
-        question=question,
-        context=context
-    )
-
+    answer = ask_gemini(question=question, context=context)
     return {
         "answer": answer,
         "sources": sources
@@ -753,32 +703,56 @@ def generate_notes(
     user_id: int,
     video_ids: list | None = None
 ):
-
     clean_vids = _clean_video_ids(video_ids)
 
+    # Multi-video selection: generate study notes grouped video by video
+    if clean_vids and len(clean_vids) > 1:
+        all_notes = []
+        all_sources = []
+        
+        for idx, vid_id in enumerate(clean_vids, 1):
+            results = search_chunks(
+                "Create detailed study notes from the uploaded video.",
+                user_id,
+                [vid_id]
+            )
+            matches = results.get("matches", [])
+            if not matches:
+                continue
+
+            video_title = f"Video #{idx}"
+            for m in matches:
+                meta = m.get("metadata", {})
+                v_name = meta.get("original_filename") or meta.get("title") or meta.get("filename")
+                if v_name:
+                    video_title = f"Video #{idx}: {v_name}"
+                    break
+
+            selected_matches = _select_context_matches(matches)
+            context, sources = build_context(selected_matches)
+
+            if context.strip():
+                vid_answer = ask_notes(context)
+                all_notes.append(f"# {video_title}\n\n{vid_answer}")
+                all_sources.extend(sources)
+
+        if all_notes:
+            return {
+                "answer": "\n\n---\n\n".join(all_notes),
+                "sources": all_sources
+            }
+
+    # Single video or default fallback
     results = search_chunks(
         "Create detailed study notes from the uploaded videos.",
         user_id,
         clean_vids
     )
 
-    matches = results.get(
-        "matches",
-        []
-    )
-    
-
-    selected_matches = _select_context_matches(
-        matches
-    )
-
-    context, sources = build_context(
-        selected_matches
-    )
-
-    answer = ask_notes(
-        context
-    )
+    matches = results.get("matches", [])
+    selected_matches = _select_context_matches(matches)
+    context, sources = build_context(selected_matches)
+    answer = ask_notes(context)
 
     return {
         "answer": answer,
@@ -789,6 +763,48 @@ def generate_notes(
 # ============================================================
 # QUIZ
 # ============================================================
+
+def _validate_quiz_response(answer: str) -> str:
+    if not answer or not isinstance(answer, str):
+        raise HTTPException(
+            status_code=500,
+            detail="The AI service failed to generate a response. Please try again."
+        )
+
+    cleaned = answer.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[-1]
+        if cleaned.endswith("```"):
+            cleaned = cleaned.rsplit("```", 1)[0]
+        cleaned = cleaned.strip()
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        print("=" * 60)
+        print("QUIZ GENERATION VALIDATION FAILED: Invalid JSON output")
+        print(answer)
+        print("=" * 60)
+        if any(keyword in answer.lower() for keyword in ["quota", "unavailable", "error", "couldn't"]):
+            raise HTTPException(status_code=503, detail=answer)
+        raise HTTPException(
+            status_code=500,
+            detail="The AI generated an incomplete or invalid quiz response. Please try again."
+        )
+
+    if (
+        not isinstance(data, dict)
+        or "questions" not in data
+        or not isinstance(data["questions"], list)
+        or len(data["questions"]) == 0
+    ):
+        raise HTTPException(
+            status_code=500,
+            detail="The AI quiz response structure was invalid. Please try again."
+        )
+
+    return json.dumps(data)
+
 
 def generate_quiz(
     user_id: int,
@@ -825,7 +841,9 @@ def generate_quiz(
         questions=questions
     )
 
+    validated_quiz_json = _validate_quiz_response(answer)
+
     return {
-        "answer": answer,
+        "answer": validated_quiz_json,
         "sources": sources
     }

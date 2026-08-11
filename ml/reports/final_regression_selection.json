@@ -1,0 +1,10 @@
+{
+  "selected_regression_model": "Extra Trees Regressor",
+  "selected_feature_set": "D_CORE_LEARNING",
+  "feature_count": 38,
+  "selection_rationale": "Extra Trees Regressor on Feature Set D_CORE_LEARNING eliminates linear OOD extrapolation (User 1 extreme attempt frequency case predicts realistic ~54% instead of 100% linear explosion) while achieving top-tier GroupKFold MAE (3.81%), Unseen-User MAE (3.17%), and Temporal MAE (3.70%).",
+  "selected_classification_model": "Extra Trees Classifier",
+  "classification_accuracy": 0.914,
+  "classification_roc_auc": 0.969,
+  "classification_brier_score": 0.0626
+}

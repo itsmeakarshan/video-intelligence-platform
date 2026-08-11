@@ -121,7 +121,8 @@ Always return the polished final answer directly.
 def _generate(
     prompt: str,
     max_tokens: int = 700,
-    system_instruction: str | None = None
+    system_instruction: str | None = None,
+    response_mime_type: str | None = None,
 ):
 
     print("=" * 80)
@@ -144,6 +145,12 @@ def _generate(
 
                 config["system_instruction"] = (
                     system_instruction
+                )
+
+            if response_mime_type:
+
+                config["response_mime_type"] = (
+                    response_mime_type
                 )
 
             response = client.models.generate_content(
@@ -338,7 +345,8 @@ def ask_quiz(
 
     return _generate(
         prompt,
-        3500
+        max_tokens=8192,
+        response_mime_type="application/json"
     )
 
 

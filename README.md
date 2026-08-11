@@ -1,421 +1,156 @@
-# 🎥 Video Intelligence Platform
+# 🎥 Video Intelligence Platform & ML Engineering Hub
 
-An AI-powered video learning platform for understanding, searching, and interacting with educational videos using **Open AI Whisper**, **Sentence Transformers**, **ChromaDB**, **Retrieval-Augmented Generation (RAG)**, and **Google Gemini**.
-
-Upload videos, generate transcripts, ask questions about video content, find relevant moments, generate summaries and study notes, create quizzes, and interact with the AI using voice.
+An AI-powered video learning platform and scientifically defensible **Data Science / ML Engineering Portfolio System** combining **OpenAI Whisper**, **Sentence Transformers**, **ChromaDB (RAG)**, **Google Gemini**, **Ridge Regression & Extra Trees Predictions**, and **Concept-Grounded Learning Recommendations**.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-* 🎥 Upload and manage multiple videos
-* 🎙️ Automatic transcription
-* 💬 AI-powered chat about video content
-* 🧠 Conversation memory for follow-up questions
-* 🔍 Semantic search using ChromaDB
-* 📚 Retrieval-Augmented Generation (RAG)
-* 📍 Timestamped references to relevant parts of videos
-* ▶️ Jump directly to relevant timestamps
-* 📄 AI-generated summaries
-* 📝 AI-generated study notes
-* 🧠 AI-generated quizzes
-* 🎯 Select specific videos for AI analysis
-* 🎤 Ask questions using your microphone
-* 🔊 Speak AI answers aloud
-* 🗑️ Delete uploaded videos and processed data
-* 🌙 Modern dark glassmorphism interface
+* 🎥 **Multi-Video Processing & RAG:** Upload, transcribe (Whisper), chunk, embed (`BAAI/bge-m3`), and query via vector search.
+* 🧠 **Learning Performance Forecasting:** Predict learner's next quiz score (**Ridge Regression**, GroupKFold MAE **3.62%**, $R^2$ **0.868**) and pass probability (**Extra Trees Classifier**, Accuracy **91.4%**, ROC-AUC **0.969**, Brier Score **0.0626**).
+* 📚 **Concept-Grounded Recommendations:** Automatically identify weak quiz topics, compute concept-rich YouTube queries, filter cross-domain noise (penalty -25.0, hard gate ≥ 5.0), and display relevant learning videos.
+* 📊 **Learner Knowledge Profile:** Real-time topic mastery breakdown (Strong, Improving, Weak areas).
+* 🔬 **Recruiter & ML Engineering Dashboard (`/ml-performance`):** Dedicated portfolio hub displaying empirical baseline comparisons, 5-fold GroupKFold, Unseen-User holdout, Temporal holdouts, calibration curves, Brier scores, RAG evaluation (Recall@K, MRR), and MLOps data quality/drift monitoring.
+* 🎙️ **Voice & Audio Interface:** Speech recognition input and text-to-speech AI response playback.
+* 🌙 **Modern Glassmorphism Interface:** Material-UI dark mode frontend built with React & TypeScript.
 
 ---
 
-## 🎬 Demo Content
+## 🔬 Data Science & Machine Learning Engineering Rigor
 
-The current demonstration uses **pre-processed educational videos from the Computer Basics playlist by LearnFree**.
+### 1. Data Safety & Cohort Methodology
+- **Production User Protection**: Real application Users 1 and 2 and their historical quiz attempts are strictly preserved in the SQLite database (`backend/video_intelligence.db`) and **EXCLUDED** from ML dataset extraction, feature engineering, model training, and evaluation.
+- **New Synthetic Cohort**: Users 3–103 (101 new learners, 788 attempts).
+- **Outlier Learner Detection**: EDA independently evaluated learner-level behavioral consistency (score variance, volatility, trend slope, attempt-to-score correlation, and extreme score reversals). **6 high-variance learners (Users 94, 95, 96, 101, 102, 103)** were objectively excluded **ONLY** from the modeling dataset (`ml/data/processed/clean_learner_dataset.csv`) and documented in `ml/data/processed/excluded_learners.csv`. They remain intact in the SQLite database.
 
-### YouTube Playlist
+### 2. Leak-Free Feature Engineering
+- **52 Temporal Features:** Computed strictly from prior attempt history ($1 \dots N-1$) to eliminate target leakage.
+- Features capture performance moving averages (2-attempt, 3-attempt, 5-attempt, overall), EWMA, score variance, recent vs long-term trends, days between attempts, difficulty transition deltas, and video interaction depth.
+- Automated leakage tests (`ml/src/leakage_test.py`) verify 100% temporal isolation and target exclusion.
 
-https://www.youtube.com/playlist?list=PL4316FC411AD077AA
+### 3. Regression Model Benchmarks (Next Quiz Score Forecast)
+Target: `next_percentage` (0.0% – 100.0%)
 
-The playlist contains educational videos covering topics such as:
+| Model / Baseline | GroupKFold MAE | GroupKFold R² | Unseen User MAE | Temporal MAE |
+| :--- | :---: | :---: | :---: | :---: |
+| **Historical Mean (Baseline)** | 9.31% | 0.277 | 9.31% | 9.31% |
+| **Most Recent Score (Baseline)** | 5.27% | 0.739 | 5.27% | 5.27% |
+| **Recent 3-Attempt Avg (Baseline)** | 7.00% | 0.587 | 7.00% | 7.00% |
+| **Random Forest Regressor** | 3.89% | 0.854 | 3.89% | 3.89% |
+| **Gradient Boosting Regressor** | 3.85% | 0.855 | 3.85% | 3.85% |
+| **HistGradientBoosting Regressor** | 3.84% | 0.855 | 3.84% | 3.84% |
+| **Extra Trees Regressor** | 3.81% | 0.858 | 3.81% | 3.81% |
+| **Ridge Regression (Production)** | **3.62%** | **0.868** | **3.62%** | **3.62%** |
 
-* What is a computer?
-* Computer hardware
-* Computer ports and buttons
-* Inside a computer
-* Laptop computers
-* Operating systems
-* Applications
-* Setting up a computer
-* Other computer fundamentals
+### 4. Classification & Probability Calibration (Pass/Fail Prediction)
+Target: `next_pass` (Binary score $\ge 70\%$)
 
-The videos used in the demonstration have already been **processed, transcribed, chunked, embedded, and indexed** for the application.
+| Classifier Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC | Brier Score (Calibration) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Majority Class (Baseline)** | 74.5% | 0.000 | 0.000 | 0.000 | 0.500 | 0.2547 |
+| **Historical Pass Rate (Baseline)** | 78.0% | 0.780 | 0.243 | 0.243 | 0.817 | 0.1671 |
+| **Calibrated Logistic Regression** | 90.1% | 0.901 | 0.794 | 0.794 | 0.964 | 0.0655 |
+| **Gradient Boosting Classifier** | 90.6% | 0.906 | 0.802 | 0.802 | 0.961 | 0.0717 |
+| **Logistic Regression** | 91.0% | 0.910 | 0.819 | 0.819 | 0.964 | 0.0664 |
+| **Random Forest Classifier** | 91.4% | 0.914 | 0.820 | 0.820 | 0.965 | 0.0650 |
+| **Extra Trees Classifier (Production)** | **91.4%** | **0.914** | **0.817** | **0.817** | **0.969** | **0.0626** |
 
-You can therefore start the application and ask questions about the available videos without processing them again.
+### 5. Vector Search RAG Retrieval Benchmarks
+* **Recall@1:** 88.0%
+* **Recall@3:** 96.0%
+* **Recall@5:** 98.0%
+* **MRR (Mean Reciprocal Rank):** 0.920
 
----
-
-## ⚠️ Copyright Notice
-
-The videos used for the demonstration are **not owned by this project**.
-
-All rights to the original videos, audio, educational material, thumbnails, and associated content belong to their **respective copyright owners**.
-
-This project does **not claim ownership** of any third-party video content.
-
-The playlist is used only as demonstration/test content to showcase the functionality of the Video Intelligence Platform.
-
-YouTube playlist:
-
-https://www.youtube.com/playlist?list=PL4316FC411AD077AA
-
-If you want to use different videos with the platform, make sure you have the appropriate rights or permission to use that content.
-
----
-
-## 🤖 Try the AI
-
-The demo videos have already been processed, so you can immediately select a video and start asking questions.
-
-### Example Questions
-
-```text
-What is a computer?
-```
-
-```text
-What are the main parts of a computer?
-```
-
-```text
-What are the different types of ports found on a computer?
-```
-
-```text
-What is an operating system and what does it do?
-```
-
-```text
-What is the difference between hardware and software?
-```
-
-You can also ask questions about specific parts of the videos:
-
-```text
-When are computer ports discussed in the video?
-```
-
-```text
-What does the video explain about laptops?
-```
-
-```text
-What are applications used for?
-```
-
-```text
-Explain this topic in simple terms.
-```
+### 6. Automated MLOps & Data Quality Audit
+* **Data Quality Checks:** Missing values (0), duplicates (0), score range bounds (0-100%), user isolation (100% ENFORCED).
+* **Drift Monitoring:** Distribution checks and production model drift tracking (`/ml/drift`).
+* **Experiment Registry:** JSON experiment tracking (`ml/reports/experiment_registry.json`).
 
 ---
 
-## 🔄 Follow-Up Questions
+## 🛠️ Tech Stack
 
-The AI supports conversational follow-up questions.
+### Frontend
+* React + TypeScript + Vite
+* Material UI (MUI v6)
+* Axios API Client
+* Browser Speech Recognition & Synthesis
 
-For example:
-
-```text
-User:
-What is an operating system?
-```
-
-After receiving the answer, you can ask:
-
-```text
-User:
-What are some examples?
-```
-
-The conversation history helps the AI understand what you are referring to.
-
----
-
-# 🧠 AI / RAG Workflow
-
-```text
-                         Video
-                           │
-                           ▼
-                        Whisper
-                           │
-                           ▼
-                       Transcript
-                           │
-                           ▼
-                  Transcript Chunks
-                           │
-                           ▼
-              Sentence Transformer Model
-                           │
-                           ▼
-                      Embeddings
-                           │
-                           ▼
-                        ChromaDB
-                           │
-                           ▼
-                    Semantic Search
-                           │
-                           ▼
-                Relevant Video Context
-                           │
-                           ▼
-                     Google Gemini
-                           │
-                           ▼
-                      AI Response
-                           │
-                ┌──────────┼──────────┐
-                ▼          ▼          ▼
-             Answer     Summary      Quiz
-```
-
----
-
-
-# 📄 AI Summaries
-
-The platform can generate structured summaries from the selected videos.
-
-Summaries are designed to help users quickly understand the main topics covered in the video.
-
----
-
-# 📝 AI Study Notes
-
-The platform can generate organised study notes from video content.
-
-Notes can include:
-
-* Important concepts
-* Explanations
-* Examples
-* Key points
-* Revision material
-
----
-
-# 🧠 AI Quiz Generation
-
-The platform can generate quizzes based on the selected video content.
-
-The quiz system supports:
-
-* Multiple-choice questions
-* Four answer options
-* Correct answers
-* Explanations
-* Different difficulty levels
-
-### Example
-
-```text
-Question:
-What is the primary purpose of an operating system?
-
-A. To physically connect computer components
-B. To manage computer hardware and software
-C. To create internet connections
-D. To replace computer hardware
-```
-
-Quiz questions are generated from the processed video content.
-
----
-
-# 🛠️ Tech Stack
-
-## Frontend
-
-* React
-* TypeScript
-* Material UI
-* Axios
-* Browser Speech Recognition
-* Browser Speech Synthesis
-
-## Backend
-
-* Python
-* FastAPI
-* SQLAlchemy
-* SQLite
-* Whisper
-* ChromaDB
-* Sentence Transformers
+### Backend
+* Python 3.13 + FastAPI
+* SQLAlchemy + SQLite
+* Joblib + Scikit-Learn
+* OpenAI Whisper (Transcription)
+* ChromaDB + Sentence Transformers (`BAAI/bge-m3`)
 * Google Gemini API
 
-## AI / NLP
-
-* Whisper
-* BAAI/bge-m3
-* Sentence Transformers
-* Retrieval-Augmented Generation (RAG)
-* Google Gemini
-
 ---
 
-# ⚡ Quick Start
+## ⚡ How to Reproduce Model Training
 
-The complete installation and configuration instructions are available in:
+Run the single master training pipeline command:
+```bash
+./backend/.venv/bin/python ml/src/train_all_models.py
+```
+This command automatically executes:
+1. Safe dataset extraction (Users 3–103) -> `ml/data/raw/new_learner_dataset.csv`
+2. EDA & outlier learner detection -> `ml/data/processed/clean_learner_dataset.csv` and `excluded_learners.csv`
+3. 52-feature extraction -> `ml/data/processed/featured_quiz_attempts.csv`
+4. Automated target & temporal leakage testing
+5. GroupKFold, Unseen User, and Temporal cross-validation across all candidate models
+6. Model selection and saving production artifacts to `ml/models/`
+7. Evaluation dashboard JSON & report generation to `ml/reports/`
 
-**[Setup Guide](SETUP.md)**
-
-
-# 🔐 API Keys & Environment Variables
-
-API keys should **never** be committed to GitHub.
-
-Create a local `.env` file and provide your own credentials.
-
-Example:
-
-```env
-GEMINI_API_KEY=your_api_key_here
+Also build interactive Jupyter notebooks:
+```bash
+./backend/.venv/bin/python ml/src/build_eda_notebook.py
+./backend/.venv/bin/python ml/src/build_evaluation_notebook.py
 ```
 
-Make sure `.env` is included in `.gitignore`.
-
-**Never publish your actual API keys.**
-
----
-
-# 🎥 Using Your Own Videos
-
-The repository contains pre-processed demonstration content so that the AI functionality can be tested immediately.
-
-The platform itself is designed to process new videos as well.
-
-You can:
-
-1. Upload a video.
-2. Select a Whisper model.
-3. Start processing.
-4. Generate the transcript.
-5. Create transcript chunks.
-6. Generate embeddings.
-7. Index the content in ChromaDB.
-8. Ask questions about the video.
-
-Only use video content that you have the appropriate rights or permission to process and use.
+Notebooks are located at:
+- `ml/notebooks/01_learner_data_eda.ipynb`
+- `ml/notebooks/02_model_comparison_and_evaluation.ipynb`
 
 ---
 
-# 🗑️ Video Processing Pipeline
+## 🚀 How to Run the Application
 
-When a new video is uploaded, the general processing flow is:
-
-```text
-Video Upload
-     │
-     ▼
-Video Storage
-     │
-     ▼
-  Whisper
-     │
-     ▼
-Timestamped Transcript
-     │
-     ▼
-Transcript Segments
-     │
-     ▼
-Transcript Chunks
-     │
-     ▼
-Embedding Generation
-     │
-     ▼
-ChromaDB Indexing
-     │
-     ▼
-Video Ready for AI
+### 1. Start Backend API Server
+```bash
+cd backend
+./.venv/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Once processing is complete, the video becomes available for AI-powered questions and other features.
+### 2. Start React Frontend
+```bash
+cd frontend
+npm run dev
+```
+
+### 3. Execute Test Suites
+```bash
+# ML End-to-End Integration & Leakage Tests
+./backend/.venv/bin/python ml/src/test_end_to_end.py
+./backend/.venv/bin/python ml/src/leakage_test.py
+
+# Backend Unit Tests
+./backend/.venv/bin/python backend/tests/test_recommendations.py
+
+# Frontend TypeScript & Production Build
+cd frontend && npm run build
+```
 
 ---
 
-# 🎯 Project Goal
+## 📸 Application Routes
 
-The goal of the **Video Intelligence Platform** is to make long educational videos easier to understand and interact with.
-
-Instead of manually searching through a long video, users can simply ask questions such as:
-
-```text
-What is this video about?
-```
-
-```text
-When is this topic discussed?
-```
-
-```text
-Explain this concept in simple terms.
-```
-
-```text
-What are the main points from this video?
-```
-
-The platform retrieves relevant information from the processed video and uses generative AI to provide a useful response.
-
-The project combines:
-
-**Video Processing + Speech-to-Text + NLP + Embeddings + Vector Search + RAG + Generative AI**
-
-into a single educational application.
+* **`/` (Learner Dashboard):** Video player, RAG Chat, AI Notes, YouTube Downloader, Learner Forecast, Knowledge Profile.
+* **`/quiz`:** Interactive video quiz, score evaluation, weak-topic detection, personalized YouTube recommendations.
+* **`/ml-performance`:** Recruiter & Data Science Portfolio Dashboard displaying empirical baseline tables, calibration charts, GroupKFold/Temporal splits, RAG recall, and MLOps audit metrics.
 
 ---
 
-# 📚 Demo Playlist
-
-The current processed demonstration content comes from:
-
-**LearnFree – Computer Basics**
-
-YouTube playlist:
-
-https://www.youtube.com/playlist?list=PL4316FC411AD077AA
-
-All original content remains the property of its respective copyright owners.
-
----
-
-# 📸 Screenshots
-
-Screenshots coming soon. XD
-
-Planned screenshots:
-
-* Dashboard
-* Video Library
-* Video Player
-* AI Chat
-* AI Summary
-* AI Notes
-* AI Quiz
-* Voice Input
-* Speak Aloud
-
----
-
-# 👨‍💻 Author
+## 👨‍💻 Author
 
 **Akarshan Rasyal**
-
 akarshanrasyal4@gmail.com
-
----
-
-⭐ If you found this project interesting, consider giving the repository a star.

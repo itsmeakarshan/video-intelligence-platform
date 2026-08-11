@@ -46,7 +46,8 @@ export default function VideoLibrary() {
         setVideoId,
         setVideoTitle,
         setVideoUrl,
-        loadVideo
+        loadVideo,
+        getVideoDisplayNumber
     } = useVideo();
 
     const {
@@ -533,7 +534,7 @@ export default function VideoLibrary() {
                                                             fontSize: 14
                                                         }}
                                                     >
-                                                        Video #{index + 1}
+                                                        Video #{getVideoDisplayNumber ? getVideoDisplayNumber(video.id) : index + 1}
                                                     </Typography>
 
                                                     <Typography

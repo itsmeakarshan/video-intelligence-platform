@@ -4,7 +4,8 @@ import {
     Button,
     Divider,
     IconButton,
-    TextField,
+    InputBase,
+    Stack,
     Tooltip,
     Typography
 } from "@mui/material";
@@ -13,6 +14,7 @@ import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import MicOffRoundedIcon from "@mui/icons-material/MicOffRounded";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 
 import { useChat } from "../../context/ChatContext";
 import { askAI } from "../../services/chatService";
@@ -72,7 +74,6 @@ export default function Chat() {
     const speechTextRef = useRef("");
     const interimTextRef = useRef("");
     
-    // Create a ref to always hold the latest version of the send function
     const sendRef = useRef<((explicitText?: string) => Promise<void>) | null>(null);
 
     function clearSilenceTimer() {
@@ -122,7 +123,6 @@ export default function Chat() {
         });
     }, [messages, loading]);
 
-    // Keep the sendRef updated with the latest closure state
     useEffect(() => {
         sendRef.current = send;
     });
@@ -161,131 +161,53 @@ export default function Chat() {
 
         const recognition = new SpeechRecognition();
 
-        recognition.continuous = true;
+        recognition.continuous = false;
         recognition.interimResults = true;
-        recognition.lang = "en-GB";
+        recognition.lang = typeof navigator !== "undefined" ? (navigator.language || "en-US") : "en-US";
 
         recognition.onstart = () => {
             if (sessionRef.current !== sessionId) return;
             setListening(true);
         };
 
-        recognition.onresult = (
-            event: SpeechRecognitionEventLike
-        ) => {
-            if (sessionRef.current !== sessionId) {
-                return;
+        recognition.onresult = (event: SpeechRecognitionEventLike) => {
+            if (sessionRef.current !== sessionId) return;
+
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
             }
 
-            let newFinalText = "";
-            let newInterimText = "";
-
-            for (
-                let i = event.resultIndex;
-                i < event.results.length;
-                i++
-            ) {
-                const result = event.results[i];
-                const text = result[0]?.transcript?.trim() ?? "";
-
-                if (!text) {
-                    continue;
-                }
-
-                if (result.isFinal) {
-                    newFinalText += ` ${text}`;
-                } else {
-                    newInterimText += ` ${text}`;
-                }
-            }
-
-            if (newFinalText.trim()) {
-                speechTextRef.current =
-                    `${speechTextRef.current} ${newFinalText}`
-                        .replace(/\s+/g, " ")
-                        .trim();
-            }
-
-            interimTextRef.current =
-                newInterimText
-                    .replace(/\s+/g, " ")
-                    .trim();
-
-            setInterimText(interimTextRef.current);
-
-            const combinedText =
-                `${speechTextRef.current} ${interimTextRef.current}`
-                    .replace(/\s+/g, " ")
-                    .trim();
-
-            if (combinedText) {
-                setInput(combinedText);
+            const trimmed = transcript.trim();
+            if (trimmed) {
+                speechTextRef.current = trimmed;
+                setInput(trimmed);
+                setInterimText(trimmed);
             }
 
             clearSilenceTimer();
-
-            // When user stops speaking for 1.5s, trigger stop which fires onend
             silenceTimerRef.current = setTimeout(() => {
-                stopListening();
+                if (sessionRef.current !== sessionId) return;
+                const finalQuestion = speechTextRef.current.trim();
+                if (finalQuestion && sendRef.current) {
+                    stopListening();
+                    sendRef.current(finalQuestion);
+                }
             }, 1500);
         };
 
-        recognition.onerror = (
-            event: SpeechRecognitionErrorEventLike
-        ) => {
-            console.error(
-                "Speech recognition error:",
-                event.error
-            );
-
-            clearSilenceTimer();
-
-            const completeText =
-                `${speechTextRef.current} ${interimTextRef.current}`
-                    .replace(/\s+/g, " ")
-                    .trim();
-
-            speechTextRef.current = "";
-            interimTextRef.current = "";
-
-            setInterimText("");
+        recognition.onerror = (err: SpeechRecognitionErrorEventLike) => {
+            if (sessionRef.current !== sessionId) return;
+            console.warn("Speech recognition error:", err.error);
             setListening(false);
-            recognitionRef.current = null;
-
-            // If an error happens but we captured text, send it
-            if (completeText && sendRef.current) {
-                sendRef.current(completeText);
-            }
         };
 
         recognition.onend = () => {
-            if (sessionRef.current !== sessionId) {
-                return;
-            }
-
-            clearSilenceTimer();
-
-            const finalText =
-                speechTextRef.current.trim();
-
-            const remainingInterim =
-                interimTextRef.current.trim();
-
-            const completeText =
-                `${finalText} ${remainingInterim}`
-                    .replace(/\s+/g, " ")
-                    .trim();
-
-            speechTextRef.current = "";
-            interimTextRef.current = "";
-
-            setInterimText("");
+            if (sessionRef.current !== sessionId) return;
             setListening(false);
-            recognitionRef.current = null;
-
-            // Trigger the auto-send once recognition fully stops
-            if (completeText && sendRef.current) {
-                sendRef.current(completeText);
+            const finalQuestion = speechTextRef.current.trim();
+            if (finalQuestion && sendRef.current) {
+                sendRef.current(finalQuestion);
             }
         };
 
@@ -293,13 +215,8 @@ export default function Chat() {
 
         try {
             recognition.start();
-        } catch (error) {
-            console.error(
-                "Unable to start speech recognition:",
-                error
-            );
-
-            recognitionRef.current = null;
+        } catch (e) {
+            console.error("Failed to start speech recognition", e);
             setListening(false);
         }
     }
@@ -307,96 +224,40 @@ export default function Chat() {
     function toggleMicrophone() {
         if (listening) {
             stopListening();
+            const textToSend = (speechTextRef.current || input).trim();
+            if (textToSend && sendRef.current) {
+                sendRef.current(textToSend);
+            }
         } else {
             startListening();
         }
     }
 
-    function speakAnswer(
-        text: string,
-        messageId: string
-    ) {
-        window.speechSynthesis.cancel();
+    function speakAnswer(text: string, messageId: string) {
+        if (!window.speechSynthesis) {
+            alert("Text-to-speech is not supported in this browser.");
+            return;
+        }
 
         if (speakingMessageId === messageId) {
+            window.speechSynthesis.cancel();
             setSpeakingMessageId(null);
             return;
         }
 
-        if (!("speechSynthesis" in window)) {
-            return;
-        }
+        window.speechSynthesis.cancel();
 
         const cleanText = text
-            .replace(/[*_`#]/g, "")
-            .replace(
-                /\[([^\]]+)\]\([^)]+\)/g,
-                "$1"
-            )
-            .replace(
-                /^\s*[-•]\s*/gm,
-                ""
-            )
-            .trim();
+            .replace(/\[\d{1,2}:\d{2}(?:\s*[\-–—]\s*\d{1,2}:\d{2})?\]/g, "")
+            .replace(/[*#_`]/g, "");
 
-        if (!cleanText) {
-            return;
-        }
+        const utterance = new SpeechSynthesisUtterance(cleanText);
 
-        const utterance =
-            new SpeechSynthesisUtterance(
-                cleanText
-            );
-
-        const voices =
-            window.speechSynthesis.getVoices();
-
-        const preferredVoiceNames = [
-            "Serena",
-            "Karen",
-            "Moira",
-            "Google UK English Female",
-            "Microsoft Hazel",
-            "Microsoft Sonia"
-        ];
-
-        let voice = voices.find(voice => {
-            const name =
-                voice.name.toLowerCase();
-
-            const language =
-                voice.lang.toLowerCase();
-
-            const british =
-                language === "en-gb" ||
-                language.startsWith("en-gb");
-
-            const preferred =
-                preferredVoiceNames.some(
-                    namePart =>
-                        name.includes(
-                            namePart.toLowerCase()
-                        )
-                );
-
-            return british && preferred;
-        });
-
-        if (!voice) {
-            voice = voices.find(voice =>
-                voice.lang
-                    .toLowerCase()
-                    .startsWith("en-gb")
-            );
-        }
-
-        if (!voice) {
-            voice = voices.find(voice =>
-                voice.lang
-                    .toLowerCase()
-                    .startsWith("en")
-            );
-        }
+        const voices = window.speechSynthesis.getVoices();
+        const voice =
+            voices.find(v => v.lang.startsWith("en-GB") && v.name.includes("Natural")) ||
+            voices.find(v => v.lang.startsWith("en")) ||
+            voices[0];
 
         if (voice) {
             utterance.voice = voice;
@@ -406,32 +267,18 @@ export default function Chat() {
         utterance.pitch = 1;
         utterance.volume = 1;
 
-        utterance.onstart = () => {
-            setSpeakingMessageId(messageId);
-        };
+        utterance.onstart = () => { setSpeakingMessageId(messageId); };
+        utterance.onend = () => { setSpeakingMessageId(null); };
+        utterance.onerror = () => { setSpeakingMessageId(null); };
 
-        utterance.onend = () => {
-            setSpeakingMessageId(null);
-        };
-
-        utterance.onerror = () => {
-            setSpeakingMessageId(null);
-        };
-
-        window.speechSynthesis.speak(
-            utterance
-        );
+        window.speechSynthesis.speak(utterance);
     }
 
-    // Allow sending explicit text (from speech recognition) or falling back to the text input
     async function send(explicitText?: string) {
         const question = (explicitText !== undefined ? explicitText : input).trim();
         
-        if (!question || loading) {
-            return;
-        }
+        if (!question || loading) return;
 
-        // Only turn off the microphone if the user clicked the manual send button while it was on
         if (listening && explicitText === undefined) {
             stopListening();
         }
@@ -451,19 +298,14 @@ export default function Chat() {
         setLoading(true);
 
         try {
-            const result =
-                await askAI(
-                    question,
-                    conversationId,
-                    selectedVideos.length > 0
-                        ? selectedVideos
-                        : undefined
-                );
+            const result = await askAI(
+                question,
+                conversationId,
+                selectedVideos.length > 0 ? selectedVideos : undefined
+            );
 
             if (result.conversation_id) {
-                setConversationId(
-                    result.conversation_id
-                );
+                setConversationId(result.conversation_id);
             }
 
             setMessages(prev => [
@@ -472,8 +314,7 @@ export default function Chat() {
                     id: crypto.randomUUID(),
                     role: "assistant",
                     text: result.answer,
-                    sources:
-                        result.sources ?? []
+                    sources: result.sources ?? []
                 }
             ]);
         } catch (error: any) {
@@ -482,9 +323,7 @@ export default function Chat() {
                 {
                     id: crypto.randomUUID(),
                     role: "assistant",
-                    text:
-                        error?.message ??
-                        "Unable to contact the AI.",
+                    text: error?.message ?? "Unable to contact the AI.",
                     sources: []
                 }
             ]);
@@ -498,44 +337,41 @@ export default function Chat() {
             sx={{
                 display: "flex",
                 flexDirection: "column",
-                height: "100%"
+                height: "100%",
+                maxHeight: "100%",
+                overflow: "hidden"
             }}
         >
+            {/* 1. YOUTUBE AI CHAT HEADER */}
             <Box
                 sx={{
-                    px: 3,
-                    py: 2.5
+                    px: 2.5,
+                    py: 1.8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderBottom: "1px solid rgba(255,255,255,0.08)"
                 }}
             >
-                <Typography
-                    variant="h5"
-                    sx={{
-                        fontWeight: 700,
-                        color: "#14b8a6"
-                    }}
-                >
-                    🤖 AI Assistant
-                </Typography>
+                <Stack direction="row" alignItems="center" spacing={1.2}>
+                    <AutoAwesomeRoundedIcon sx={{ color: "#38bdf8", fontSize: 20 }} />
+                    <Typography sx={{ color: "#F8FAFC", fontWeight: 700, fontSize: 16 }}>
+                        Ask about this video
+                    </Typography>
+                </Stack>
             </Box>
 
-            <Divider
-                sx={{
-                    borderColor:
-                        "rgba(255,255,255,.08)"
-                }}
-            />
-
+            {/* 3. SCROLLABLE MESSAGES STREAM */}
             <Box
                 ref={messagesRef}
                 sx={{
                     flex: 1,
+                    minHeight: 0,
                     overflowY: "auto",
-                    overflowX: "hidden",
-                    px: 3,
-                    py: 3,
+                    px: 2.5,
+                    py: 2,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 2,
                     "&::-webkit-scrollbar": {
                         width: "6px"
                     },
@@ -543,120 +379,67 @@ export default function Chat() {
                         background: "transparent"
                     },
                     "&::-webkit-scrollbar-thumb": {
-                        background:
-                            "rgba(20,184,166,.2)",
+                        background: "rgba(255, 255, 255, 0.15)",
                         borderRadius: "10px"
+                    },
+                    "&::-webkit-scrollbar-thumb:hover": {
+                        background: "rgba(255, 255, 255, 0.3)"
                     }
                 }}
             >
                 {messages.length === 0 && (
-                    <Typography
-                        sx={{
-                            color:
-                                "rgba(255,255,255,.75)",
-                            fontSize: 17,
-                            lineHeight: 1.8
-                        }}
-                    >
-                        👋 Upload a video and ask me anything!
-                    </Typography>
+                    <Box sx={{ textAlign: "center", py: 4, px: 2 }}>
+                        <AutoAwesomeRoundedIcon sx={{ color: "#38bdf8", fontSize: 32, mb: 1 }} />
+                        <Typography sx={{ color: "#F8FAFC", fontWeight: 700, fontSize: 16, mb: 0.5 }}>
+                            What would you like to know?
+                        </Typography>
+                        <Typography sx={{ color: "#94A3B8", fontSize: 13, maxWidth: 280, mx: "auto" }}>
+                            Ask questions, request summaries, or pick a suggestion pill above.
+                        </Typography>
+                    </Box>
                 )}
 
                 {messages.map(message => (
-                    <Box
-                        key={message.id}
-                        sx={{
-                            display: "flex",
-                            flexDirection: "column"
-                        }}
-                    >
+                    <Box key={message.id} sx={{ display: "flex", flexDirection: "column" }}>
                         <Message
                             role={message.role}
                             text={message.text}
                             sources={message.sources}
                         />
 
-                        {message.role ===
-                            "assistant" && (
-                            <Box
-                                sx={{
-                                    mt: 0.75,
-                                    ml: {
-                                        xs: 0,
-                                        sm: 6
-                                    }
-                                }}
-                            >
+                        {message.role === "assistant" && (
+                            <Box sx={{ mt: -1.5, mb: 2, ml: 4.5 }}>
                                 <Button
                                     size="small"
-                                    onClick={() =>
-                                        speakAnswer(
-                                            message.text,
-                                            message.id
-                                        )
-                                    }
+                                    onClick={() => speakAnswer(message.text, message.id)}
                                     startIcon={
-                                        speakingMessageId ===
-                                        message.id
-                                            ? (
-                                                <StopRoundedIcon
-                                                    fontSize="small"
-                                                />
-                                            )
-                                            : (
-                                                <VolumeUpRoundedIcon
-                                                    fontSize="small"
-                                                />
-                                            )
+                                        speakingMessageId === message.id
+                                            ? <StopRoundedIcon fontSize="small" />
+                                            : <VolumeUpRoundedIcon fontSize="small" />
                                     }
                                     sx={{
-                                        color:
-                                            speakingMessageId ===
-                                            message.id
-                                                ? "#f87171"
-                                                : "#14b8a6",
-                                        border:
-                                            "1px solid rgba(20,184,166,.25)",
+                                        color: speakingMessageId === message.id ? "#f87171" : "#94a3b8",
                                         borderRadius: 2,
-                                        px: 1.5,
-                                        py: 0.5,
-                                        textTransform:
-                                            "none",
-                                        fontSize:
-                                            "0.78rem",
-                                        fontWeight: 600,
-                                        background:
-                                            "rgba(20,184,166,.05)",
-                                        "&:hover": {
-                                            background:
-                                                "rgba(20,184,166,.12)",
-                                            borderColor:
-                                                "rgba(20,184,166,.45)"
-                                        }
+                                        px: 1,
+                                        py: 0.2,
+                                        textTransform: "none",
+                                        fontSize: "0.75rem",
+                                        "&:hover": { color: "#38bdf8", bgcolor: "rgba(255,255,255,0.05)" }
                                     }}
                                 >
-                                    {speakingMessageId ===
-                                    message.id
-                                        ? "Stop Speaking"
-                                        : "Speak Aloud"}
+                                    {speakingMessageId === message.id ? "Stop Speaking" : "Listen"}
                                 </Button>
                             </Box>
                         )}
                     </Box>
                 ))}
 
-                {loading && (
-                    <TypingIndicator />
-                )}
+                {loading && <TypingIndicator />}
             </Box>
 
-            <Divider
-                sx={{
-                    borderColor:
-                        "rgba(255,255,255,.08)"
-                }}
-            />
+            <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
 
+            {/* 4. PINNED BOTTOM INPUT BAR (YOUTUBE AI STYLE) */}
             <Box
                 component="form"
                 onSubmit={e => {
@@ -664,256 +447,102 @@ export default function Chat() {
                     send();
                 }}
                 sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    px: 3,
-                    py: 2.5
+                    px: 2,
+                    py: 1.8,
+                    bgcolor: "rgba(15, 23, 42, 0.95)",
+                    borderTop: "1px solid rgba(255,255,255,0.06)"
                 }}
             >
                 <Box
                     sx={{
-                        position: "relative",
-                        flex: 1
+                        display: "flex",
+                        alignItems: "center",
+                        bgcolor: "rgba(255, 255, 255, 0.08)",
+                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                        borderRadius: "28px",
+                        px: 2,
+                        py: 0.5,
+                        transition: "all 0.2s ease",
+                        "&:focus-within": {
+                            borderColor: "#38bdf8",
+                            bgcolor: "rgba(255, 255, 255, 0.12)",
+                            boxShadow: "0 0 12px rgba(56, 189, 248, 0.2)"
+                        }
                     }}
                 >
-                    <TextField
+                    <InputBase
                         fullWidth
-                        placeholder={
-                            listening
-                                ? "Listening..."
-                                : "Ask anything..."
-                        }
+                        placeholder={listening ? "Listening..." : "Ask a question..."}
                         value={input}
-                        onChange={e =>
-                            setInput(
-                                e.target.value
-                            )
-                        }
+                        onChange={e => setInput(e.target.value)}
                         onKeyDown={e => {
-                            if (
-                                e.key === "Enter" &&
-                                !e.shiftKey
-                            ) {
+                            if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 send();
                             }
                         }}
                         disabled={loading}
                         sx={{
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: 2,
-                                color: "#f8fafc",
-                                backgroundColor:
-                                    "rgba(0,0,0,.2)",
-                                pr:
-                                    listening
-                                        ? 7
-                                        : 2,
-                                "& fieldset": {
-                                    borderColor:
-                                        listening
-                                            ? "rgba(20,184,166,.65)"
-                                            : "rgba(20,184,166,.3)"
-                                },
-                                "&:hover fieldset": {
-                                    borderColor:
-                                        "rgba(20,184,166,.6)"
-                                },
-                                "&.Mui-focused fieldset": {
-                                    borderColor:
-                                        "#14b8a6"
-                                }
-                            },
-                            "& .MuiInputBase-input::placeholder": {
-                                color:
-                                    "rgba(255,255,255,.4)",
+                            color: "#F8FAFC",
+                            fontSize: "0.9rem",
+                            py: 0.6,
+                            "& input::placeholder": {
+                                color: "#94A3B8",
                                 opacity: 1
                             }
                         }}
                     />
 
-                    {listening && (
-                        <Box
-                            sx={{
-                                position:
-                                    "absolute",
-                                right: 14,
-                                top: "50%",
-                                transform:
-                                    "translateY(-50%)",
-                                display: "flex",
-                                alignItems:
-                                    "center",
-                                gap: 0.35,
-                                height: 30,
-                                pointerEvents:
-                                    "none"
-                            }}
-                        >
-                            {[0, 1, 2, 3, 4].map(
-                                index => (
-                                    <Box
-                                        key={index}
-                                        sx={{
-                                            width: 3,
-                                            height:
-                                                index % 2 ===
-                                                0
-                                                    ? 18
-                                                    : 11,
-                                            borderRadius:
-                                                3,
-                                            background:
-                                                "linear-gradient(180deg,#14b8a6,#10b981)",
-                                            animation:
-                                                "voiceWave 0.8s ease-in-out infinite",
-                                            animationDelay:
-                                                `${index * 0.12}s`,
-                                            "@keyframes voiceWave":
-                                                {
-                                                    "0%, 100%":
-                                                        {
-                                                            transform:
-                                                                "scaleY(.45)",
-                                                            opacity:
-                                                                0.45
-                                                        },
-                                                    "50%":
-                                                        {
-                                                            transform:
-                                                                "scaleY(1.15)",
-                                                            opacity:
-                                                                1
-                                                        }
-                                                }
-                                        }}
-                                    />
-                                )
-                            )}
-                        </Box>
-                    )}
-
-                    {listening &&
-                        interimText && (
-                            <Box
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Tooltip title={listening ? "Stop listening" : "Voice input"}>
+                            <IconButton
+                                type="button"
+                                size="small"
+                                onClick={toggleMicrophone}
+                                disabled={loading}
                                 sx={{
-                                    position:
-                                        "absolute",
-                                    left: 16,
-                                    bottom: -25,
-                                    color:
-                                        "rgba(20,184,166,.7)",
-                                    fontSize:
-                                        "0.72rem",
-                                    pointerEvents:
-                                        "none",
-                                    whiteSpace:
-                                        "nowrap",
-                                    overflow:
-                                        "hidden",
-                                    textOverflow:
-                                        "ellipsis",
-                                    maxWidth:
-                                        "80%"
+                                    color: listening ? "#ef4444" : "#94a3b8",
+                                    "&:hover": { color: "#38bdf8" }
                                 }}
                             >
-                                {interimText}
-                            </Box>
-                        )}
+                                {listening ? <MicOffRoundedIcon fontSize="small" /> : <MicRoundedIcon fontSize="small" />}
+                            </IconButton>
+                        </Tooltip>
+
+                        <IconButton
+                            type="submit"
+                            size="small"
+                            disabled={loading || !input.trim()}
+                            sx={{
+                                color: !input.trim() || loading ? "rgba(255,255,255,0.2)" : "#38bdf8",
+                                bgcolor: !input.trim() || loading ? "transparent" : "rgba(56, 189, 248, 0.15)",
+                                p: 0.8,
+                                "&:hover": {
+                                    bgcolor: "rgba(56, 189, 248, 0.28)",
+                                    color: "#38bdf8"
+                                }
+                            }}
+                        >
+                            <SendRoundedIcon fontSize="small" />
+                        </IconButton>
+                    </Stack>
                 </Box>
 
-                <Tooltip
-                    title={
-                        listening
-                            ? "Stop listening"
-                            : "Speak"
-                    }
-                >
-                    <IconButton
-                        type="button"
-                        onClick={
-                            toggleMicrophone
-                        }
-                        disabled={loading}
-                        sx={{
-                            width: 56,
-                            height: 56,
-                            flexShrink: 0,
-                            borderRadius: 2,
-                            color:
-                                listening
-                                    ? "#ffffff"
-                                    : "#14b8a6",
-                            background:
-                                listening
-                                    ? "linear-gradient(135deg,#ef4444,#f97316)"
-                                    : "rgba(20,184,166,.08)",
-                            border:
-                                listening
-                                    ? "1px solid rgba(255,255,255,.25)"
-                                    : "1px solid rgba(20,184,166,.3)",
-                            boxShadow:
-                                listening
-                                    ? "0 0 0 5px rgba(239,68,68,.08), 0 0 22px rgba(20,184,166,.25)"
-                                    : "none",
-                            animation:
-                                listening
-                                    ? "micPulse 1.5s ease-in-out infinite"
-                                    : "none",
-                            "@keyframes micPulse": {
-                                "0%, 100%": {
-                                    transform:
-                                        "scale(1)"
-                                },
-                                "50%": {
-                                    transform:
-                                        "scale(1.06)"
-                                }
-                            },
-                            "&:hover": {
-                                background:
-                                    listening
-                                        ? "linear-gradient(135deg,#dc2626,#ea580c)"
-                                        : "rgba(20,184,166,.15)"
-                            }
-                        }}
-                    >
-                        {listening
-                            ? (
-                                <MicOffRoundedIcon />
-                            )
-                            : (
-                                <MicRoundedIcon />
-                            )}
-                    </IconButton>
-                </Tooltip>
+                {listening && interimText && (
+                    <Typography sx={{ color: "#38bdf8", fontSize: "0.72rem", mt: 0.5, px: 1 }}>
+                        {interimText}
+                    </Typography>
+                )}
 
-                <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={
-                        loading ||
-                        !input.trim()
-                    }
-                    sx={{
-                        minWidth: 60,
-                        height: 56,
-                        borderRadius: 2,
-                        background:
-                            "linear-gradient(135deg,#14b8a6,#10b981)",
-                        "&:hover": {
-                            transform:
-                                "translateY(-2px)"
-                        },
-                        "&.Mui-disabled": {
-                            background:
-                                "rgba(20,184,166,.25)"
-                        }
-                    }}
-                >
-                    <SendRoundedIcon />
-                </Button>
+                <Stack direction="row" justifyContent="flex-end" alignItems="center" spacing={0.5} sx={{ mt: 0.8, px: 1 }}>
+                    <Typography sx={{ color: "#64748B", fontSize: "0.72rem" }}>
+                        Ask
+                    </Typography>
+                    <AutoAwesomeRoundedIcon sx={{ color: "#38bdf8", fontSize: 13 }} />
+                    <Typography sx={{ color: "#38bdf8", fontSize: "0.72rem", fontWeight: 700 }}>
+                        Gemini
+                    </Typography>
+                </Stack>
             </Box>
         </Box>
     );

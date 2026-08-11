@@ -35,6 +35,7 @@ interface VideoContextType {
         video: VideoItem,
         time: number
     ) => void;
+    getVideoDisplayNumber: (targetVideoId: number) => number;
 }
 
 const VideoContext = createContext(
@@ -54,6 +55,12 @@ export function VideoProvider({
     const [processing, setProcessing] = useState(false);
 
     const playerRef = useRef<HTMLVideoElement>(null);
+
+    function getVideoDisplayNumber(targetVideoId: number): number {
+        const sorted = [...videos].sort((a, b) => a.id - b.id);
+        const index = sorted.findIndex(v => v.id === targetVideoId);
+        return index !== -1 ? index + 1 : targetVideoId;
+    }
 
     function seekTo(time: number) {
         if (playerRef.current) {
@@ -123,7 +130,8 @@ export function VideoProvider({
                 playerRef,
                 seekTo,
                 loadVideo,
-                jumpToVideo
+                jumpToVideo,
+                getVideoDisplayNumber
             }}
         >
             {children}

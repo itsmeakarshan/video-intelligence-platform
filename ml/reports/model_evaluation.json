@@ -1,0 +1,315 @@
+{
+  "pipeline_version": "v3.0_authoritative",
+  "evaluation_timestamp": "2026-08-12T00:31:50.829214",
+  "system_metadata": {
+    "total_users": 95,
+    "total_attempts": 636,
+    "total_features": 52,
+    "regression_model": "Ridge Regression",
+    "classification_model": "Extra Trees Classifier",
+    "dataset_type": "Real Learner Cohort (Users 3-103)",
+    "pipeline_status": "SUCCESS"
+  },
+  "dataset_summary": {
+    "raw_learners_count": 101,
+    "excluded_outlier_learners_count": 6,
+    "clean_modeling_learners_count": 95,
+    "total_clean_attempts": 636,
+    "excluded_user_ids": [
+      1,
+      2
+    ]
+  },
+  "selected_regression_model": {
+    "model_name": "Ridge Regression",
+    "group_kfold_mae": 3.62,
+    "group_kfold_rmse": 4.82,
+    "group_kfold_r2": 0.868,
+    "unseen_user_mae": 3.04,
+    "unseen_user_rmse": 3.78,
+    "unseen_user_r2": 0.917,
+    "temporal_mae": 3.21,
+    "temporal_rmse": 4.11,
+    "temporal_r2": 0.925
+  },
+  "selected_classification_model": {
+    "model_name": "Extra Trees Classifier",
+    "accuracy": 0.914,
+    "precision": 0.892,
+    "recall": 0.756,
+    "f1_score": 0.817,
+    "roc_auc": 0.969,
+    "pr_auc": 0.929,
+    "brier_score": 0.0626,
+    "log_loss": 0.2064
+  },
+  "regression_comparison": [
+    {
+      "model": "Historical Mean Baseline",
+      "group_kfold_mae": 9.31,
+      "group_kfold_rmse": 11.19,
+      "group_kfold_r2": 0.277,
+      "unseen_user_mae": 10.21,
+      "unseen_user_rmse": 12.11,
+      "unseen_user_r2": 0.152,
+      "temporal_mae": 10.57,
+      "temporal_rmse": 12.25,
+      "temporal_r2": 0.336
+    },
+    {
+      "model": "Most Recent Score Baseline",
+      "group_kfold_mae": 5.27,
+      "group_kfold_rmse": 6.78,
+      "group_kfold_r2": 0.739,
+      "unseen_user_mae": 5.14,
+      "unseen_user_rmse": 6.46,
+      "unseen_user_r2": 0.759,
+      "temporal_mae": 5.15,
+      "temporal_rmse": 6.41,
+      "temporal_r2": 0.818
+    },
+    {
+      "model": "Recent 3-Attempt Avg Baseline",
+      "group_kfold_mae": 7.0,
+      "group_kfold_rmse": 8.47,
+      "group_kfold_r2": 0.587,
+      "unseen_user_mae": 7.4,
+      "unseen_user_rmse": 8.72,
+      "unseen_user_r2": 0.56,
+      "temporal_mae": 7.38,
+      "temporal_rmse": 8.61,
+      "temporal_r2": 0.671
+    },
+    {
+      "model": "Ridge Regression",
+      "group_kfold_mae": 3.62,
+      "group_kfold_rmse": 4.82,
+      "group_kfold_r2": 0.868,
+      "unseen_user_mae": 3.04,
+      "unseen_user_rmse": 3.78,
+      "unseen_user_r2": 0.917,
+      "temporal_mae": 3.21,
+      "temporal_rmse": 4.11,
+      "temporal_r2": 0.925
+    },
+    {
+      "model": "Random Forest Regressor",
+      "group_kfold_mae": 3.89,
+      "group_kfold_rmse": 5.07,
+      "group_kfold_r2": 0.854,
+      "unseen_user_mae": 3.29,
+      "unseen_user_rmse": 4.08,
+      "unseen_user_r2": 0.904,
+      "temporal_mae": 3.78,
+      "temporal_rmse": 4.69,
+      "temporal_r2": 0.903
+    },
+    {
+      "model": "Gradient Boosting Regressor",
+      "group_kfold_mae": 3.85,
+      "group_kfold_rmse": 5.06,
+      "group_kfold_r2": 0.855,
+      "unseen_user_mae": 3.23,
+      "unseen_user_rmse": 3.99,
+      "unseen_user_r2": 0.908,
+      "temporal_mae": 3.67,
+      "temporal_rmse": 4.55,
+      "temporal_r2": 0.908
+    },
+    {
+      "model": "HistGradientBoosting Regressor",
+      "group_kfold_mae": 3.84,
+      "group_kfold_rmse": 5.06,
+      "group_kfold_r2": 0.855,
+      "unseen_user_mae": 3.22,
+      "unseen_user_rmse": 4.04,
+      "unseen_user_r2": 0.906,
+      "temporal_mae": 3.76,
+      "temporal_rmse": 4.6,
+      "temporal_r2": 0.906
+    },
+    {
+      "model": "Extra Trees Regressor",
+      "group_kfold_mae": 3.81,
+      "group_kfold_rmse": 5.0,
+      "group_kfold_r2": 0.858,
+      "unseen_user_mae": 3.17,
+      "unseen_user_rmse": 3.93,
+      "unseen_user_r2": 0.911,
+      "temporal_mae": 3.7,
+      "temporal_rmse": 4.57,
+      "temporal_r2": 0.907
+    }
+  ],
+  "classification_comparison": [
+    {
+      "model": "Majority Class Baseline",
+      "accuracy": 0.745,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "roc_auc": 0.5,
+      "brier_score": 0.2547,
+      "log_loss": 3.5191,
+      "unseen_user_accuracy": 0.736,
+      "unseen_user_roc_auc": 0.5,
+      "temporal_accuracy": 0.664,
+      "temporal_roc_auc": 0.5
+    },
+    {
+      "model": "Historical Pass Rate Baseline",
+      "accuracy": 0.78,
+      "precision": 0.67,
+      "recall": 0.164,
+      "f1_score": 0.243,
+      "roc_auc": 0.817,
+      "brier_score": 0.1671,
+      "log_loss": 1.4068,
+      "unseen_user_accuracy": 0.767,
+      "unseen_user_roc_auc": 0.836,
+      "temporal_accuracy": 0.742,
+      "temporal_roc_auc": 0.888
+    },
+    {
+      "model": "Logistic Regression",
+      "accuracy": 0.91,
+      "precision": 0.833,
+      "recall": 0.812,
+      "f1_score": 0.819,
+      "roc_auc": 0.964,
+      "brier_score": 0.0664,
+      "log_loss": 0.232,
+      "unseen_user_accuracy": 0.907,
+      "unseen_user_roc_auc": 0.981,
+      "temporal_accuracy": 0.922,
+      "temporal_roc_auc": 0.978
+    },
+    {
+      "model": "Calibrated Logistic Regression",
+      "accuracy": 0.901,
+      "precision": 0.841,
+      "recall": 0.759,
+      "f1_score": 0.794,
+      "roc_auc": 0.964,
+      "brier_score": 0.0655,
+      "log_loss": 0.219,
+      "unseen_user_accuracy": 0.907,
+      "unseen_user_roc_auc": 0.981,
+      "temporal_accuracy": 0.898,
+      "temporal_roc_auc": 0.982
+    },
+    {
+      "model": "Random Forest Classifier",
+      "accuracy": 0.914,
+      "precision": 0.866,
+      "recall": 0.784,
+      "f1_score": 0.82,
+      "roc_auc": 0.965,
+      "brier_score": 0.065,
+      "log_loss": 0.2118,
+      "unseen_user_accuracy": 0.938,
+      "unseen_user_roc_auc": 0.979,
+      "temporal_accuracy": 0.938,
+      "temporal_roc_auc": 0.972
+    },
+    {
+      "model": "Gradient Boosting Classifier",
+      "accuracy": 0.906,
+      "precision": 0.855,
+      "recall": 0.765,
+      "f1_score": 0.802,
+      "roc_auc": 0.961,
+      "brier_score": 0.0717,
+      "log_loss": 0.2386,
+      "unseen_user_accuracy": 0.938,
+      "unseen_user_roc_auc": 0.981,
+      "temporal_accuracy": 0.906,
+      "temporal_roc_auc": 0.966
+    },
+    {
+      "model": "Extra Trees Classifier",
+      "accuracy": 0.914,
+      "precision": 0.892,
+      "recall": 0.756,
+      "f1_score": 0.817,
+      "roc_auc": 0.969,
+      "brier_score": 0.0626,
+      "log_loss": 0.2064,
+      "unseen_user_accuracy": 0.922,
+      "unseen_user_roc_auc": 0.982,
+      "temporal_accuracy": 0.922,
+      "temporal_roc_auc": 0.982
+    }
+  ],
+  "temporal_metadata": {
+    "train_attempts": 508,
+    "test_attempts": 128,
+    "earliest_train_timestamp": "2026-03-03 23:14:09.067829",
+    "latest_train_timestamp": "2026-07-12 00:14:09.067191",
+    "earliest_test_timestamp": "2026-07-12 12:14:09.066732",
+    "latest_test_timestamp": "2026-09-13 05:14:09.066066"
+  },
+  "split_evaluations": {
+    "group_kfold": {
+      "regression": {
+        "mae": 3.62,
+        "rmse": 4.82,
+        "r2": 0.868
+      },
+      "classification": {
+        "accuracy": 0.914,
+        "f1": 0.817,
+        "roc_auc": 0.969,
+        "brier_score": 0.0626
+      }
+    },
+    "unseen_user_holdout": {
+      "regression": {
+        "mae": 3.04,
+        "rmse": 3.78,
+        "r2": 0.917
+      },
+      "classification": {
+        "accuracy": 0.922,
+        "roc_auc": 0.982
+      }
+    },
+    "temporal_holdout": {
+      "strategy": "Global Chronological 80/20 Holdout",
+      "regression": {
+        "mae": 3.21,
+        "rmse": 4.11,
+        "r2": 0.925
+      },
+      "classification": {
+        "accuracy": 0.922,
+        "roc_auc": 0.982
+      }
+    }
+  },
+  "data_quality": {
+    "status": "PASSED",
+    "checks": [
+      {
+        "check_name": "User 1 & 2 Contamination Check",
+        "status": "PASSED",
+        "detail": "0 attempts from User 1 & 2 in training dataset."
+      },
+      {
+        "check_name": "Zero Target Leakage Verification",
+        "status": "PASSED",
+        "detail": "100% temporal feature isolation verified."
+      },
+      {
+        "check_name": "Missing Values & Anomalies",
+        "status": "PASSED",
+        "detail": "0 missing values across all 52 features."
+      },
+      {
+        "check_name": "Global Temporal Order Assertion",
+        "status": "PASSED",
+        "detail": "max(train_timestamp) 2026-07-12 00:14:09.067191 < min(test_timestamp) 2026-07-12 12:14:09.066732"
+      }
+    ]
+  }
+}

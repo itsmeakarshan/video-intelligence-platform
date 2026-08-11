@@ -20,6 +20,7 @@ import {
 import { getVideos } from "../../api/api";
 
 import VideoSelectionDialog from "../common/VideoSelectionDialog";
+import { generatePDF } from "../../utils/pdfGenerator";
 
 export default function Notes() {
 
@@ -105,28 +106,13 @@ export default function Notes() {
     }
 
     function downloadNotes() {
-
-        const blob = new Blob(
-            [notes],
-            {
-                type: "text/markdown"
-            }
-        );
-
-        const url = URL.createObjectURL(
-            blob
-        );
-
-        const a = document.createElement("a");
-
-        a.href = url;
-
-        a.download = "notes.md";
-
-        a.click();
-
-        URL.revokeObjectURL(url);
-
+        if (!notes) return;
+        generatePDF({
+            title: "AI Study Notes",
+            videoTitle: "Selected Video Collection",
+            content: notes,
+            docType: "notes"
+        });
     }
 
     return (
@@ -260,7 +246,7 @@ export default function Notes() {
                                         color: "#14B8A6"
                                     }}
                                 >
-                                    Download
+                                    Download PDF
                                 </Button>
 
                             </Box>

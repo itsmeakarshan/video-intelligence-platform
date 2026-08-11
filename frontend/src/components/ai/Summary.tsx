@@ -20,6 +20,7 @@ import {
 import { getVideos } from "../../api/api";
 
 import VideoSelectionDialog from "../common/VideoSelectionDialog";
+import { generatePDF } from "../../utils/pdfGenerator";
 
 export default function Summary() {
 
@@ -105,28 +106,13 @@ export default function Summary() {
     }
 
     function downloadSummary() {
-
-        const blob = new Blob(
-            [summary],
-            {
-                type: "text/plain"
-            }
-        );
-
-        const url = URL.createObjectURL(
-            blob
-        );
-
-        const a = document.createElement("a");
-
-        a.href = url;
-
-        a.download = "summary.md";
-
-        a.click();
-
-        URL.revokeObjectURL(url);
-
+        if (!summary) return;
+        generatePDF({
+            title: "AI Executive Summary",
+            videoTitle: "Selected Video Collection",
+            content: summary,
+            docType: "summary"
+        });
     }
 
     return (
@@ -148,134 +134,124 @@ export default function Summary() {
                                 color: "#021617",
                                 fontWeight: 700,
                                 borderRadius: 2,
-                                px: 4,
+                                px: 3,
+                                py: 1.2,
                                 "&:hover": {
                                     bgcolor: "#10B981"
                                 }
                             }}
                         >
-
-                            {
-
-                                loading
-                                    ? <CircularProgress size={22} color="inherit" />
-                                    : "Generate Summary"
-
-                            }
-
+                            Select Videos & Generate Summary
                         </Button>
 
                     ) : (
 
                         <Typography
                             sx={{
-                                color: "#14B8A6"
+                                color: "#94A3B8"
                             }}
                         >
-                            Please upload and process a video first.
+                            Upload and process at least one video to generate summaries.
                         </Typography>
 
                     )
 
                 }
 
-                {
-
-                    summary && (
-
-                        <>
-
-                            <Box
-                                sx={{
-                                    mt: 4,
-                                    p: 3,
-                                    borderRadius: 2,
-                                    bgcolor: "#071827",
-                                    border: "1px solid rgba(255,255,255,.08)",
-                                    color: "#F8FAFC",
-                                    lineHeight: 1.8,
-
-                                    "& h1,& h2,& h3": {
-                                        color: "#14B8A6",
-                                        mt: 3,
-                                        mb: 1
-                                    },
-
-                                    "& p": {
-                                        mb: 2
-                                    },
-
-                                    "& ul": {
-                                        pl: 3
-                                    },
-
-                                    "& li": {
-                                        mb: .8
-                                    },
-
-                                    "& code": {
-                                        bgcolor: "rgba(255,255,255,.08)",
-                                        px: .5,
-                                        borderRadius: 1
-                                    }
-                                }}
-                            >
-
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                >
-                                    {summary}
-                                </ReactMarkdown>
-
-                            </Box>
-
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    gap: 2,
-                                    mt: 3
-                                }}
-                            >
-
-                                <Button
-                                    startIcon={
-                                        <ContentCopyRoundedIcon />
-                                    }
-                                    variant="outlined"
-                                    onClick={copySummary}
-                                    sx={{
-                                        borderRadius: 2,
-                                        borderColor: "#14B8A6",
-                                        color: "#14B8A6"
-                                    }}
-                                >
-                                    Copy
-                                </Button>
-
-                                <Button
-                                    startIcon={
-                                        <PictureAsPdfRoundedIcon />
-                                    }
-                                    variant="outlined"
-                                    onClick={downloadSummary}
-                                    sx={{
-                                        borderRadius: 2,
-                                        borderColor: "#14B8A6",
-                                        color: "#14B8A6"
-                                    }}
-                                >
-                                    Download
-                                </Button>
-
-                            </Box>
-
-                        </>
-
-                    )
-
-                }
-
             </Box>
+
+            {loading && (
+
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        mt: 4
+                    }}
+                >
+
+                    <CircularProgress
+                        size={24}
+                        sx={{
+                            color: "#14B8A6"
+                        }}
+                    />
+
+                    <Typography
+                        sx={{
+                            color: "#94A3B8"
+                        }}
+                    >
+                        Generating AI summary...
+                    </Typography>
+
+                </Box>
+
+            )}
+
+            {summary && !loading && (
+
+                <Box
+                    sx={{
+                        mt: 4
+                    }}
+                >
+
+                    <Box
+                        sx={{
+                            display: "flex",
+                            gap: 2,
+                            mb: 3
+                        }}
+                    >
+
+                        <Button
+                            startIcon={<ContentCopyRoundedIcon />}
+                            variant="outlined"
+                            onClick={copySummary}
+                            sx={{
+                                borderColor: "rgba(20,184,166,.3)",
+                                color: "#14B8A6",
+                                borderRadius: 2
+                            }}
+                        >
+                            Copy Text
+                        </Button>
+
+                        <Button
+                            startIcon={<PictureAsPdfRoundedIcon />}
+                            variant="outlined"
+                            onClick={downloadSummary}
+                            sx={{
+                                borderColor: "rgba(20,184,166,.3)",
+                                color: "#14B8A6",
+                                borderRadius: 2
+                            }}
+                        >
+                            Download PDF
+                        </Button>
+
+                    </Box>
+
+                    <Box
+                        className="markdown-body"
+                        sx={{
+                            color: "#F8FAFC",
+                            fontSize: "1.05rem",
+                            lineHeight: 1.8
+                        }}
+                    >
+
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {summary}
+                        </ReactMarkdown>
+
+                    </Box>
+
+                </Box>
+
+            )}
 
             <VideoSelectionDialog
                 open={dialogOpen}

@@ -7,6 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 if TYPE_CHECKING:
+    from app.models.quiz_attempt_question import QuizAttemptQuestion
+    from app.models.quiz_attempt_video import QuizAttemptVideo
     from app.models.user import User
     from app.models.video import Video
 
@@ -23,3 +25,20 @@ class QuizAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     user: Mapped["User"] = relationship(back_populates="quiz_attempts")
     video: Mapped["Video | None"] = relationship(back_populates="quiz_attempts")
+
+    quiz_attempt_videos: Mapped[list["QuizAttemptVideo"]] = relationship(
+        back_populates="quiz_attempt",
+        cascade="all, delete-orphan",
+    )
+    videos: Mapped[list["Video"]] = relationship(
+        "Video",
+        secondary="quiz_attempt_videos",
+        primaryjoin="QuizAttempt.id == QuizAttemptVideo.quiz_attempt_id",
+        secondaryjoin="Video.id == QuizAttemptVideo.video_id",
+        viewonly=True,
+    )
+    questions: Mapped[list["QuizAttemptQuestion"]] = relationship(
+        "QuizAttemptQuestion",
+        back_populates="quiz_attempt",
+        cascade="all, delete-orphan",
+    )

@@ -130,7 +130,9 @@ export default function VideoSelectionDialog({
                                 ? "Unselect All"
                                 : "Select All"}
                         </Button>
-                        {videos.map(video => (
+                        {[...videos]
+                            .sort((a, b) => a.id - b.id)
+                            .map((video, index) => (
                             <Card
                                 key={video.id}
                                 sx={{
@@ -147,10 +149,13 @@ export default function VideoSelectionDialog({
                                     <CardContent>
                                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                             <Box>
-                                                <Typography fontWeight={700}>
+                                                <Typography fontWeight={700} sx={{ color: "#14B8A6" }}>
+                                                    Video #{index + 1}
+                                                </Typography>
+                                                <Typography fontWeight={600}>
                                                     {video.original_filename}
                                                 </Typography>
-                                                <Typography sx={{ color: "#94A3B8", fontSize: 14 }}>
+                                                <Typography sx={{ color: "#94A3B8", fontSize: 13, mt: 0.5 }}>
                                                     ✅ Ready
                                                 </Typography>
                                             </Box>

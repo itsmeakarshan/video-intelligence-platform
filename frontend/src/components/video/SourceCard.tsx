@@ -20,7 +20,8 @@ export default function SourceCard({
 }: Props) {
     const {
         videos,
-        jumpToVideo
+        jumpToVideo,
+        getVideoDisplayNumber
     } = useVideo();
 
     function handleJump() {
@@ -44,6 +45,8 @@ export default function SourceCard({
         return `${mins}:${secs.toString().padStart(2, "0")}`;
     }
 
+    const displayNumber = getVideoDisplayNumber ? getVideoDisplayNumber(videoId) : videoId;
+
     return (
         <Card
             sx={{
@@ -65,7 +68,7 @@ export default function SourceCard({
                 </Typography>
 
                 <Typography>
-                    Video #{videoId}
+                    Video #{displayNumber}
                 </Typography>
 
                 <Typography

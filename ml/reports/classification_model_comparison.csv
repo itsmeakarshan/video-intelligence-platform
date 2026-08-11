@@ -1,0 +1,8 @@
+model,accuracy,precision,recall,f1_score,roc_auc,brier_score,log_loss,unseen_user_accuracy,unseen_user_roc_auc,temporal_accuracy,temporal_roc_auc
+Majority Class Baseline,0.745,0.0,0.0,0.0,0.5,0.2547,3.5191,0.736,0.5,0.664,0.5
+Historical Pass Rate Baseline,0.78,0.67,0.164,0.243,0.817,0.1671,1.4068,0.767,0.836,0.742,0.888
+Logistic Regression,0.91,0.833,0.812,0.819,0.964,0.0664,0.232,0.907,0.981,0.922,0.978
+Calibrated Logistic Regression,0.901,0.841,0.759,0.794,0.964,0.0655,0.219,0.907,0.981,0.898,0.982
+Random Forest Classifier,0.914,0.866,0.784,0.82,0.965,0.065,0.2118,0.938,0.979,0.938,0.972
+Gradient Boosting Classifier,0.906,0.855,0.765,0.802,0.961,0.0717,0.2386,0.938,0.981,0.906,0.966
+Extra Trees Classifier,0.914,0.892,0.756,0.817,0.969,0.0626,0.2064,0.922,0.982,0.922,0.982

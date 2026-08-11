@@ -1,0 +1,20 @@
+[
+  {
+    "experiment_id": "EXP-2026-AUTHORITATIVE-V3",
+    "timestamp": "2026-08-12T00:31:50.829805",
+    "dataset_version": "clean_learner_dataset_v3.0",
+    "raw_user_count": 101,
+    "modeled_user_count": 95,
+    "excluded_user_count": 2,
+    "attempt_count": 636,
+    "features_count": 52,
+    "evaluation_strategy": "GroupKFold (k=5) + Unseen-User Holdout (20%) + Global Temporal Holdout (80/20)",
+    "selected_regression_model": "Ridge Regression",
+    "selected_classification_model": "Extra Trees Classifier",
+    "best_mae": 3.62,
+    "best_r2": 0.868,
+    "best_f1": 0.817,
+    "best_roc_auc": 0.969,
+    "random_seed": 42
+  }
+]

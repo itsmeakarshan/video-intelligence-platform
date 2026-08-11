@@ -13,6 +13,8 @@ import app.models.transcript_chunk
 import app.models.user
 import app.models.conversation
 import app.models.quiz_attempt
+import app.models.quiz_attempt_question
+
 
 from app.api import videos
 from app.api import transcripts
@@ -20,6 +22,7 @@ from app.api import chat
 from app.routes import auth
 from app.api import youtube
 from app.api import quiz_attempts
+from app.api import ml
 
 from app.services.queue_worker import queue_worker
 
@@ -77,6 +80,7 @@ app.include_router(transcripts.router)
 app.include_router(chat.router)
 app.include_router(youtube.router)
 app.include_router(quiz_attempts.router)
+app.include_router(ml.router)
 
 @app.get("/")
 def root():
