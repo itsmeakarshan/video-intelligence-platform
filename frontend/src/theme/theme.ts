@@ -1,131 +1,68 @@
 import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
-
     palette: {
-
-        mode: "light",
-
+        mode: "dark",
         primary: {
-
-            main: "#4F46E5"
-
+            main: "#14B8A6"
         },
-
         secondary: {
-
-            main: "#7C3AED"
-
+            main: "#38BDF8"
         },
-
         background: {
-
-            default: "#EEF4FF",
-
-            paper: "rgba(255,255,255,0.72)"
-
+            default: "#090D16",
+            paper: "#0F172A"
         }
-
     },
-
     shape: {
-
         borderRadius: 16
-
     },
-
     typography: {
-
-        fontFamily:
-
-            `"Inter","Poppins","Roboto",sans-serif`,
-
+        fontFamily: `'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
         h4: {
-
-            fontWeight: 800
-
+            fontWeight: 800,
+            letterSpacing: "-0.5px"
         },
-
         h5: {
-
-            fontWeight: 700
-
+            fontWeight: 700,
+            letterSpacing: "-0.3px"
         },
-
         h6: {
-
             fontWeight: 700
-
         },
-
         button: {
-
             textTransform: "none",
-
-            fontWeight: 600
-
+            fontWeight: 700,
+            letterSpacing: "0.2px"
         }
-
     },
-
     components: {
-
         MuiPaper: {
-
             styleOverrides: {
-
                 root: {
-
                     backdropFilter: "blur(18px)",
-
-                    background:
-
-                        "rgba(255,255,255,.72)",
-
-                    border:
-
-                        "1px solid rgba(255,255,255,.55)",
-
-                    boxShadow:
-
-                        "0 15px 40px rgba(70,90,140,.12)"
-
+                    background: "rgba(15, 23, 42, 0.75)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    boxShadow: "0 15px 40px rgba(0, 0, 0, 0.4)"
                 }
-
             }
-
         },
-
         MuiButton: {
-
             styleOverrides: {
-
                 root: {
-
-                    borderRadius: 16,
-
+                    borderRadius: 12,
                     paddingInline: 22,
-
-                    height: 48
-
+                    height: 44,
+                    fontWeight: 700
                 }
-
             }
-
         },
-
         MuiTextField: {
-
             defaultProps: {
-
                 variant: "outlined"
-
             }
-
         }
-
     }
-
 });
 
 export default theme;

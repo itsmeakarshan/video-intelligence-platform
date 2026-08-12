@@ -36,6 +36,10 @@ def upload_video(
 
 
 @router.get(
+    "",
+    response_model=list[VideoResponse]
+)
+@router.get(
     "/",
     response_model=list[VideoResponse]
 )

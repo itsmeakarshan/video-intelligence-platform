@@ -179,30 +179,64 @@ export default function Notes() {
                                     bgcolor: "#071827",
                                     border: "1px solid rgba(255,255,255,.08)",
                                     color: "#F8FAFC",
-                                    lineHeight: 1.8,
-
-                                    "& h1,& h2,& h3": {
-                                        color: "#14B8A6",
+                                    fontSize: "0.98rem",
+                                    lineHeight: 1.75,
+                                    letterSpacing: "0.15px",
+                                    fontFamily: `'Plus Jakarta Sans', 'Inter', sans-serif`,
+                                    "& h1": {
+                                        color: "#38BDF8",
+                                        fontWeight: 800,
+                                        fontSize: "1.5rem",
+                                        letterSpacing: "-0.5px",
                                         mt: 3,
+                                        mb: 1.5,
+                                        pb: 1,
+                                        borderBottom: "1px solid rgba(56, 189, 248, 0.2)"
+                                    },
+                                    "& h2": {
+                                        color: "#14B8A6",
+                                        fontWeight: 700,
+                                        fontSize: "1.25rem",
+                                        letterSpacing: "-0.3px",
+                                        mt: 2.5,
+                                        mb: 1.2
+                                    },
+                                    "& h3": {
+                                        color: "#F8FAFC",
+                                        fontWeight: 700,
+                                        fontSize: "1.1rem",
+                                        mt: 2,
                                         mb: 1
                                     },
-
                                     "& p": {
-                                        mb: 2
+                                        my: 1.2,
+                                        color: "#E2E8F0"
                                     },
-
-                                    "& ul": {
-                                        pl: 3
+                                    "& ul, & ol": {
+                                        pl: 2.5,
+                                        my: 1.2
                                     },
-
                                     "& li": {
-                                        mb: .8
+                                        mb: 0.8,
+                                        lineHeight: 1.7,
+                                        color: "#E2E8F0"
                                     },
-
+                                    "& strong": {
+                                        color: "#38BDF8",
+                                        fontWeight: 700
+                                    },
                                     "& code": {
-                                        bgcolor: "rgba(255,255,255,.08)",
-                                        px: .5,
-                                        borderRadius: 1
+                                        bgcolor: "rgba(255, 255, 255, 0.08)",
+                                        color: "#38BDF8",
+                                        px: 1,
+                                        py: 0.3,
+                                        borderRadius: 1,
+                                        fontSize: "0.88rem",
+                                        fontFamily: "monospace"
+                                    },
+                                    "& hr": {
+                                        borderColor: "rgba(255, 255, 255, 0.12)",
+                                        my: 3
                                     }
                                 }}
                             >

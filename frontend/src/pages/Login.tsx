@@ -68,195 +68,78 @@ export default function Login() {
 
 
     // --------------------------------------------------
-    // Creature animation
+    // Creature animation (Full 360° Global Cursor Tracking)
     // --------------------------------------------------
 
-    const sceneRef =
-        useRef<HTMLDivElement>(null);
-
-    const targetOffset =
-        useRef({
-            x: 0,
-            y: 0
-        });
-
-    const [currentOffset, setCurrentOffset] =
-        useState({
-            x: 0,
-            y: 0
-        });
-
-
-    const handleMouseMove = (
-        event: React.MouseEvent
-    ) => {
-
-        if (!sceneRef.current) return;
-
-        const rect =
-            sceneRef.current.getBoundingClientRect();
-
-        const centerX =
-            rect.left + rect.width / 2;
-
-        const centerY =
-            rect.top + rect.height / 2;
-
-        const deltaX =
-            event.clientX - centerX;
-
-        const deltaY =
-            event.clientY - centerY;
-
-        const angle =
-            Math.atan2(
-                deltaY,
-                deltaX
-            );
-
-        const distance =
-            Math.min(
-                Math.hypot(
-                    deltaX,
-                    deltaY
-                ) / 10,
-                20
-            );
-
-        targetOffset.current = {
-            x:
-                Math.cos(angle) *
-                distance,
-
-            y:
-                Math.sin(angle) *
-                distance
-        };
-    };
-
+    const sceneRef = useRef<HTMLDivElement>(null);
+    const targetOffset = useRef({ x: 0, y: 0 });
+    const [currentOffset, setCurrentOffset] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
+        const handleGlobalMouseMove = (event: MouseEvent) => {
+            if (!sceneRef.current) return;
+            const rect = sceneRef.current.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
 
+            const deltaX = event.clientX - centerX;
+            const deltaY = event.clientY - centerY;
+            const angle = Math.atan2(deltaY, deltaX);
+            const dist = Math.hypot(deltaX, deltaY);
+
+            // Dynamic tracking distance up to 24px in all 360 degrees
+            const eyeDistance = Math.min(dist / 16, 24);
+
+            targetOffset.current = {
+                x: Math.cos(angle) * eyeDistance,
+                y: Math.sin(angle) * eyeDistance
+            };
+        };
+
+        window.addEventListener("mousemove", handleGlobalMouseMove);
+        return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
+    }, []);
+
+    useEffect(() => {
         let animationFrameId: number;
 
         const animate = () => {
+            setCurrentOffset((prev) => ({
+                x: prev.x + (targetOffset.current.x - prev.x) * 0.14,
+                y: prev.y + (targetOffset.current.y - prev.y) * 0.14
+            }));
 
-            setCurrentOffset(
-                (prev) => ({
-                    x:
-                        prev.x +
-                        (
-                            targetOffset.current.x -
-                            prev.x
-                        ) *
-                        0.12,
-
-                    y:
-                        prev.y +
-                        (
-                            targetOffset.current.y -
-                            prev.y
-                        ) *
-                        0.12
-                })
-            );
-
-            animationFrameId =
-                requestAnimationFrame(
-                    animate
-                );
+            animationFrameId = requestAnimationFrame(animate);
         };
 
         animate();
-
-        return () =>
-            cancelAnimationFrame(
-                animationFrameId
-            );
-
+        return () => cancelAnimationFrame(animationFrameId);
     }, []);
-
 
     const getBodyTransform = (
         tiltSensitivity: number = 1,
         skewSensitivity: number = 1
     ) => {
-
         if (showPassword) {
-
-            return (
-                "rotate(-16deg) " +
-                "skewX(-14deg) " +
-                "translateY(8px)"
-            );
+            return `rotate(-18deg) skewX(-14deg) translateY(10px)`;
         }
 
-        const clampedX =
-            Math.max(
-                -16,
-                Math.min(
-                    16,
-                    currentOffset.x *
-                    tiltSensitivity
-                )
-            );
+        const bodyX = currentOffset.x * 0.7 * tiltSensitivity;
+        const bodyY = currentOffset.y * 0.85 * tiltSensitivity;
+        const rotate = (currentOffset.x / 24) * 15 * skewSensitivity;
 
-        const clampedY =
-            Math.max(
-                -12,
-                Math.min(
-                    18,
-                    currentOffset.y *
-                    tiltSensitivity
-                )
-            );
-
-        const rotate =
-            (
-                clampedX / 16
-            ) *
-            14 *
-            skewSensitivity;
-
-        return (
-            `translate(${clampedX}px, ${clampedY}px) ` +
-            `rotate(${rotate}deg)`
-        );
+        return `translate(${bodyX}px, ${bodyY}px) rotate(${rotate}deg)`;
     };
 
-
-    const getEyeTransform = (
-        multiplier: number = 1
-    ) => {
-
+    const getEyeTransform = (multiplier: number = 1) => {
         if (showPassword) {
-
-            return "translate(-9px, 13px)";
+            return `translate(-15px, -14px)`; // Shyly look away to top-left when password is visible
         }
 
-        const clampedX =
-            Math.max(
-                -14,
-                Math.min(
-                    14,
-                    currentOffset.x *
-                    multiplier
-                )
-            );
+        const eyeX = currentOffset.x * 1.2 * multiplier;
+        const eyeY = currentOffset.y * 1.3 * multiplier;
 
-        const clampedY =
-            Math.max(
-                -14,
-                Math.min(
-                    16,
-                    currentOffset.y *
-                    multiplier
-                )
-            );
-
-        return (
-            `translate(${clampedX}px, ${clampedY}px)`
-        );
+        return `translate(${eyeX}px, ${eyeY}px)`;
     };
 
 
@@ -365,7 +248,6 @@ export default function Login() {
     return (
 
         <Box
-            onMouseMove={handleMouseMove}
             sx={{
                 minHeight: "100vh",
                 display: "flex",

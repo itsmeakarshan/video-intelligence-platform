@@ -1,3 +1,5 @@
+import secrets
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,10 +37,10 @@ class Settings(BaseSettings):
     CHROMA_SEGMENT_COLLECTION: str = "rag_segments"
 
     # --------------------------------------------------
-    # Authentication
+    # Authentication (Auto-generated fallback)
     # --------------------------------------------------
 
-    JWT_SECRET_KEY: str
+    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
 
     JWT_ALGORITHM: str = "HS256"
 

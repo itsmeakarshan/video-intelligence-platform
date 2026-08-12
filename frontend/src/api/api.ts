@@ -1,13 +1,19 @@
 import axios from "axios";
 
+const backendHost = typeof window !== "undefined" ? (window.location.hostname || "127.0.0.1") : "127.0.0.1";
+
 export const api = axios.create({
-    baseURL: "http://127.0.0.1:8000"
+    baseURL: `http://${backendHost}:8000`
 });
 
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem("access_token");
     if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (config.headers && typeof config.headers.set === "function") {
+            config.headers.set("Authorization", `Bearer ${token}`);
+        } else if (config.headers) {
+            config.headers["Authorization"] = `Bearer ${token}`;
+        }
     }
     return config;
 });
