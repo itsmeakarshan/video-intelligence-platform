@@ -2,7 +2,6 @@
 
 **Selected Regressor:** `Extra Trees Regressor`
 **Selected Feature Set:** `D_CORE_LEARNING` (38 domain features)
-**Selected Classifier:** `Extra Trees Classifier`
 
 ### Scientific Selection Rationale:
 1. **OOD Robustness:** Eliminates artificial linear extrapolation bug (+235 std dev frequency outlier in Ridge Regression caused raw predictions of +100.68%). Extra Trees Regressor evaluates axis-aligned split thresholds, yielding realistic score predictions.

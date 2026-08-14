@@ -2,86 +2,89 @@ import {
     Box,
     Button,
     Paper,
-    Typography
+    Typography,
+    Container
 } from "@mui/material";
-
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-
 import { useNavigate } from "react-router-dom";
-
 import SummaryComponent from "../components/ai/Summary";
+import Navbar from "../components/layout/Navbar";
 
 export default function Summary() {
-
     const navigate = useNavigate();
 
     return (
-
         <Box
             sx={{
                 minHeight: "100vh",
-                background:
-                    "radial-gradient(circle at top,#064e3b 0%,#020617 60%)",
-                p: 4
+                bgcolor: "#0F172A",
+                color: "#F8FAFC",
+                pb: 8
             }}
         >
+            <Navbar />
 
-            <Button
-                startIcon={<ArrowBackRoundedIcon />}
-                variant="outlined"
-                onClick={() => navigate("/")}
+            <Container
+                maxWidth={false}
                 sx={{
-                    mb: 3,
-                    borderColor: "#14B8A6",
-                    color: "#14B8A6",
-                    borderRadius: 2,
-                    "&:hover": {
-                        borderColor: "#10B981",
-                        background: "rgba(20,184,166,.08)"
-                    }
-                }}
-            >
-                Back to Dashboard
-            </Button>
-
-            <Paper
-                sx={{
-                    maxWidth: 1400,
+                    maxWidth: "2560px",
+                    width: { xs: "96%", md: "88%", lg: "80%" },
                     mx: "auto",
-                    p: 4,
-                    borderRadius: 4,
-                    bgcolor: "rgba(15,23,42,.82)",
-                    backdropFilter: "blur(20px)",
-                    border: "1px solid rgba(20,184,166,.18)"
+                    px: { xs: 2, sm: 3, md: 4 },
+                    pt: 4
                 }}
             >
-
-                <Typography
-                    variant="h4"
+                <Button
+                    startIcon={<ArrowBackRoundedIcon />}
+                    variant="outlined"
+                    onClick={() => navigate("/")}
                     sx={{
-                        color: "#F8FAFC",
-                        fontWeight: 700,
-                        mb: 1
+                        mb: 3,
+                        borderColor: "#14B8A6",
+                        color: "#14B8A6",
+                        borderRadius: 2,
+                        "&:hover": {
+                            borderColor: "#10B981",
+                            background: "rgba(20,184,166,.08)"
+                        }
                     }}
                 >
-                    📄 AI Summary
-                </Typography>
+                    Back to Dashboard
+                </Button>
 
-                <Typography
+                <Paper
                     sx={{
-                        color: "#94A3B8",
-                        mb: 4
+                        p: 4,
+                        borderRadius: 4,
+                        bgcolor: "rgba(15,23,42,.82)",
+                        backdropFilter: "blur(20px)",
+                        border: "1px solid rgba(20,184,166,.18)",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
                     }}
                 >
-                    Generate comprehensive summaries from one or more processed videos.
-                </Typography>
+                    <Typography
+                        variant="h4"
+                        sx={{
+                            color: "#F8FAFC",
+                            fontWeight: 700,
+                            mb: 1
+                        }}
+                    >
+                        📄 AI Summary
+                    </Typography>
 
-                <SummaryComponent />
+                    <Typography
+                        sx={{
+                            color: "#94A3B8",
+                            mb: 4
+                        }}
+                    >
+                        Generate comprehensive summaries from one or more processed videos.
+                    </Typography>
 
-            </Paper>
-
+                    <SummaryComponent />
+                </Paper>
+            </Container>
         </Box>
-
     );
-
 }

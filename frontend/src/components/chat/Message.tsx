@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 
 import {
     Box,
+    Button,
     Chip,
     IconButton,
     Paper,
@@ -20,6 +21,11 @@ import ThumbDownOutlinedIcon from "@mui/icons-material/ThumbDownOutlined";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 
 import { useVideo } from "../../context/VideoContext";
 
@@ -30,9 +36,15 @@ interface Source {
 }
 
 interface Props {
+    id?: string;
     role: "user" | "assistant";
     text: string;
     sources?: Source[];
+    isError?: boolean;
+    onRegenerate?: () => void;
+    onListen?: () => void;
+    isSpeaking?: boolean;
+    onFollowUp?: () => void;
 }
 
 function parseStartTimestampToSeconds(tsRangeStr: string): number {
@@ -47,7 +59,12 @@ function parseStartTimestampToSeconds(tsRangeStr: string): number {
 export default function Message({
     role,
     text,
-    sources = []
+    sources = [],
+    isError = false,
+    onRegenerate,
+    onListen,
+    isSpeaking = false,
+    onFollowUp
 }: Props) {
     const isUser = role === "user";
     const { videos, selectedVideo, jumpToVideo, seekTo } = useVideo();
@@ -227,14 +244,15 @@ export default function Message({
                 <Paper
                     elevation={0}
                     sx={{
-                        py: 1.2,
-                        px: 2.5,
+                        py: 1.4,
+                        px: 2.6,
                         borderRadius: "20px",
-                        bgcolor: "rgba(255, 255, 255, 0.12)",
+                        bgcolor: "rgba(255, 255, 255, 0.14)",
                         color: "#F8FAFC",
                         maxWidth: "85%",
-                        fontSize: "0.92rem",
-                        lineHeight: 1.5,
+                        fontSize: "1rem",
+                        fontWeight: 500,
+                        lineHeight: 1.55,
                         wordBreak: "break-word"
                     }}
                 >
@@ -256,10 +274,10 @@ export default function Message({
             <Stack direction="row" spacing={1.5} alignItems="flex-start">
                 <Box
                     sx={{
-                        width: 28,
-                        height: 28,
+                        width: 30,
+                        height: 30,
                         borderRadius: "50%",
-                        bgcolor: "rgba(20, 184, 166, 0.15)",
+                        bgcolor: isError ? "rgba(239, 68, 68, 0.15)" : "rgba(20, 184, 166, 0.15)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -267,24 +285,24 @@ export default function Message({
                         mt: 0.5
                     }}
                 >
-                    <AutoAwesomeRoundedIcon sx={{ color: "#38bdf8", fontSize: 18 }} />
+                    <AutoAwesomeRoundedIcon sx={{ color: isError ? "#f87171" : "#38bdf8", fontSize: 19 }} />
                 </Box>
 
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 2,
+                            p: 2.2,
                             borderRadius: "16px",
-                            bgcolor: "rgba(15, 23, 42, 0.6)",
-                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            bgcolor: isError ? "rgba(239, 68, 68, 0.08)" : "rgba(15, 23, 42, 0.6)",
+                            border: isError ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
                             color: "#F8FAFC",
-                            "& p": { my: 0.7, lineHeight: 1.65, fontSize: "0.92rem" },
+                            "& p": { my: 0.7, lineHeight: 1.65, fontSize: "1rem" },
                             "& p:first-of-type": { mt: 0 },
                             "& p:last-of-type": { mb: 0 },
-                            "& h1, & h2, & h3, & h4": { color: "#38bdf8", fontWeight: 700, mt: 1.5, mb: 0.8 },
-                            "& ul, & ol": { pl: 2.5, my: 0.8 },
-                            "& li": { mb: 0.4, lineHeight: 1.6 },
+                            "& h1, & h2, & h3, & h4": { color: "#38bdf8", fontWeight: 700, mt: 1.5, mb: 0.8, fontSize: "1.1rem" },
+                            "& ul, & ol": { pl: 2.5, my: 0.8, fontSize: "1rem" },
+                            "& li": { mb: 0.4, lineHeight: 1.6, fontSize: "1rem" },
                             "& strong": { color: "#38bdf8", fontWeight: 700 }
                         }}
                     >
@@ -296,44 +314,157 @@ export default function Message({
                         </ReactMarkdown>
                     </Paper>
 
-                    {/* YouTube AI Style Action Toolbar & Disclaimer */}
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1, px: 0.5 }}>
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Tooltip title="Good response">
-                                <IconButton
+                    {/* Action Row */}
+                    {isError ? (
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1, px: 0.5 }}>
+                            {onRegenerate && (
+                                <Button
                                     size="small"
-                                    onClick={() => { setLiked(!liked); if (disliked) setDisliked(false); }}
-                                    sx={{ color: liked ? "#10b981" : "#94a3b8", p: 0.6 }}
+                                    onClick={onRegenerate}
+                                    startIcon={<RefreshRoundedIcon fontSize="small" />}
+                                    sx={{
+                                        color: "#f87171",
+                                        bgcolor: "rgba(239, 68, 68, 0.12)",
+                                        border: "1px solid rgba(239, 68, 68, 0.3)",
+                                        borderRadius: 2,
+                                        px: 1.5,
+                                        py: 0.4,
+                                        fontSize: "0.75rem",
+                                        textTransform: "none",
+                                        fontWeight: 600,
+                                        "&:hover": {
+                                            bgcolor: "rgba(239, 68, 68, 0.22)",
+                                            borderColor: "#ef4444"
+                                        }
+                                    }}
                                 >
-                                    {liked ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOutlinedIcon fontSize="small" />}
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Bad response">
-                                <IconButton
-                                    size="small"
-                                    onClick={() => { setDisliked(!disliked); if (liked) setLiked(false); }}
-                                    sx={{ color: disliked ? "#ef4444" : "#94a3b8", p: 0.6 }}
-                                >
-                                    {disliked ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOutlinedIcon fontSize="small" />}
-                                </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title={copied ? "Copied!" : "Copy text"}>
-                                <IconButton
-                                    size="small"
-                                    onClick={handleCopy}
-                                    sx={{ color: copied ? "#38bdf8" : "#94a3b8", p: 0.6 }}
-                                >
-                                    {copied ? <CheckRoundedIcon fontSize="small" /> : <ContentCopyRoundedIcon fontSize="small" />}
-                                </IconButton>
-                            </Tooltip>
+                                    Retry Request
+                                </Button>
+                            )}
                         </Stack>
+                    ) : (
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1, px: 0.5, flexWrap: "wrap", gap: 0.5 }}>
+                            <Stack direction="row" spacing={0.4} alignItems="center">
+                                <Tooltip title="Helpful">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => { setLiked(!liked); if (disliked) setDisliked(false); }}
+                                        aria-label="Mark response as helpful"
+                                        sx={{
+                                            color: liked ? "#10b981" : "#94a3b8",
+                                            p: 0.6,
+                                            borderRadius: 1.5,
+                                            transition: "all 0.15s ease",
+                                            "&:hover": { color: "#10b981", bgcolor: "rgba(16, 185, 129, 0.12)" },
+                                            "&:focus-visible": { outline: "2px solid #38bdf8" }
+                                        }}
+                                    >
+                                        {liked ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOutlinedIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
 
-                        <Typography sx={{ color: "#64748B", fontSize: "0.68rem" }}>
-                            AI can make mistakes, so double-check it.
-                        </Typography>
-                    </Stack>
+                                <Tooltip title="Not helpful">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => { setDisliked(!disliked); if (liked) setLiked(false); }}
+                                        aria-label="Mark response as not helpful"
+                                        sx={{
+                                            color: disliked ? "#ef4444" : "#94a3b8",
+                                            p: 0.6,
+                                            borderRadius: 1.5,
+                                            transition: "all 0.15s ease",
+                                            "&:hover": { color: "#ef4444", bgcolor: "rgba(239, 68, 68, 0.12)" },
+                                            "&:focus-visible": { outline: "2px solid #38bdf8" }
+                                        }}
+                                    >
+                                        {disliked ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOutlinedIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title={copied ? "Copied!" : "Copy text"}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleCopy}
+                                        aria-label="Copy answer text"
+                                        sx={{
+                                            color: copied ? "#38bdf8" : "#94a3b8",
+                                            p: 0.6,
+                                            borderRadius: 1.5,
+                                            transition: "all 0.15s ease",
+                                            "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
+                                            "&:focus-visible": { outline: "2px solid #38bdf8" }
+                                        }}
+                                    >
+                                        {copied ? <CheckRoundedIcon fontSize="small" /> : <ContentCopyRoundedIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
+
+                                {onListen && (
+                                    <Tooltip title={isSpeaking ? "Stop speaking" : "Listen to answer"}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={onListen}
+                                            aria-label={isSpeaking ? "Stop text to speech" : "Listen to answer audio"}
+                                            sx={{
+                                                color: isSpeaking ? "#f87171" : "#94a3b8",
+                                                p: 0.6,
+                                                borderRadius: 1.5,
+                                                transition: "all 0.15s ease",
+                                                "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
+                                                "&:focus-visible": { outline: "2px solid #38bdf8" }
+                                            }}
+                                        >
+                                            {isSpeaking ? <StopRoundedIcon fontSize="small" /> : <VolumeUpRoundedIcon fontSize="small" />}
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+
+                                {onRegenerate && (
+                                    <Tooltip title="Regenerate answer">
+                                        <IconButton
+                                            size="small"
+                                            onClick={onRegenerate}
+                                            aria-label="Regenerate response"
+                                            sx={{
+                                                color: "#94a3b8",
+                                                p: 0.6,
+                                                borderRadius: 1.5,
+                                                transition: "all 0.15s ease",
+                                                "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
+                                                "&:focus-visible": { outline: "2px solid #38bdf8" }
+                                            }}
+                                        >
+                                            <ReplayRoundedIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+
+                                {onFollowUp && (
+                                    <Tooltip title="Ask follow-up question">
+                                        <IconButton
+                                            size="small"
+                                            onClick={onFollowUp}
+                                            aria-label="Ask follow-up question"
+                                            sx={{
+                                                color: "#94a3b8",
+                                                p: 0.6,
+                                                borderRadius: 1.5,
+                                                transition: "all 0.15s ease",
+                                                "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
+                                                "&:focus-visible": { outline: "2px solid #38bdf8" }
+                                            }}
+                                        >
+                                            <ChatBubbleOutlineRoundedIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Stack>
+
+                            <Typography sx={{ color: "#64748B", fontSize: "0.68rem" }}>
+                                AI can make mistakes, so double-check it.
+                            </Typography>
+                        </Stack>
+                    )}
                 </Box>
             </Stack>
         </Box>

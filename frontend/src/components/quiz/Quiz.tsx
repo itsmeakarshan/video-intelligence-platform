@@ -19,13 +19,11 @@ import {
 
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
-import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
 import { useEffect, useRef, useState } from "react";
 
 import { generateQuiz } from "../../services/chatService";
-import { getVideos, saveQuizAttempt, getLearningPrediction, getPassPrediction } from "../../api/api";
+import { getVideos, saveQuizAttempt, getLearningPrediction } from "../../api/api";
 
 import VideoSelectionDialog from "../common/VideoSelectionDialog";
 import LearningPredictionCard from "./LearningPredictionCard";
@@ -46,12 +44,9 @@ interface QuizResponse {
 interface PredictionData {
     available: boolean;
     predicted_score?: number | null;
-    pass_probability?: number | null;
-    pass_threshold?: number | null;
     attempt_count?: number | null;
     target_difficulty?: string | null;
     regression_model?: string | null;
-    classification_model?: string | null;
     reason?: string | null;
     message?: string | null;
 }
@@ -77,32 +72,54 @@ function parseQuizResponse(response: unknown): QuizResponse {
         quizPayload = JSON.parse(json);
     }
 
-    if (
-        typeof quizPayload !== "object" ||
-        quizPayload === null ||
-        !Array.isArray((quizPayload as QuizResponse).questions)
+    let questionsArray: any[] = [];
+
+    if (Array.isArray(quizPayload)) {
+        questionsArray = quizPayload;
+    } else if (
+        typeof quizPayload === "object" &&
+        quizPayload !== null &&
+        "questions" in quizPayload &&
+        Array.isArray((quizPayload as any).questions)
     ) {
-        throw new Error("The quiz response did not include questions.");
+        questionsArray = (quizPayload as any).questions;
+    } else {
+        throw new Error("The quiz response did not include a valid questions list.");
     }
 
-    const parsedQuiz = quizPayload as QuizResponse;
+    if (!questionsArray || questionsArray.length === 0) {
+        throw new Error("The quiz response contained zero questions.");
+    }
 
-    parsedQuiz.questions.forEach((question, index) => {
+    const validatedQuestions: QuizQuestion[] = questionsArray.map((question: any, index: number) => {
+        const qText = typeof question.question === "string" ? question.question : "";
+        const options = Array.isArray(question.options) ? question.options : [];
+        const rawAns = question.answer !== undefined ? question.answer : question.correct_answer;
+        const ansIndex = typeof rawAns === "number" ? rawAns : Number(rawAns);
+        const explanation = typeof question.explanation === "string" ? question.explanation : "";
+        const topic = typeof question.topic === "string" ? question.topic : "General Concept";
+
         if (
-            typeof question.question !== "string" ||
-            !Array.isArray(question.options) ||
-            question.options.length !== 4 ||
-            !question.options.every(option => typeof option === "string") ||
-            !Number.isInteger(question.answer) ||
-            question.answer < 0 ||
-            question.answer > 3 ||
-            typeof question.explanation !== "string"
+            !qText ||
+            options.length !== 4 ||
+            !options.every((opt: any) => typeof opt === "string") ||
+            !Number.isInteger(ansIndex) ||
+            ansIndex < 0 ||
+            ansIndex > 3
         ) {
             throw new Error(`Question ${index + 1} has an invalid format.`);
         }
+
+        return {
+            question: qText,
+            options,
+            answer: ansIndex,
+            explanation,
+            topic
+        };
     });
 
-    return parsedQuiz;
+    return { questions: validatedQuestions };
 }
 
 export default function Quiz() {
@@ -221,14 +238,10 @@ export default function Quiz() {
             let pred = attemptData?.prediction;
             if (!pred) {
                 try {
-                    const [reg, clf] = await Promise.all([
-                        getLearningPrediction(difficulty),
-                        getPassPrediction(difficulty)
-                    ]);
+                    const reg = await getLearningPrediction(difficulty);
                     pred = {
                         available: reg.has_sufficient_history,
                         predicted_score: reg.predicted_percentage,
-                        pass_probability: clf.probability_of_pass,
                         attempt_count: reg.attempt_count,
                         target_difficulty: difficulty,
                         message: reg.message
@@ -601,29 +614,6 @@ export default function Quiz() {
                                                             {submittedPrediction.predicted_score}%
                                                         </Typography>
                                                     </Box>
-
-                                                    {submittedPrediction.pass_probability !== undefined && submittedPrediction.pass_probability !== null && (
-                                                        <Box sx={{ mt: { xs: 1, sm: 0 } }}>
-                                                            <Typography sx={{ color: "#94a3b8", fontSize: 12 }}>
-                                                                Pass Probability (&ge;70%)
-                                                            </Typography>
-                                                            <Stack direction="row" alignItems="center" spacing={1}>
-                                                                <Typography sx={{ color: submittedPrediction.pass_probability >= 0.5 ? "#10b981" : "#ef4444", fontWeight: 800, fontSize: 28 }}>
-                                                                    {Math.round(submittedPrediction.pass_probability * 100)}%
-                                                                </Typography>
-                                                                <Chip
-                                                                    icon={submittedPrediction.pass_probability >= 0.5 ? <CheckCircleOutlineRoundedIcon sx={{ color: "#10b981 !important" }} /> : <HighlightOffRoundedIcon sx={{ color: "#ef4444 !important" }} />}
-                                                                    label={submittedPrediction.pass_probability >= 0.5 ? "Likely to Pass" : "Unlikely to Pass"}
-                                                                    size="small"
-                                                                    sx={{
-                                                                        bgcolor: submittedPrediction.pass_probability >= 0.5 ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-                                                                        color: submittedPrediction.pass_probability >= 0.5 ? "#10b981" : "#ef4444",
-                                                                        fontWeight: 700
-                                                                    }}
-                                                                />
-                                                            </Stack>
-                                                        </Box>
-                                                    )}
                                                 </Stack>
 
                                                 <Typography sx={{ color: "#94a3b8", fontSize: 12, fontStyle: "italic", mt: 1 }}>

@@ -58,7 +58,6 @@ def generate_updated_model_evaluation_json():
             "total_features": 38,
             "feature_set": "D_CORE_LEARNING",
             "regression_model": "Extra Trees Regressor_v4.0",
-            "classification_model": "Extra Trees Classifier_v4.0",
             "dataset_type": "Clean Learner Cohort (Users 3-103)",
             "pipeline_status": "SUCCESS"
         },
@@ -82,55 +81,7 @@ def generate_updated_model_evaluation_json():
             "temporal_rmse": 4.57,
             "temporal_r2": 0.908
         },
-        "selected_classification_model": {
-            "model_name": "Extra Trees Classifier",
-            "accuracy": 0.914,
-            "precision": 0.892,
-            "recall": 0.756,
-            "f1_score": 0.817,
-            "roc_auc": 0.969,
-            "pr_auc": 0.929,
-            "brier_score": 0.0626,
-            "log_loss": 0.2064
-        },
         "regression_comparison": reg_comp,
-        "classification_comparison": [
-            {
-                "model": "Historical Pass Rate Baseline",
-                "accuracy": 0.780,
-                "f1_score": 0.243,
-                "roc_auc": 0.817,
-                "brier_score": 0.1671
-            },
-            {
-                "model": "Majority Class Baseline",
-                "accuracy": 0.745,
-                "f1_score": 0.000,
-                "roc_auc": 0.500,
-                "brier_score": 0.2547
-            },
-            {
-                "model": "Logistic Regression",
-                "accuracy": 0.910,
-                "f1_score": 0.819,
-                "roc_auc": 0.964,
-                "brier_score": 0.0664
-            },
-            {
-                "model": "Gradient Boosting Classifier",
-                "accuracy": 0.906,
-                "f1_score": 0.802,
-                "roc_auc": 0.961,
-                "brier_score": 0.0717
-            },
-            {
-                "model": "Extra Trees Classifier",
-                "accuracy": 0.914,
-                "f1_score": 0.817,
-                "roc_auc": 0.969,
-                "brier_score": 0.0626
-            }
-        ],
         "ood_robustness_summary": ood_summary,
         "feature_ablation_summary": [
             {"feature_set": "A_CURRENT", "feature_count": 52, "group_kfold_mae": 3.62, "unseen_user_mae": 3.04, "temporal_mae": 3.21, "ood_robust": False},

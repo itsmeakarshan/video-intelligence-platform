@@ -1,14 +1,15 @@
 import axios from "axios";
 
-const backendHost = typeof window !== "undefined" ? (window.location.hostname || "127.0.0.1") : "127.0.0.1";
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://127.0.0.1:8000";
 
 export const api = axios.create({
-    baseURL: `http://${backendHost}:8000`
+    baseURL: API_BASE_URL
 });
 
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
+    let token = localStorage.getItem("access_token");
     if (token) {
+        token = token.replace(/^"|"$/g, "").trim();
         if (config.headers && typeof config.headers.set === "function") {
             config.headers.set("Authorization", `Bearer ${token}`);
         } else if (config.headers) {
@@ -21,12 +22,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     response => response,
     error => {
-        if (error.response?.status === 401) {
+        const requestUrl = error.config?.url || "";
+        const isAuthEndpoint = requestUrl.includes("/auth/login") || requestUrl.includes("/auth/register");
+
+        if (error.response?.status === 401 && !isAuthEndpoint) {
+            console.warn(`[API Interceptor] 401 Unauthorized received for ${requestUrl}. Triggering auth cleanup.`);
             localStorage.removeItem("access_token");
             localStorage.removeItem("user");
-            if (!window.location.pathname.startsWith("/login")) {
-                window.location.assign("/login");
-            }
+            window.dispatchEvent(new Event("auth:unauthorized"));
         }
         return Promise.reject(error);
     }
@@ -149,11 +152,6 @@ export async function loginUser(email: string, password: string) {
 
 export async function getLearningPrediction(difficulty: string = "Medium") {
     const response = await api.get(`/ml/prediction?difficulty=${encodeURIComponent(difficulty)}`);
-    return response.data;
-}
-
-export async function getPassPrediction(difficulty: string = "Medium") {
-    const response = await api.get(`/ml/pass-prediction?difficulty=${encodeURIComponent(difficulty)}`);
     return response.data;
 }
 

@@ -73,6 +73,27 @@ def get_user_knowledge_profile(user_id: int, db: Session) -> dict:
     max_score_raw = db.query(func.max(QuizAttempt.percentage)).filter(QuizAttempt.user_id == user_id).scalar()
     max_score = round(float(max_score_raw), 1) if max_score_raw is not None else 0.0
 
+    # Query chronological attempt history for score trend line chart
+    attempts = (
+        db.query(QuizAttempt)
+        .filter(QuizAttempt.user_id == user_id)
+        .order_by(QuizAttempt.created_at.asc())
+        .all()
+    )
+
+    attempt_history = [
+        {
+            "attempt_id": str(att.id),
+            "quiz_id": str(att.video_id or att.id),
+            "timestamp": att.created_at.isoformat() if att.created_at else datetime.utcnow().isoformat(),
+            "score_percentage": round(float(att.percentage or 0.0), 1),
+            "passed": bool((att.percentage or 0.0) >= 60.0),
+            "difficulty": (att.difficulty or "Medium").capitalize(),
+            "topic": (att.difficulty or "General").capitalize()
+        }
+        for att in attempts
+    ]
+
     # 2. Difficulty performance breakdown for user_id
     diff_rows = (
         db.query(
@@ -118,9 +139,12 @@ def get_user_knowledge_profile(user_id: int, db: Session) -> dict:
             "has_data": total_attempts > 0,
             "total_quiz_attempts": total_attempts,
             "total_questions_answered": 0,
+            "overall_average_percentage": avg_score,
             "average_quiz_score_percentage": avg_score,
+            "highest_score_percentage": max_score,
             "highest_quiz_score_percentage": max_score,
             "overall_mastery_percentage": avg_score,
+            "attempt_history": attempt_history,
             "topics_breakdown": [],
             "strong_areas": [],
             "improving_areas": [],
@@ -209,9 +233,12 @@ def get_user_knowledge_profile(user_id: int, db: Session) -> dict:
         "has_data": True,
         "total_quiz_attempts": total_attempts,
         "total_questions_answered": len(questions),
+        "overall_average_percentage": avg_score,
         "average_quiz_score_percentage": avg_score,
+        "highest_score_percentage": max_score,
         "highest_quiz_score_percentage": max_score,
         "overall_mastery_percentage": overall_mastery,
+        "attempt_history": attempt_history,
         "topics_breakdown": topics_breakdown,
         "strong_areas": strong_areas,
         "improving_areas": improving_areas,

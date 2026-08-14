@@ -8,7 +8,8 @@ WINDOW_SIZE = 3
 
 def create_chunks(
     transcript_id: int,
-    db: Session
+    db: Session,
+    progress_callback=None
 ):
 
     (
@@ -43,6 +44,7 @@ def create_chunks(
     # S3+S4+S5
     # ...
 
+    total_chunks_to_make = max(1, len(segments) - WINDOW_SIZE + 1)
     for i in range(len(segments) - WINDOW_SIZE + 1):
 
         window = segments[i:i + WINDOW_SIZE]
@@ -71,6 +73,10 @@ def create_chunks(
         )
 
         chunk_index += 1
+
+        if progress_callback and (i % 5 == 0 or i == total_chunks_to_make - 1):
+            pct = int(70 + (i / total_chunks_to_make) * 10)
+            progress_callback(pct, f"Creating semantic chunk {chunk_index-1}/{total_chunks_to_make}...")
 
     db.commit()
 

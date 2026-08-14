@@ -4,6 +4,7 @@ import {
     Route,
     Navigate
 } from "react-router-dom";
+import { Box, CircularProgress } from "@mui/material";
 
 import Dashboard from "./pages/Dashboard";
 import Summary from "./pages/Summary";
@@ -14,53 +15,137 @@ import Register from "./pages/Register";
 import MLPerformance from "./pages/MLPerformance";
 import Profile from "./pages/Profile";
 
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import { VideoProvider } from "./context/VideoContext";
 
-export default function App() {
-    const requireAuth = (element: React.ReactNode) =>
-        localStorage.getItem("access_token") ? element : <Navigate to="/login" replace />;
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isLoading } = useAuth();
 
+    if (isLoading) {
+        return (
+            <Box
+                sx={{
+                    minHeight: "100vh",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "#0F172A"
+                }}
+            >
+                <CircularProgress sx={{ color: "#14B8A6" }} />
+            </Box>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return <>{children}</>;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <Box
+                sx={{
+                    minHeight: "100vh",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "#0F172A"
+                }}
+            >
+                <CircularProgress sx={{ color: "#14B8A6" }} />
+            </Box>
+        );
+    }
+
+    if (isAuthenticated) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+}
+
+export default function App() {
     return (
-        <BrowserRouter>
-            <VideoProvider>
-                <ChatProvider>
-                    <Routes>
-                        <Route
-                            path="/login"
-                            element={<Login />}
-                        />
-                        <Route
-                            path="/register"
-                            element={<Register />}
-                        />
-                        <Route
-                            path="/"
-                            element={requireAuth(<Dashboard />)}
-                        />
-                        <Route
-                            path="/profile"
-                            element={requireAuth(<Profile />)}
-                        />
-                        <Route
-                            path="/summary"
-                            element={requireAuth(<Summary />)}
-                        />
-                        <Route
-                            path="/notes"
-                            element={requireAuth(<Notes />)}
-                        />
-                        <Route
-                            path="/quiz"
-                            element={requireAuth(<Quiz />)}
-                        />
-                        <Route
-                            path="/ml-performance"
-                            element={requireAuth(<MLPerformance />)}
-                        />
-                    </Routes>
-                </ChatProvider>
-            </VideoProvider>
-        </BrowserRouter>
+        <AuthProvider>
+            <BrowserRouter>
+                <VideoProvider>
+                    <ChatProvider>
+                        <Routes>
+                            <Route
+                                path="/login"
+                                element={
+                                    <PublicRoute>
+                                        <Login />
+                                    </PublicRoute>
+                                }
+                            />
+                            <Route
+                                path="/register"
+                                element={
+                                    <PublicRoute>
+                                        <Register />
+                                    </PublicRoute>
+                                }
+                            />
+                            <Route
+                                path="/"
+                                element={
+                                    <ProtectedRoute>
+                                        <Dashboard />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/profile"
+                                element={
+                                    <ProtectedRoute>
+                                        <Profile />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/summary"
+                                element={
+                                    <ProtectedRoute>
+                                        <Summary />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/notes"
+                                element={
+                                    <ProtectedRoute>
+                                        <Notes />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/quiz"
+                                element={
+                                    <ProtectedRoute>
+                                        <Quiz />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/ml-performance"
+                                element={
+                                    <ProtectedRoute>
+                                        <MLPerformance />
+                                    </ProtectedRoute>
+                                }
+                            />
+                        </Routes>
+                    </ChatProvider>
+                </VideoProvider>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }

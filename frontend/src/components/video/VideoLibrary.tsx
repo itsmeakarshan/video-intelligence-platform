@@ -18,7 +18,8 @@ import {
     ListItemIcon,
     ListItemText,
     Tooltip,
-    Typography
+    Typography,
+    Stack
 } from "@mui/material";
 
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
@@ -99,7 +100,7 @@ export default function VideoLibrary() {
 
         const interval = setInterval(() => {
             loadVideos();
-        }, 3000);
+        }, 800);
 
         return () => clearInterval(interval);
     }, [videos]);
@@ -688,53 +689,72 @@ export default function VideoLibrary() {
                                         <Box
                                             sx={{
                                                 px: 2,
-                                                pb: 2
+                                                pb: 2,
+                                                pt: 0.5
                                             }}
                                         >
+                                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <Box
+                                                        sx={{
+                                                            width: 8,
+                                                            height: 8,
+                                                            borderRadius: "50%",
+                                                            bgcolor: isProcessing ? "#14B8A6" : "#F59E0B",
+                                                            boxShadow: isProcessing
+                                                                ? "0 0 10px #14B8A6"
+                                                                : "0 0 8px #F59E0B",
+                                                            animation: "pulse 1.5s infinite ease-in-out",
+                                                            "@keyframes pulse": {
+                                                                "0%": { transform: "scale(0.95)", opacity: 0.7 },
+                                                                "50%": { transform: "scale(1.2)", opacity: 1 },
+                                                                "100%": { transform: "scale(0.95)", opacity: 0.7 }
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Typography
+                                                        sx={{
+                                                            color: isProcessing ? "#F8FAFC" : "#F59E0B",
+                                                            fontWeight: 600,
+                                                            fontSize: 12
+                                                        }}
+                                                    >
+                                                        {isProcessing
+                                                            ? video.current_step || "Processing pipeline..."
+                                                            : `Waiting in queue (Position #${queuedVideos.findIndex((v: any) => v.id === video.id) + 1})`}
+                                                    </Typography>
+                                                </Stack>
+                                                {isProcessing && progressValue !== undefined && (
+                                                    <Typography
+                                                        sx={{
+                                                            color: "#14B8A6",
+                                                            fontWeight: 800,
+                                                            fontSize: 12
+                                                        }}
+                                                    >
+                                                        {Math.round(progressValue)}%
+                                                    </Typography>
+                                                )}
+                                            </Stack>
+
                                             <LinearProgress
                                                 variant={
-                                                    isProcessing &&
-                                                    progressValue !== undefined
+                                                    isProcessing && progressValue !== undefined
                                                         ? "determinate"
                                                         : "indeterminate"
                                                 }
-                                                value={progressValue}
+                                                value={progressValue ?? 0}
                                                 sx={{
-                                                    height: 8,
-                                                    borderRadius: 1,
-                                                    bgcolor:
-                                                        "rgba(20,184,166,.15)",
+                                                    height: 7,
+                                                    borderRadius: 4,
+                                                    bgcolor: "rgba(20,184,166,.12)",
                                                     "& .MuiLinearProgress-bar": {
-                                                        bgcolor: "#14B8A6"
+                                                        bgcolor: "#14B8A6",
+                                                        borderRadius: 4,
+                                                        transition: "transform 0.4s ease-out"
                                                     }
                                                 }}
                                             />
-
-                                            <Typography
-                                                sx={{
-                                                    mt: 1,
-                                                    color: "#94A3B8",
-                                                    fontWeight: 500,
-                                                    fontSize: 12
-                                                }}
-                                            >
-                                                {isProcessing ? (
-                                                    <>
-                                                        {progressValue ?? 0}% •{" "}
-                                                        {video.current_step ||
-                                                            "Processing..."}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        Waiting in queue...{" "}
-                                                        Position #
-                                                        {queuedVideos.findIndex(
-                                                            (v: any) =>
-                                                                v.id === video.id
-                                                        ) + 1}
-                                                    </>
-                                                )}
-                                            </Typography>
                                         </Box>
                                     )}
                                 </Box>

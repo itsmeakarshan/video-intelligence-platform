@@ -58,12 +58,12 @@ def process_video(video: Video, db: Session):
         db.refresh(transcript)
 
         db.refresh(video)
-        video.progress = 55
+        video.progress = 45
         video.current_step = "Saving transcript segments..."
         db.commit()
 
-        for segment in result["segments"]:
-
+        total_segs = len(result["segments"])
+        for idx, segment in enumerate(result["segments"]):
             db.add(
                 TranscriptSegment(
                     transcript_id=transcript.id,
@@ -73,27 +73,34 @@ def process_video(video: Video, db: Session):
                     text=segment["text"]
                 )
             )
+            if idx % 10 == 0 or idx == total_segs - 1:
+                update_progress(
+                    int(45 + (idx / max(1, total_segs)) * 10),
+                    f"Saving segment {idx+1}/{total_segs}..."
+                )
 
         db.commit()
 
         db.refresh(video)
-        video.progress = 70
+        video.progress = 55
         video.current_step = "Creating semantic chunks..."
         db.commit()
 
         create_chunks(
             transcript.id,
-            db
+            db,
+            progress_callback=update_progress
         )
 
         db.refresh(video)
-        video.progress = 85
-        video.current_step = "Generating embeddings..."
+        video.progress = 75
+        video.current_step = "Generating vector embeddings..."
         db.commit()
 
         index_video(
             video.id,
-            db
+            db,
+            progress_callback=update_progress
         )
 
         db.refresh(video)

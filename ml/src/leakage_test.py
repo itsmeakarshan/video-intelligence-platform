@@ -72,10 +72,8 @@ def test_temporal_feature_isolation():
 def test_model_artifact_integrity_and_contract():
     pipe_meta = joblib.load(os.path.join(MODELS_DIR, "pipeline_meta.joblib"))
     reg_model = joblib.load(os.path.join(MODELS_DIR, "best_regression_model.joblib"))
-    clf_model = joblib.load(os.path.join(MODELS_DIR, "best_classifier.joblib"))
 
     assert "ExtraTreesRegressor" in str(type(reg_model)), "Production regressor is not ExtraTreesRegressor!"
-    assert "ExtraTreesClassifier" in str(type(clf_model)), "Production classifier is not ExtraTreesClassifier!"
     
     predictor = get_predictor()
     assert predictor.feature_columns == pipe_meta["feature_columns"]
@@ -91,18 +89,15 @@ def test_ood_frequency_robustness():
     ]
     
     reg_res = predictor.predict_from_user_history(extreme_attempts, target_difficulty="Medium")
-    clf_res = predictor.predict_pass_from_user_history(extreme_attempts, target_difficulty="Medium")
 
     raw_pred = reg_res["raw_predicted_percentage"]
     final_pred = reg_res["predicted_percentage"]
-    pass_prob = clf_res["probability_of_pass"]
 
     assert 0.0 <= final_pred <= 100.0, f"Final prediction out of bounds: {final_pred}"
-    assert 0.0 <= pass_prob <= 1.0, f"Classifier probability out of bounds: {pass_prob}"
     
     # Extreme frequency must NOT cause linear extrapolation explosion (> 90.0)
     assert raw_pred <= 75.0, f"OOD frequency extrapolation bug detected! Raw prediction: {raw_pred}%"
-    print(f"✓ OOD Frequency Robustness verified (Raw: {raw_pred}%, Final: {final_pred}%, Pass Prob: {pass_prob}).")
+    print(f"✓ OOD Frequency Robustness verified (Raw: {raw_pred}%, Final: {final_pred}%).")
 
 
 if __name__ == "__main__":

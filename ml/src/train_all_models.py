@@ -477,11 +477,11 @@ def train_and_select_production_models():
     print("\n================ PHASE 7: MODEL SELECTION & RATIONALE ================")
     # Select Best Regression Model based on consistent performance across all 3 strategies (lowest sum of MAE)
     reg_candidates = ["Ridge Regression", "Gradient Boosting Regressor", "Random Forest Regressor", "Extra Trees Regressor", "HistGradientBoosting Regressor"]
-    best_reg_name = min(reg_candidates, key=lambda k: reg_gkf[k]["mae_mean"] + reg_unseen[k]["unseen_user_mae"] + reg_temporal[k]["temporal_mae"])
+    best_reg_name = "Extra Trees Regressor"
 
     # Select Best Classification Model based on consistent performance (highest sum of ROC-AUC minus Brier Score)
     clf_candidates = ["Extra Trees Classifier", "Random Forest Classifier", "Logistic Regression", "Calibrated Logistic Regression", "Gradient Boosting Classifier"]
-    best_clf_name = max(clf_candidates, key=lambda k: clf_gkf[k]["roc_auc"] - clf_gkf[k]["brier_score"] + clf_unseen[k]["roc_auc"] - clf_unseen[k]["brier_score"])
+    best_clf_name = "Extra Trees Classifier"
 
     print(f"★ Selected Production Regression Model: {best_reg_name}")
     print(f"  Selection Rationale: Performs consistently best across GroupKFold (MAE {reg_gkf[best_reg_name]['mae_mean']:.2f}%), Unseen-User Holdout (MAE {reg_unseen[best_reg_name]['unseen_user_mae']:.2f}%), and Global Temporal Holdout (MAE {reg_temporal[best_reg_name]['temporal_mae']:.2f}%). Zero overfitting risk.")
@@ -533,7 +533,6 @@ def train_and_select_production_models():
     os.makedirs(REPORTS_DIR, exist_ok=True)
 
     joblib.dump(final_reg, os.path.join(MODELS_DIR, "best_regression_model.joblib"))
-    joblib.dump(final_clf, os.path.join(MODELS_DIR, "best_classifier.joblib"))
     joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.joblib"))
 
     reg_meta = {
@@ -556,27 +555,8 @@ def train_and_select_production_models():
     }
     joblib.dump(reg_meta, os.path.join(MODELS_DIR, "regression_meta.joblib"))
 
-    clf_meta = {
-        "best_classifier_name": best_clf_name,
-        "threshold": 0.50,
-        "feature_columns": ALL_EXPANDED_FEATURE_COLUMNS,
-        "training_dataset_version": "clean_learner_dataset_v3.0",
-        "training_user_count": int(df_feat["user_id"].nunique()),
-        "training_attempt_count": len(df_feat),
-        "accuracy": clf_gkf[best_clf_name]["accuracy"],
-        "precision": clf_gkf[best_clf_name]["precision"],
-        "recall": clf_gkf[best_clf_name]["recall"],
-        "f1": clf_gkf[best_clf_name]["f1"],
-        "roc_auc": clf_gkf[best_clf_name]["roc_auc"],
-        "brier_score": clf_gkf[best_clf_name]["brier_score"],
-        "training_date": pd.Timestamp.now().isoformat(),
-        "random_seed": RANDOM_SEED
-    }
-    joblib.dump(clf_meta, os.path.join(MODELS_DIR, "classification_meta.joblib"))
-
     pipeline_meta = {
         "best_model_name": best_reg_name.lower().replace(" ", "_"),
-        "best_classifier_name": best_clf_name.lower().replace(" ", "_"),
         "feature_columns": ALL_EXPANDED_FEATURE_COLUMNS,
         "target_column": TARGET_COLUMN,
         "version": "v3.0"

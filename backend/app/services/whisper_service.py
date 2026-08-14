@@ -61,13 +61,42 @@ def transcribe_video(
         progress_callback(15, "Running speech recognition...")
 
     try:
+        import tqdm
+        original_tqdm = tqdm.tqdm
 
-        result = model.transcribe(
-            audio_path,
-            fp16=False,
-            verbose=True,
-            word_timestamps=True
-        )
+        class CustomTqdm:
+            def __init__(self, iterable=None, total=None, *args, **kwargs):
+                self.total = total or (len(iterable) if iterable is not None else 1)
+                self.n = 0
+                self.iterable = iterable
+            def __iter__(self):
+                if self.iterable is not None:
+                    for item in self.iterable:
+                        self.update(1)
+                        yield item
+            def update(self, n=1):
+                self.n += n
+                frac = min(1.0, max(0.0, self.n / (self.total or 1)))
+                pct = int(15 + frac * 23)
+                if progress_callback:
+                    progress_callback(pct, f"Transcribing audio ({pct}%)...")
+            def close(self):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+
+        tqdm.tqdm = CustomTqdm
+        try:
+            result = model.transcribe(
+                audio_path,
+                fp16=False,
+                verbose=True,
+                word_timestamps=True
+            )
+        finally:
+            tqdm.tqdm = original_tqdm
 
         print("=" * 60)
         print("SEGMENTS RETURNED BY WHISPER")
@@ -83,7 +112,7 @@ def transcribe_video(
         print("=" * 60)
 
         if progress_callback:
-            progress_callback(35, "Transcript generated.")
+            progress_callback(38, "Speech recognition completed.")
 
         segments = []
         full_text = ""

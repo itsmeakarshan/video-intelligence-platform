@@ -310,20 +310,13 @@ def run_experiments():
     final_reg_model = ExtraTreesRegressor(n_estimators=100, max_depth=6, random_state=42)
     final_reg_model.fit(X_full, y_full)
 
-    # Production Classifier (Extra Trees Classifier)
-    y_clf_full = df_feat["next_pass"].values
-    final_clf_model = ExtraTreesClassifier(n_estimators=100, max_depth=6, random_state=42)
-    final_clf_model.fit(X_full, y_clf_full)
-
     # Save joblib artifacts
     joblib.dump(final_reg_model, os.path.join(MODELS_DIR, "best_regression_model.joblib"))
-    joblib.dump(final_clf_model, os.path.join(MODELS_DIR, "best_classifier.joblib"))
     joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.joblib"))
 
     # Metadata
     pipeline_meta = {
         "best_model_name": "extra_trees_regressor",
-        "best_classifier_name": "extra_trees_classifier",
         "feature_set_name": best_feature_set,
         "feature_columns": feature_cols,
         "target_column": TARGET_COLUMN,
@@ -342,22 +335,9 @@ def run_experiments():
     }
     joblib.dump(reg_meta, os.path.join(MODELS_DIR, "regression_meta.joblib"))
 
-    clf_meta = {
-        "best_classifier_name": "Extra Trees Classifier",
-        "threshold": 0.50,
-        "feature_set": best_feature_set,
-        "feature_columns": feature_cols,
-        "training_dataset_version": "clean_learner_dataset_v4.0",
-        "training_user_count": len(df_feat["user_id"].unique()),
-        "training_attempt_count": len(df_feat),
-        "version": "v4.0_ood_robust"
-    }
-    joblib.dump(clf_meta, os.path.join(MODELS_DIR, "classification_meta.joblib"))
-
     print(f"\n==================================================")
     print(f"★ FINAL PRODUCTION MODEL SERIALIZED SUCCESSFULLY!")
     print(f"  Selected Regressor: {best_model_name} (Feature Set: {best_feature_set})")
-    print(f"  Selected Classifier: Extra Trees Classifier (Feature Set: {best_feature_set})")
     print(f"  Artifacts saved to: {MODELS_DIR}")
     print(f"==================================================")
 
@@ -366,11 +346,7 @@ def run_experiments():
         "selected_regression_model": best_model_name,
         "selected_feature_set": best_feature_set,
         "feature_count": len(feature_cols),
-        "selection_rationale": "Extra Trees Regressor on Feature Set D_CORE_LEARNING eliminates linear OOD extrapolation (User 1 extreme attempt frequency case predicts realistic ~54% instead of 100% linear explosion) while achieving top-tier GroupKFold MAE (3.81%), Unseen-User MAE (3.17%), and Temporal MAE (3.70%).",
-        "selected_classification_model": "Extra Trees Classifier",
-        "classification_accuracy": 0.914,
-        "classification_roc_auc": 0.969,
-        "classification_brier_score": 0.0626
+        "selection_rationale": "Extra Trees Regressor on Feature Set D_CORE_LEARNING eliminates linear OOD extrapolation (User 1 extreme attempt frequency case predicts realistic ~54% instead of 100% linear explosion) while achieving top-tier GroupKFold MAE (3.81%), Unseen-User MAE (3.17%), and Temporal MAE (3.70%)."
     }
     
     with open(os.path.join(REPORTS_DIR, "final_regression_selection.json"), "w") as f:
@@ -379,8 +355,7 @@ def run_experiments():
     with open(os.path.join(REPORTS_DIR, "final_regression_selection.md"), "w") as f:
         f.write("# Phase 6 — Production Model Selection & Feature Ablation Summary\n\n")
         f.write(f"**Selected Regressor:** `{best_model_name}`\n")
-        f.write(f"**Selected Feature Set:** `{best_feature_set}` ({len(feature_cols)} domain features)\n")
-        f.write(f"**Selected Classifier:** `Extra Trees Classifier`\n\n")
+        f.write(f"**Selected Feature Set:** `{best_feature_set}` ({len(feature_cols)} domain features)\n\n")
         f.write("### Scientific Selection Rationale:\n")
         f.write("1. **OOD Robustness:** Eliminates artificial linear extrapolation bug (+235 std dev frequency outlier in Ridge Regression caused raw predictions of +100.68%). Extra Trees Regressor evaluates axis-aligned split thresholds, yielding realistic score predictions.\n")
         f.write("2. **Feature Quality:** Removing test-execution velocity artifacts (`attempt_frequency`, `attempts_last_7d/14d/30d`, `avg_days_between`) isolates pure learner domain performance.\n")

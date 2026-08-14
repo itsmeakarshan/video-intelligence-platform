@@ -49,12 +49,9 @@ class QuizAttemptCreate(BaseModel):
 class PredictionDataSchema(BaseModel):
     available: bool
     predicted_score: float | None = None
-    pass_probability: float | None = None
-    pass_threshold: int | None = 70
     attempt_count: int | None = None
     target_difficulty: str | None = None
     regression_model: str | None = None
-    classification_model: str | None = None
     reason: str | None = None
     message: str | None = None
 

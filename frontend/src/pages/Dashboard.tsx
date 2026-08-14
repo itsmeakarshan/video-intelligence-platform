@@ -17,43 +17,30 @@ import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import AutoGraphIcon from "@mui/icons-material/AutoGraph";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import SchoolIcon from "@mui/icons-material/School";
 import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
-import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import VideoLibraryRoundedIcon from "@mui/icons-material/VideoLibraryRounded";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 
 import { useNavigate } from "react-router-dom";
-
 import Navbar from "../components/layout/Navbar";
 import StarTrail from "./StarTrail";
 import Chat from "../components/chat/Chat";
 import VideoPlayer from "../components/video/VideoPlayer";
 import VideoLibrary from "../components/video/VideoLibrary";
 import YouTubeDownloader from "../components/video/YouTubeDownloader";
-import Upload from "../components/upload/Upload";
 import DraggableRobot from "../components/common/DraggableRobot";
-import { getConfidenceTier } from "../components/quiz/LearningPredictionCard";
-import { getLearningPrediction, getPassPrediction } from "../api/api";
+import { getLearningPrediction } from "../api/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function Dashboard() {
     const navigate = useNavigate();
+    const { user: authUser } = useAuth();
 
     const [predScore, setPredScore] = useState<number | null>(null);
-    const [passProb, setPassProb] = useState<number | null>(null);
     const [histAvg, setHistAvg] = useState<number | null>(null);
-    const [attemptCount, setAttemptCount] = useState<number>(0);
 
-    const userStr = localStorage.getItem("user");
-    let user = { name: "Learner" };
-    if (userStr) {
-        try {
-            user = JSON.parse(userStr);
-        } catch (e) {
-            console.error(e);
-        }
-    }
+    const user = authUser || { name: "Learner" };
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -62,24 +49,15 @@ export default function Dashboard() {
 
     async function loadOverviewPredictions() {
         try {
-            const [regRes, clfRes] = await Promise.all([
-                getLearningPrediction("Medium"),
-                getPassPrediction("Medium")
-            ]);
+            const regRes = await getLearningPrediction("Medium");
             if (regRes && regRes.has_sufficient_history) {
                 setPredScore(regRes.predicted_percentage);
                 setHistAvg(regRes.historical_avg);
-                setAttemptCount(regRes.attempt_count);
-            }
-            if (clfRes && clfRes.has_sufficient_history) {
-                setPassProb(clfRes.probability_of_pass);
             }
         } catch (err) {
             console.error("Failed to load overview predictions", err);
         }
     }
-
-    const tierInfo = getConfidenceTier(passProb);
 
     const cardGlassStyle = {
         borderRadius: 3,
@@ -104,8 +82,12 @@ export default function Dashboard() {
             <StarTrail />
 
             <Container
-                maxWidth="xl"
+                maxWidth={false}
                 sx={{
+                    maxWidth: "2560px",
+                    width: { xs: "96%", md: "88%", lg: "80%" },
+                    mx: "auto",
+                    px: { xs: 2, sm: 3, md: 4 },
                     position: "relative",
                     zIndex: 1,
                     pt: 4
@@ -206,10 +188,10 @@ export default function Dashboard() {
                     </Stack>
                 </Box>
 
-                {/* 2. ML METRICS (EXACTLY 3 CARDS) */}
+                {/* 2. ML METRICS (2 CARDS: PREDICTED NEXT SCORE & HISTORICAL AVERAGE) */}
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                     {/* Card 1: Predicted Next Score */}
-                    <Grid size={{ xs: 12, sm: 4 }}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                         <Card
                             sx={{
                                 ...cardGlassStyle,
@@ -230,56 +212,21 @@ export default function Dashboard() {
                                     {predScore !== null ? `${predScore}%` : "--"}
                                 </Typography>
                                 <Typography sx={{ color: "#64748B", fontSize: 11, mt: 1 }}>
-                                    Extra Trees Regressor_v4.0
+                                    ExtraTreesRegressor_v4.0
                                 </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
 
-                    {/* Card 2: Pass Probability */}
-                    <Grid size={{ xs: 12, sm: 4 }}>
+                    {/* Card 2: Historical Average */}
+                    <Grid size={{ xs: 12, sm: 6 }}>
                         <Card
                             sx={{
                                 ...cardGlassStyle,
                                 p: 1,
-                                border: `1px solid ${tierInfo?.borderColor || "rgba(255,255,255,0.1)"}`,
+                                border: "1px solid rgba(56, 189, 248, 0.3)",
                                 transition: "all 0.2s ease",
-                                "&:hover": { transform: "translateY(-4px)" }
-                            }}
-                        >
-                            <CardContent>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-                                    <Typography sx={{ color: "#94A3B8", fontSize: 13, fontWeight: 700 }}>
-                                        PASS PROBABILITY
-                                    </Typography>
-                                    <CheckCircleOutlineIcon sx={{ color: tierInfo?.color || "#94a3b8" }} />
-                                </Stack>
-                                <Typography variant="h3" sx={{ color: tierInfo?.color || "#F8FAFC", fontWeight: 800 }}>
-                                    {passProb !== null ? `${Math.round(passProb * 100)}%` : "--"}
-                                </Typography>
-                                <Chip
-                                    label={tierInfo?.label || "Calculating..."}
-                                    size="small"
-                                    sx={{
-                                        mt: 1,
-                                        bgcolor: tierInfo?.bgColor || "rgba(255,255,255,0.08)",
-                                        color: tierInfo?.color || "#94a3b8",
-                                        fontWeight: 700,
-                                        fontSize: 10
-                                    }}
-                                />
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    {/* Card 3: Historical Average */}
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                        <Card
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 1,
-                                transition: "all 0.2s ease",
-                                "&:hover": { transform: "translateY(-4px)", borderColor: "rgba(56, 189, 248, 0.4)" }
+                                "&:hover": { transform: "translateY(-4px)", borderColor: "#38bdf8" }
                             }}
                         >
                             <CardContent>
@@ -293,7 +240,7 @@ export default function Dashboard() {
                                     {histAvg !== null ? `${histAvg}%` : "--"}
                                 </Typography>
                                 <Typography sx={{ color: "#64748B", fontSize: 11, mt: 1 }}>
-                                    Across {attemptCount} completed quizzes
+                                    Across historical quiz attempts
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -326,9 +273,9 @@ export default function Dashboard() {
                             sx={{
                                 ...cardGlassStyle,
                                 p: 0,
-                                height: "100%",
-                                minHeight: 600,
-                                maxHeight: 720,
+                                 height: "100%",
+                                minHeight: 640,
+                                maxHeight: 760,
                                 display: "flex",
                                 flexDirection: "column",
                                 overflow: "hidden",
@@ -368,33 +315,7 @@ export default function Dashboard() {
                     </Paper>
                 </Box>
 
-                {/* 5. LOCAL VIDEO UPLOAD — BELOW VIDEO LIBRARY */}
-                <Box sx={{ mb: 4 }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-                        <CloudUploadRoundedIcon sx={{ color: "#14b8a6", fontSize: 28 }} />
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 800, color: "#F8FAFC" }}>
-                                Upload Local Videos
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                                Drag & drop local video files or browse to upload multi-video collections.
-                            </Typography>
-                        </Box>
-                    </Stack>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            ...cardGlassStyle,
-                            p: 3,
-                            transition: "border-color 0.3s ease",
-                            "&:hover": { borderColor: "rgba(20, 184, 166, 0.45)" }
-                        }}
-                    >
-                        <Upload />
-                    </Paper>
-                </Box>
-
-                {/* 6. YOUTUBE DOWNLOAD — BELOW LOCAL UPLOAD */}
+                {/* 5. YOUTUBE DOWNLOAD — BELOW VIDEO LIBRARY */}
                 <Box id="recommendations-section" sx={{ mb: 4 }}>
                     <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                         <YouTubeIcon sx={{ color: "#ef4444", fontSize: 30 }} />

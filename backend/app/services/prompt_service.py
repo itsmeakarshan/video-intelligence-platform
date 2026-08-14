@@ -289,16 +289,25 @@ def build_quiz_prompt(
 Generate a {difficulty} difficulty quiz containing {questions} multiple choice questions
 based ONLY on the supplied video context below.
 
-Return valid JSON in this structure:
-[
-  {{
-    "question": "Question text...",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_answer": 0,
-    "topic": "Concept Name",
-    "explanation": "Explanation..."
-  }}
-]
+Return valid JSON in this exact structure:
+{{
+  "questions": [
+    {{
+      "question": "Question text...",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct_answer": 0,
+      "topic": "Concept Name",
+      "explanation": "Explanation..."
+    }}
+  ]
+}}
+
+STRICT MANDATES:
+1. Return ONLY the JSON object. Do not add any text before or after the JSON.
+2. "correct_answer" MUST be a 0-indexed integer (0, 1, 2, or 3) corresponding to the correct option index in "options".
+3. Each question MUST have exactly 4 options.
+4. "topic" should describe the specific concept or sub-topic tested.
+5. "explanation" must explain why the correct option is right based ONLY on the video context.
 
 ============================================================
 SUPPLIED VIDEO CONTEXT

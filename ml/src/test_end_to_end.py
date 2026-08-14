@@ -36,10 +36,8 @@ from fastapi.testclient import TestClient
 def test_model_artifacts_exist():
     models_dir = os.path.join(PROJECT_ROOT, "ml/models")
     assert os.path.exists(os.path.join(models_dir, "pipeline_meta.joblib"))
-    assert os.path.exists(os.path.join(models_dir, "classification_meta.joblib"))
     assert os.path.exists(os.path.join(models_dir, "scaler.joblib"))
     assert os.path.exists(os.path.join(models_dir, "best_regression_model.joblib"))
-    assert os.path.exists(os.path.join(models_dir, "best_classifier.joblib"))
     print("✓ Model artifacts exist and are serialized properly.")
 
 
@@ -51,9 +49,6 @@ def test_predictor_logic():
     assert res0["has_sufficient_history"] is False
     assert res0["attempt_count"] == 0
 
-    res0_clf = predictor.predict_pass_from_user_history([])
-    assert res0_clf["has_sufficient_history"] is False
-
     # User with 3 attempts
     sample_attempts = [
         {"attempt_id": 10, "score": 6, "percentage": 60.0, "difficulty": "Easy", "created_at": "2026-08-01 10:00:00"},
@@ -64,12 +59,7 @@ def test_predictor_logic():
     assert res3["has_sufficient_history"] is True
     assert res3["attempt_count"] == 3
     assert 0.0 <= res3["predicted_percentage"] <= 100.0
-
-    res3_clf = predictor.predict_pass_from_user_history(sample_attempts, target_difficulty="Medium")
-    assert res3_clf["has_sufficient_history"] is True
-    assert res3_clf["predicted_class"] in ["pass", "fail"]
-    assert 0.0 <= res3_clf["probability_of_pass"] <= 1.0
-    print("✓ ScorePredictor and PassClassifier produce valid predictions.")
+    print("✓ ScorePredictor produces valid predictions.")
 
 
 def test_fastapi_ml_endpoints_and_isolation():
@@ -77,7 +67,6 @@ def test_fastapi_ml_endpoints_and_isolation():
 
     # 1. Unauthenticated requests -> expect 401
     assert client.get("/ml/prediction").status_code == 401
-    assert client.get("/ml/pass-prediction").status_code == 401
     print("✓ Unauthenticated access correctly blocked (401 Unauthorized).")
 
     # 2. Authenticated request as user 1
@@ -88,12 +77,6 @@ def test_fastapi_ml_endpoints_and_isolation():
     assert auth_resp_reg1.status_code == 200
     data_reg1 = auth_resp_reg1.json()
     assert "has_sufficient_history" in data_reg1
-
-    auth_resp_clf1 = client.get("/ml/pass-prediction?difficulty=Medium", headers=headers1)
-    assert auth_resp_clf1.status_code == 200
-    data_clf1 = auth_resp_clf1.json()
-    assert "predicted_class" in data_clf1
-    assert "probability_of_pass" in data_clf1
 
     # 3. User Isolation Check (User 2 vs User 1)
     token2 = create_access_token(user_id=2)
@@ -143,7 +126,6 @@ def test_quiz_attempt_submission_with_prediction():
     assert "available" in pred
     if pred["available"]:
         assert 0.0 <= pred["predicted_score"] <= 100.0
-        assert 0.0 <= pred["pass_probability"] <= 1.0
         print(f"✓ Post-quiz prediction generated successfully after attempt persistence: {pred}")
 
 

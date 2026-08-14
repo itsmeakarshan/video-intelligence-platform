@@ -1,12 +1,12 @@
 # Video Intelligence Platform — Machine Learning Component (`ml/`)
 
-This directory contains the machine learning pipelines for predicting future quiz performance (regression) and pass/fail likelihood (classification) in the Video Intelligence Platform.
+This directory contains the machine learning pipelines for forecasting next quiz scores (regression) in the Video Intelligence Platform.
+
 
 ---
 
-## 1. Tasks & Formulations
-1. **Regression Task (Score Prediction):** Predicts `next_percentage` (Float, 0.0% – 100.0%).
-2. **Classification Task (Pass/Fail Prediction):** Predicts `is_pass` = 1 if `next_percentage >= 70%` else 0.
+## 1. Task Formulation
+**Next Quiz Score Regression:** Predicts `next_percentage` (Float, 0.0% – 100.0%) from historical quiz performance data using `ExtraTreesRegressor_v4.0`.
 
 ---
 
@@ -15,59 +15,46 @@ This directory contains the machine learning pipelines for predicting future qui
 ml/
 ├── data/
 │   ├── raw/
-│   │   └── quiz_attempts.csv                   # Raw extracted quiz attempt records
+│   │   └── new_learner_dataset.csv             # Raw extracted quiz attempt records
 │   └── processed/
-│       └── featured_quiz_attempts.csv          # Leak-free feature matrix (571 instances)
+│       └── clean_learner_dataset.csv           # Cleaned learner dataset
 ├── notebooks/
-│   ├── 01_eda.ipynb                            # Exploratory Data Analysis notebook
-│   └── 02_feature_engineering.ipynb            # Feature engineering & leakage audit notebook
+│   ├── 01_learner_data_eda.ipynb               # Exploratory Data Analysis notebook
+│   └── 02_model_comparison_and_evaluation.ipynb # Model comparison & evaluation notebook
 ├── src/
-│   ├── data_loader.py                          # Read-only database extraction
-│   ├── features.py                             # Leak-free temporal feature generator
-│   ├── audit_dataset.py                        # Data quality & synthetic audit generator
-│   ├── train_and_evaluate_v2.py                # Regression training & evaluation pipeline
-│   ├── train_and_evaluate_classifier.py        # Classification training & evaluation pipeline
-│   ├── resolve_classifier_selection.py         # Classifier model selection resolver
-│   ├── predict.py                              # ScorePredictor & PassClassifier inference engine
+│   ├── data_loader.py                          # Database extraction pipeline
+│   ├── features.py                             # Feature generator & 38-feature D_CORE_LEARNING contract
+│   ├── audit_dataset.py                        # Data quality audit script
+│   ├── optimize_models.py                      # Model tuning & evaluation script
+│   ├── predict.py                              # ScorePredictor inference engine
 │   ├── leakage_test.py                         # Automated leakage testing suite
-│   └── test_end_to_end.py                      # Integration test suite
+│   ├── test_end_to_end.py                      # End-to-end integration test suite
+│   └── verify_regression_architecture.py       # 13-point regression architecture test suite
 ├── models/
-│   ├── best_regression_model.joblib            # Production Gradient Boosting regressor
-│   ├── best_classifier.joblib                  # Production Logistic Regression classifier
-│   ├── pipeline_meta.joblib                    # Regression metadata & feature columns
-│   ├── classification_meta.joblib              # Classification metadata & threshold
+│   ├── best_regression_model.joblib            # Production ExtraTreesRegressor_v4.0 artifact
+│   ├── pipeline_meta.joblib                    # Pipeline metadata & feature contract
+│   ├── regression_meta.joblib                  # Regression model metadata
 │   └── scaler.joblib                           # StandardScaler artifact
 ├── reports/
-│   ├── data_quality_report.md                  # Data quality audit report
-│   ├── synthetic_data_audit.md                 # Synthetic dataset audit report
-│   ├── feature_audit.md                        # Feature availability & leakage audit
-│   ├── final_model_evaluation.md               # Final regression & classification report
-│   ├── model_comparison.csv                    # Evaluation comparison matrix
-│   └── feature_importance.png                  # Production feature importance visualization
-└── README.md                                   # Project documentation
+│   ├── data_quality_report.json                # Data quality audit report
+│   ├── final_regression_selection.json         # Production regression model selection rationale
+│   ├── final_model_evaluation.md               # Final regression evaluation report
+│   └── model_evaluation.json                   # Comprehensive ML Metrics Hub JSON payload
+└── README.md                                   # Machine Learning documentation
 ```
 
 ---
 
-## 3. Evaluation Summary Tables
+## 3. Evaluation Summary (Next Quiz Score Percentage)
 
-### Regression (Next Quiz Score Percentage)
 | Strategy | Split | Samples | MAE (%) | RMSE (%) | R² |
 | :--- | :--- | ---: | ---: | ---: | ---: |
-| **GroupKFold CV** | 5-fold by user | 571 | 4.890 ± 0.241 | 6.018 ± 0.371 | 0.8243 ± 0.0222 |
-| **Unseen-user** | 25% user holdout | 154 | 4.890 | 6.018 | 0.8243 |
-| **Temporal** | future attempt holdout | 195 | 5.412 | 6.698 | 0.7145 |
-
-### Classification (Pass/Fail Prediction, Target >= 70%)
-| Strategy | Split | Samples | Accuracy | Precision | Recall | F1 | ROC-AUC |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| **GroupKFold CV** | 5-fold by user | 571 | 0.9041 ± 0.0361 | 0.9054 | 0.9310 | 0.9169 | 0.9617 |
-| **Unseen-user** | 25% user holdout | 154 | 0.8896 | 0.9167 | 0.9252 | 0.9209 | 0.9570 |
-| **Temporal** | future attempt holdout | 195 | 0.8359 | 0.9618 | 0.8235 | 0.8873 | 0.9350 |
+| **GroupKFold CV** | 5-fold by user | 636 | 3.80 | 4.96 | 0.861 |
+| **Unseen-user** | 20% user holdout | 128 | 3.13 | 3.89 | 0.912 |
+| **Temporal** | 80/20 chronological | 127 | 3.60 | 4.57 | 0.908 |
 
 ---
 
-## 4. API Endpoints
-- `GET /ml/prediction?difficulty=Medium` — Returns score regression forecast.
-- `GET /ml/pass-prediction?difficulty=Medium` — Returns pass/fail classification probability.
-- Both endpoints require JWT Authentication and enforce strict user data isolation (`current_user.id`).
+## 4. API Endpoint
+- `GET /ml/prediction?difficulty=Medium` — Returns score percentage forecast (`predicted_percentage`, `historical_avg`, `recent_trend`, `attempt_count`).
+- Requires JWT Authentication and enforces strict user data isolation.

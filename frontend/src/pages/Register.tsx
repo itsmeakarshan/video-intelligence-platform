@@ -25,6 +25,7 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../api/api";
+import { useAuth } from "../context/AuthContext";
 
 // Custom Google SVG Icon
 function GoogleIcon() {
@@ -52,6 +53,7 @@ function GoogleIcon() {
 
 export default function Register() {
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -139,20 +141,11 @@ export default function Register() {
                 password
             );
 
-            // Save JWT token
-            localStorage.setItem(
-                "access_token",
-                loginResult.access_token
-            );
-
-            // Save user information
-            localStorage.setItem(
-                "user",
-                JSON.stringify(loginResult.user)
-            );
+            // Save JWT token and user state
+            login(loginResult.access_token, loginResult.user);
 
             // Go directly to dashboard
-            navigate("/");
+            navigate("/", { replace: true });
 
         } catch (error: any) {
             if (error.response?.status === 400) {
@@ -182,8 +175,7 @@ export default function Register() {
                 justifyContent: "center",
                 px: 2,
                 py: 5,
-                background:
-                    "radial-gradient(circle at top, #064e3b 0%, #020617 55%, #020617 100%)"
+                background: "radial-gradient(circle at top, #064e3b 0%, #020617 55%, #020617 100%)"
             }}
         >
             <Paper

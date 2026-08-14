@@ -63,7 +63,8 @@ def _clean_video_ids(video_ids: list | int | str | None) -> list[int] | None:
 
 def index_video(
     video_id: int,
-    db
+    db,
+    progress_callback=None
 ):
     model = get_embedding_model()
 
@@ -148,7 +149,12 @@ def index_video(
     # CHUNK EMBEDDINGS
     # ========================================================
 
-    for start in range(0, len(chunks), batch_size):
+    total_chunk_batches = max(1, (len(chunks) + batch_size - 1) // batch_size)
+    for b_idx, start in enumerate(range(0, len(chunks), batch_size)):
+        if progress_callback:
+            pct = int(80 + (b_idx / total_chunk_batches) * 8)
+            progress_callback(pct, f"Generating chunk embeddings (Batch {b_idx+1}/{total_chunk_batches})...")
+
         batch = chunks[start:start + batch_size]
         texts = [chunk.text for chunk in batch]
 
@@ -183,7 +189,12 @@ def index_video(
     # SEGMENT EMBEDDINGS
     # ========================================================
 
-    for start in range(0, len(segments), batch_size):
+    total_seg_batches = max(1, (len(segments) + batch_size - 1) // batch_size)
+    for b_idx, start in enumerate(range(0, len(segments), batch_size)):
+        if progress_callback:
+            pct = int(88 + (b_idx / total_seg_batches) * 7)
+            progress_callback(pct, f"Generating segment embeddings (Batch {b_idx+1}/{total_seg_batches})...")
+
         batch = segments[start:start + batch_size]
         texts = [segment.text for segment in batch]
 

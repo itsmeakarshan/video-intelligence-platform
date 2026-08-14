@@ -780,9 +780,10 @@ def _validate_quiz_response(answer: str) -> str:
 
     try:
         data = json.loads(cleaned)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         print("=" * 60)
-        print("QUIZ GENERATION VALIDATION FAILED: Invalid JSON output")
+        print("QUIZ GENERATION VALIDATION ERROR: Invalid JSON output")
+        print(f"Error: {exc}")
         print(answer)
         print("=" * 60)
         if any(keyword in answer.lower() for keyword in ["quota", "unavailable", "error", "couldn't"]):
@@ -792,18 +793,76 @@ def _validate_quiz_response(answer: str) -> str:
             detail="The AI generated an incomplete or invalid quiz response. Please try again."
         )
 
-    if (
-        not isinstance(data, dict)
-        or "questions" not in data
-        or not isinstance(data["questions"], list)
-        or len(data["questions"]) == 0
-    ):
+    # Normalize data: Gemini may return a dict {"questions": [...]} or a direct list [...]
+    questions_list = []
+    if isinstance(data, list):
+        questions_list = data
+    elif isinstance(data, dict):
+        if "questions" in data and isinstance(data["questions"], list):
+            questions_list = data["questions"]
+        elif "quiz" in data and isinstance(data["quiz"], list):
+            questions_list = data["quiz"]
+        else:
+            for val in data.values():
+                if isinstance(val, list) and len(val) > 0 and isinstance(val[0], dict):
+                    questions_list = val
+                    break
+
+    if not questions_list or not isinstance(questions_list, list) or len(questions_list) == 0:
+        print("=" * 60)
+        print("QUIZ GENERATION VALIDATION ERROR: Empty or missing questions list")
+        print(f"Data type: {type(data)}")
+        print("=" * 60)
         raise HTTPException(
             status_code=500,
             detail="The AI quiz response structure was invalid. Please try again."
         )
 
-    return json.dumps(data)
+    normalized_questions = []
+    for idx, q in enumerate(questions_list):
+        if not isinstance(q, dict):
+            continue
+
+        q_text = str(q.get("question") or q.get("question_text") or "").strip()
+        options = q.get("options")
+        if not q_text or not isinstance(options, list) or len(options) != 4:
+            continue
+
+        # Extract answer index (0-based integer 0 to 3)
+        raw_ans = q.get("correct_answer") if "correct_answer" in q else q.get("answer")
+        ans_idx = None
+        if isinstance(raw_ans, int) and 0 <= raw_ans <= 3:
+            ans_idx = raw_ans
+        elif isinstance(raw_ans, str) and raw_ans.isdigit():
+            val = int(raw_ans)
+            if 0 <= val <= 3:
+                ans_idx = val
+
+        if ans_idx is None and isinstance(raw_ans, str) and raw_ans in options:
+            ans_idx = options.index(raw_ans)
+
+        if ans_idx is None:
+            ans_idx = 0
+
+        topic = str(q.get("topic") or "General Concept").strip()
+        explanation = str(q.get("explanation") or f"Option {ans_idx + 1} is correct according to the video context.").strip()
+
+        normalized_questions.append({
+            "question": q_text,
+            "options": [str(opt).strip() for opt in options],
+            "correct_answer": ans_idx,
+            "answer": ans_idx,
+            "topic": topic,
+            "explanation": explanation
+        })
+
+    if len(normalized_questions) == 0:
+        raise HTTPException(
+            status_code=500,
+            detail="The AI generated questions with invalid formats. Please try again."
+        )
+
+    return json.dumps({"questions": normalized_questions})
 
 
 def generate_quiz(

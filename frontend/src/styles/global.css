@@ -1,29 +1,58 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   1. DESIGN SYSTEM VARIABLES (TEAL / EMERALD)
+   1. DESIGN SYSTEM VARIABLES (TEAL / EMERALD / LIGHT MODE SUPPORT)
    ========================================================================== */
-:root {
-  --bg-primary: #020617;
+:root,
+[data-theme="dark"] {
+  --bg-primary: #0F172A;
   --bg-surface: rgba(15, 23, 42, 0.75);
+  --bg-card: rgba(30, 41, 59, 0.7);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(20, 184, 166, 0.4);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  
+  --text-muted: #64748b;
+
   --accent-teal: #14b8a6;
   --accent-emerald: #10b981;
+  --accent-cyan: #38bdf8;
   --accent-glow: rgba(20, 184, 166, 0.3);
+  --scrollbar-track: rgba(15, 23, 42, 0.8);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] {
+  --bg-primary: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --border-color: rgba(226, 232, 240, 0.8);
+  --border-hover: rgba(13, 148, 136, 0.5);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+
+  --accent-teal: #0D9488;
+  --accent-emerald: #059669;
+  --accent-cyan: #0284C7;
+  --accent-glow: rgba(13, 148, 136, 0.2);
+  --scrollbar-track: #F1F5F9;
+  --scrollbar-thumb: #CBD5E1;
 }
 
 /* ==========================================================================
    2. GLOBAL RESET & BASE STYLES
    ========================================================================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   min-height: 100vh;
   background-color: var(--bg-primary);
@@ -33,7 +62,14 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-p, h1, h2, h3, h4, h5, h6, label {
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+label {
   color: var(--text-primary);
 }
 
@@ -43,28 +79,32 @@ p, h1, h2, h3, h4, h5, h6, label {
 }
 
 /* ==========================================================================
-   3. MATERIAL UI COMPONENT OVERRIDES & PURPLE ERADICATION
+   3. MATERIAL UI COMPONENT OVERRIDES
    ========================================================================== */
 
-/* Fix outer containers inheriting light theme text */
 .MuiPaper-root {
   color: var(--text-primary) !important;
 }
 
-/* Force dark transparent backgrounds on nested cards */
-.MuiPaper-root .MuiPaper-root,
-.MuiCard-root,
-.MuiBox-root {
-  background-color: transparent;
+[data-theme="light"] .MuiPaper-root {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
 }
 
-/* --- OVERRIDE MUI DEFAULT PURPLE/BLUE --- */
+[data-theme="light"] .MuiCard-root {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+}
+
+/* --- OVERRIDE BUTTONS --- */
 .MuiButton-contained,
 .MuiButton-containedPrimary,
 .MuiFab-primary,
 button[type="submit"] {
   background-color: var(--accent-teal) !important;
-  color: #111 !important; /* Dark text for high contrast on teal */
+  color: #ffffff !important;
   font-weight: 700 !important;
 }
 
@@ -75,14 +115,8 @@ button[type="submit"]:hover {
   box-shadow: 0 0 15px var(--accent-glow) !important;
 }
 
-/* Override Icons (Like the send button icon and chat icons) */
-.MuiSvgIcon-colorPrimary,
-.MuiIconButton-colorPrimary {
-  color: var(--accent-teal) !important;
-}
-
-/* Override Avatars (Like the circular icons in the video list) */
-.MuiAvatar-root, 
+/* Override Avatars */
+.MuiAvatar-root,
 .MuiListItemAvatar-root .MuiAvatar-root {
   background-color: rgba(20, 184, 166, 0.15) !important;
   color: var(--accent-teal) !important;
@@ -93,7 +127,7 @@ button[type="submit"]:hover {
 .MuiListItemButton-root:hover,
 .MuiMenuItem-root:hover,
 .MuiListItem-root:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(20, 184, 166, 0.08) !important;
 }
 
 .MuiListItemButton-root.Mui-selected,
@@ -101,13 +135,6 @@ button[type="submit"]:hover {
 .Mui-selected {
   background-color: rgba(20, 184, 166, 0.15) !important;
   border-left: 3px solid var(--accent-teal) !important;
-}
-
-/* Fix Muted Secondary Text */
-.MuiTypography-colorTextSecondary,
-.MuiTypography-body2,
-small {
-  color: var(--text-secondary) !important;
 }
 
 /* ==========================================================================
@@ -119,14 +146,21 @@ small {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-teal);
+}
+
+/* ==========================================================================
+   5. RECHARTS HOVER CURSOR OVERRIDE (PREVENT WHITE HOVER RECTANGLES)
+   ========================================================================== */
+.recharts-tooltip-cursor {
+  fill: transparent !important;
 }

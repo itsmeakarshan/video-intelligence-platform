@@ -22,6 +22,7 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { Link, useNavigate } from "react-router-dom";
 
 import { loginUser } from "../api/api";
+import { useAuth } from "../context/AuthContext";
 
 
 // Custom Google SVG Icon
@@ -53,8 +54,8 @@ function GoogleIcon() {
 
 
 export default function Login() {
-
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [email, setEmail] = useState("");
 
@@ -153,6 +154,8 @@ export default function Login() {
 
         event.preventDefault();
 
+        if (loading) return;
+
         setError("");
 
         if (
@@ -182,56 +185,32 @@ export default function Login() {
 
 
             // --------------------------------------------------
-            // Save authentication information
+            // Save authentication information & update state
             // --------------------------------------------------
 
-            localStorage.setItem(
-                "access_token",
-                result.access_token
-            );
-
-            localStorage.setItem(
-                "user",
-                JSON.stringify(
-                    result.user
-                )
-            );
+            login(result.access_token, result.user);
 
 
             // --------------------------------------------------
             // Go to dashboard
             // --------------------------------------------------
 
-            navigate("/");
+            navigate("/", { replace: true });
 
         } catch (error: any) {
 
-            if (
-                error.response?.status === 401
-            ) {
-
+            if (error.response?.status === 401) {
                 setError(
+                    error.response?.data?.detail ||
                     "Invalid email or password."
                 );
-
-            } else if (
-                error.response?.status === 422
-            ) {
-
-                setError(
-                    "Please enter a valid email and password."
-                );
-
-            } else if (
-                error.code === "ERR_NETWORK"
-            ) {
-
-                setError(
-                    "Cannot connect to the backend."
-                );
-
+            } else if (error.response?.status === 404) {
+                setError("API endpoint not found. Please check backend server status.");
+            } else if (error.response?.status === 422) {
+                setError("Please enter a valid email and password.");
+            } else if (error.code === "ERR_NETWORK") {
+                setError("Cannot connect to the backend server.");
             } else {
-
                 setError(
                     error.response?.data?.detail ||
                     "Unable to sign in. Please try again."
@@ -254,29 +233,20 @@ export default function Login() {
                 alignItems: "center",
                 justifyContent: "center",
                 px: 2,
-                background:
-                    "radial-gradient(circle at top, #064e3b 0%, #020617 55%, #020617 100%)"
+                background: "radial-gradient(circle at top, #064e3b 0%, #020617 55%, #020617 100%)"
             }}
         >
-
             <Paper
                 elevation={0}
                 sx={{
                     width: "100%",
                     maxWidth: 500,
-                    p: {
-                        xs: 4,
-                        sm: 6
-                    },
+                    p: { xs: 4, sm: 6 },
                     borderRadius: 4,
-                    bgcolor:
-                        "rgba(15,23,42,.88)",
-                    backdropFilter:
-                        "blur(20px)",
-                    border:
-                        "1px solid rgba(20,184,166,.18)",
-                    boxShadow:
-                        "0 25px 60px rgba(0,0,0,.45)",
+                    bgcolor: "rgba(15,23,42,.88)",
+                    backdropFilter: "blur(20px)",
+                    border: "1px solid rgba(20,184,166,.18)",
+                    boxShadow: "0 25px 60px rgba(0,0,0,.45)",
                     position: "relative",
                     overflow: "hidden"
                 }}

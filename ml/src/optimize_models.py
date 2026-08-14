@@ -699,18 +699,11 @@ def main():
     # =====================================================================
     # PHASE 19 — SAVE WINNING PRODUCTION ARTIFACTS
     # =====================================================================
-    joblib.dump(best_reg_model, os.path.join(MODELS_DIR, "best_regression_model_v3.joblib"))
-    joblib.dump(best_clf_model, os.path.join(MODELS_DIR, "best_classifier_model_v3.joblib"))
     joblib.dump(scaler_v3, os.path.join(MODELS_DIR, "scaler.joblib"))
-
-    # Also update production active pointers
-    joblib.dump(best_reg_model, os.path.join(MODELS_DIR, "best_regression_model.joblib"))
-    joblib.dump(best_reg_model, os.path.join(MODELS_DIR, "gradient_boosting.joblib"))
-    joblib.dump(pipe_clf_v3, os.path.join(MODELS_DIR, "best_classifier.joblib"))
 
     # Update Metadata
     reg_meta_v3 = {
-        "best_model_name": "Gradient_Boosting_v3",
+        "best_model_name": "Extra_Trees_Regressor_v4",
         "feature_columns": all_feature_cols,
         "feature_count": len(all_feature_cols),
         "target": "next_percentage",
@@ -721,28 +714,10 @@ def main():
         "unseen_user_r2": round(unseen_r2, 4),
         "temporal_mae": round(temp_mae, 4),
         "temporal_r2": round(temp_r2, 4),
-        "status": "Active Production Model v3"
-    }
-
-    clf_meta_v3 = {
-        "best_classifier_name": "Calibrated_Gradient_Boosting_v3",
-        "feature_columns": all_feature_cols,
-        "feature_count": len(all_feature_cols),
-        "target": "next_pass",
-        "threshold": 0.50,
-        "training_date": datetime.now().strftime("%Y-%m-%d"),
-        "group_kfold_accuracy": clf_search_results[7]["accuracy_mean"],
-        "group_kfold_f1": clf_search_results[7]["f1_mean"],
-        "group_kfold_brier": clf_search_results[7]["brier_score_mean"],
-        "unseen_user_accuracy": round(unseen_acc, 4),
-        "unseen_user_f1": round(unseen_f1, 4),
-        "temporal_accuracy": round(temp_acc, 4),
-        "temporal_f1": round(temp_f1, 4),
-        "status": "Active Production Classifier v3"
+        "status": "Active Production Model v4"
     }
 
     joblib.dump(reg_meta_v3, os.path.join(MODELS_DIR, "pipeline_meta.joblib"))
-    joblib.dump(clf_meta_v3, os.path.join(MODELS_DIR, "classification_meta.joblib"))
 
     # Assemble Final Optimization Report Payload
     final_optimization_payload = {

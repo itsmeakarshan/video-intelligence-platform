@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
     Box,
-    Button,
     Divider,
     IconButton,
     InputBase,
@@ -10,8 +9,6 @@ import {
     Typography
 } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import MicOffRoundedIcon from "@mui/icons-material/MicOffRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
@@ -44,7 +41,7 @@ interface SpeechRecognitionInstance {
 }
 
 interface SpeechRecognitionConstructor {
-    new (): SpeechRecognitionInstance;
+    new(): SpeechRecognitionInstance;
 }
 
 interface SpeechRecognitionWindow extends Window {
@@ -67,13 +64,14 @@ export default function Chat() {
     const [interimText, setInterimText] = useState("");
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
+    const inputRef = useRef<HTMLInputElement>(null);
     const messagesRef = useRef<HTMLDivElement>(null);
     const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
     const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const sessionRef = useRef(0);
     const speechTextRef = useRef("");
     const interimTextRef = useRef("");
-    
+
     const sendRef = useRef<((explicitText?: string) => Promise<void>) | null>(null);
 
     function clearSilenceTimer() {
@@ -126,6 +124,29 @@ export default function Chat() {
     useEffect(() => {
         sendRef.current = send;
     });
+
+    function handleFollowUp() {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }
+
+    async function handleRegenerate(messageId: string) {
+        const index = messages.findIndex(m => m.id === messageId);
+        if (index < 0) return;
+
+        let userPrompt = "";
+        if (index > 0 && messages[index - 1].role === "user") {
+            userPrompt = messages[index - 1].text;
+        } else {
+            const lastUser = [...messages].reverse().find(m => m.role === "user");
+            if (lastUser) userPrompt = lastUser.text;
+        }
+
+        if (userPrompt) {
+            await send(userPrompt);
+        }
+    }
 
     function startListening() {
         const speechWindow = window as SpeechRecognitionWindow;
@@ -276,7 +297,7 @@ export default function Chat() {
 
     async function send(explicitText?: string) {
         const question = (explicitText !== undefined ? explicitText : input).trim();
-        
+
         if (!question || loading) return;
 
         if (listening && explicitText === undefined) {
@@ -314,7 +335,8 @@ export default function Chat() {
                     id: crypto.randomUUID(),
                     role: "assistant",
                     text: result.answer,
-                    sources: result.sources ?? []
+                    sources: result.sources ?? [],
+                    isError: false
                 }
             ]);
         } catch (error: any) {
@@ -324,7 +346,8 @@ export default function Chat() {
                     id: crypto.randomUUID(),
                     role: "assistant",
                     text: error?.message ?? "Unable to contact the AI.",
-                    sources: []
+                    sources: [],
+                    isError: true
                 }
             ]);
         } finally {
@@ -402,35 +425,16 @@ export default function Chat() {
                 {messages.map(message => (
                     <Box key={message.id} sx={{ display: "flex", flexDirection: "column" }}>
                         <Message
+                            id={message.id}
                             role={message.role}
                             text={message.text}
                             sources={message.sources}
+                            isError={message.isError}
+                            onRegenerate={message.role === "assistant" ? () => handleRegenerate(message.id) : undefined}
+                            onListen={message.role === "assistant" ? () => speakAnswer(message.text, message.id) : undefined}
+                            isSpeaking={speakingMessageId === message.id}
+                            onFollowUp={message.role === "assistant" ? handleFollowUp : undefined}
                         />
-
-                        {message.role === "assistant" && (
-                            <Box sx={{ mt: -1.5, mb: 2, ml: 4.5 }}>
-                                <Button
-                                    size="small"
-                                    onClick={() => speakAnswer(message.text, message.id)}
-                                    startIcon={
-                                        speakingMessageId === message.id
-                                            ? <StopRoundedIcon fontSize="small" />
-                                            : <VolumeUpRoundedIcon fontSize="small" />
-                                    }
-                                    sx={{
-                                        color: speakingMessageId === message.id ? "#f87171" : "#94a3b8",
-                                        borderRadius: 2,
-                                        px: 1,
-                                        py: 0.2,
-                                        textTransform: "none",
-                                        fontSize: "0.75rem",
-                                        "&:hover": { color: "#38bdf8", bgcolor: "rgba(255,255,255,0.05)" }
-                                    }}
-                                >
-                                    {speakingMessageId === message.id ? "Stop Speaking" : "Listen"}
-                                </Button>
-                            </Box>
-                        )}
                     </Box>
                 ))}
 
@@ -471,6 +475,7 @@ export default function Chat() {
                     }}
                 >
                     <InputBase
+                        inputRef={inputRef}
                         fullWidth
                         placeholder={listening ? "Listening..." : "Ask a question..."}
                         value={input}

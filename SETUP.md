@@ -1,10 +1,59 @@
-# ⚙️ Setup Guide
+# 🎬 Demo Video Content
 
-Follow the steps below to set up and run the Video Intelligence Platform on your local machine.
+⚡ Quick AI Verification / Demo User
+
+For quick verification of the AI pipeline, the demo user user@ex.com has already been processed against the first 10 videos of the referenced playlis :
+
+https://www.youtube.com/playlist?list=PL4316FC411AD077AA
+
+The first video is already uploaded and stored in the database, allowing the AI functionality to be checked quickly without processing the full playlist again.
+
+This provides a fast way to verify:
+
+⏱️ Jump to Timestamp functionality
+🤖 AI-generated responses, Summary, Notes, Quiz and Next Score Prediction.
+
+login:
+
+Email: user@ex.com
+Password: password
+
+All original videos, audio, educational material, and associated content belong to their respective copyright owners.
+
+This project does not claim ownership of the original video content.
+
+If you use your own videos, make sure you have the appropriate rights or permission to process and use them.
+
+
+# ⚙️ Setup & Deployment Guide
+
+Follow the steps below to set up and run the Video Intelligence Platform.
 
 ---
 
-# System Requirements
+## 🐳 Option A: Quick Docker Deployment (Recommended)
+
+Run the complete multi-container stack with a single command:
+
+```bash
+# 1. Copy environment variable template
+cp backend/.env.example backend/.env
+
+# 2. Add your GEMINI_API_KEY and JWT_SECRET_KEY to backend/.env
+
+# 3. Build and launch Docker containers
+docker-compose up --build
+```
+
+This provisions:
+- **`vip-backend`**: FastAPI backend service on port `8000` with Python 3.11, ffmpeg, PyTorch, Sentence Transformers, and ExtraTreesRegressor_v4.0.
+- **`vip-frontend`**: Production React SPA served via Nginx on port `3000` (reverse-proxying `/api/`, `/ml/`, `/chat/`, `/auth/` to backend).
+
+---
+
+## 💻 Option B: Manual Local Setup (Non-Docker)
+
+### System Requirements
 
 We will install the following software versions:
 
@@ -207,80 +256,7 @@ Do not share your API key or commit it to GitHub.
 
 ---
 
-## 🔐 JWT Secret Key
-
-The application uses **JSON Web Tokens (JWT)** for authentication.
-
-The JWT secret key is used by the backend to securely sign and verify authentication tokens.
-
-Find these lines in your `.env` file:
-
-```env
-JWT_SECRET_KEY=your_jwt_secret_key_here
-JWT_ALGORITHM=HS256
-```
-
-You need to generate your own secret key.
-
-### macOS / Linux
-
-Run:
-
-```bash
-openssl rand -hex 32
-```
-
-This will generate a random secret similar to:
-
-```text
-8f4c2a7b9d1e6fxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Copy the generated value.
-
-### Windows
-
-If OpenSSL is available, run:
-
-```powershell
-openssl rand -hex 32
-```
-
-If OpenSSL is not available, PowerShell can generate a random value:
-
-```powershell
-[Convert]::ToHexString((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
-```
-
-Copy the generated value.
-
-### Add the secret to `.env`
-
-Replace:
-
-```env
-JWT_SECRET_KEY=your_jwt_secret_key_here
-```
-
-with your generated secret:
-
-```env
-JWT_SECRET_KEY=YOUR_GENERATED_SECRET
-JWT_ALGORITHM=HS256
-```
-
-For example:
-
-```env
-JWT_SECRET_KEY=8f4c2a7b9d1e6fxxxxxxxxxxxxxxxxxxxxxxxx
-JWT_ALGORITHM=HS256
-```
-
-Do **not** use the example value above. Generate your own secret.
-
----
-
-# Step 6 - Start the Backend
+# Step 7 - Start the Backend
 
 Make sure your virtual environment is activated.
 
@@ -304,7 +280,7 @@ http://127.0.0.1:8000/docs
 
 ---
 
-# Step 7 - Frontend Setup
+# Step 8 - Frontend Setup
 
 Open a **new terminal**.
 
@@ -334,7 +310,7 @@ http://localhost:5173
 
 ---
 
-# Step 8 - Using the Application
+# Step 9 - Using the Application
 
 Once both the backend and frontend are running, open:
 
@@ -420,32 +396,17 @@ The repository contains **pre-processed demonstration content**.
 
 This includes:
 
-- Pre-processed demo videos
+- Pre-processed demo video
 - SQLite database
 - ChromaDB vector database
 - Processed transcript data
 
 This allows you to test the AI features without having to process the demonstration videos yourself.
 
-Simply configure your Gemini API key and JWT secret, start the backend and frontend, and open the application.
+Simply configure your Gemini API key, start the backend and frontend, and open the application.
 
 You can also upload and process your own videos.
 
----
-
-# 🎬 Demo Video Content
-
-The current demonstration uses educational videos from the following Computer Basics playlist:
-
-https://www.youtube.com/playlist?list=PL4316FC411AD077AA
-
-The videos are used as demonstration content for the platform.
-
-All original videos, audio, educational material, and associated content belong to their respective copyright owners.
-
-This project does not claim ownership of the original video content.
-
-If you use your own videos, make sure you have the appropriate rights or permission to process and use them.
 
 ---
 

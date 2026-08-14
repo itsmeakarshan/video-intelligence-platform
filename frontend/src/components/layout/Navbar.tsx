@@ -1,52 +1,29 @@
 import { useState } from "react";
 import {
-    AppBar,
-    Avatar,
-    Box,
-    Button,
-    Container,
-    Divider,
-    Menu,
-    MenuItem,
-    Stack,
-    Toolbar,
-    Typography,
-    Chip,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions
+    AppBar, Avatar, Box, Button, Container, Divider, Menu, MenuItem, Stack, Toolbar, Typography, Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
 import AutoGraphIcon from "@mui/icons-material/AutoGraph";
 import ScienceIcon from "@mui/icons-material/Science";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
-import QuizIcon from "@mui/icons-material/Quiz";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate, useLocation } from "react-router-dom";
+
+import { useAuth } from "../../context/AuthContext";
 
 export default function Navbar() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user: authUser, logout } = useAuth();
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
 
-    // Load logged in user from localStorage
-    const userStr = localStorage.getItem("user");
-    let user = { name: "Learner", email: "learner@example.com" };
-    if (userStr) {
-        try {
-            user = JSON.parse(userStr);
-        } catch (e) {
-            console.error("Failed to parse user from localStorage", e);
-        }
-    }
+    const user = authUser || { name: "Learner", email: "learner@example.com" };
 
     const getInitials = (name: string) => {
         if (!name) return "U";
@@ -67,17 +44,15 @@ export default function Navbar() {
 
     const handleLogout = () => {
         handleMenuClose();
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("user");
-        navigate("/login");
+        logout();
+        navigate("/login", { replace: true });
     };
 
     const navItems = [
-        { label: "Dashboard", path: "/", icon: <DashboardIcon sx={{ fontSize: 18 }} /> },
-        { label: "Summary", path: "/summary", icon: <DescriptionRoundedIcon sx={{ fontSize: 18 }} /> },
-        { label: "Notes", path: "/notes", icon: <NotesRoundedIcon sx={{ fontSize: 18 }} /> },
-        { label: "Quizzes", path: "/quiz", icon: <QuizIcon sx={{ fontSize: 18 }} /> },
-        { label: "ML Metrics Hub", path: "/ml-performance", icon: <ScienceIcon sx={{ fontSize: 18 }} /> }
+        { label: "Dashboard", path: "/", icon: <DashboardIcon sx={{ fontSize: 20 }} /> },
+        { label: "Generate Summary", path: "/summary", icon: <DescriptionRoundedIcon sx={{ fontSize: 20 }} /> },
+        { label: "Generate Notes", path: "/notes", icon: <NotesRoundedIcon sx={{ fontSize: 20 }} /> },
+        { label: "ML Metrics Hub", path: "/ml-performance", icon: <ScienceIcon sx={{ fontSize: 20 }} /> }
     ];
 
     const isActive = (path: string) => {
@@ -89,114 +64,92 @@ export default function Navbar() {
         <AppBar
             position="sticky"
             sx={{
-                bgcolor: "rgba(15, 23, 42, 0.9)",
+                bgcolor: "rgba(15, 23, 42, 0.92)",
                 backdropFilter: "blur(16px)",
-                borderBottom: "1px solid rgba(20, 184, 166, 0.2)",
+                borderBottom: "1px solid rgba(20, 184, 166, 0.25)",
                 boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
                 zIndex: (theme) => theme.zIndex.drawer + 1
             }}
         >
-            <Container maxWidth="xl">
-                <Toolbar disableGutters sx={{ justifyContent: "space-between", py: 1 }}>
-                    {/* Brand Logo & Title */}
-                    <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={1.5}
-                        onClick={() => navigate("/")}
-                        sx={{ cursor: "pointer", select: "none" }}
-                    >
-                        <Box
-                            sx={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 2.5,
-                                background: "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 0 15px rgba(20, 184, 166, 0.4)"
-                            }}
+            <Container maxWidth={false} sx={{ maxWidth: "2560px", width: { xs: "96%", md: "88%", lg: "80%" }, mx: "auto", px: { xs: 2, sm: 3, md: 4 } }}>
+                <Toolbar disableGutters sx={{ justifyContent: "space-between", py: 1.8 }}>
+                    {/* Left Section: Brand Logo & Navigation Links */}
+                    <Stack direction="row" alignItems="center" spacing={{ xs: 2, lg: 5 }}>
+                        {/* Brand Logo & Title */}
+                        <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1.8}
+                            onClick={() => navigate("/")}
+                            sx={{ cursor: "pointer", select: "none" }}
                         >
-                            <AutoGraphIcon sx={{ color: "#F8FAFC", fontSize: 24 }} />
-                        </Box>
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 800,
-                                        color: "#F8FAFC",
-                                        letterSpacing: "-0.5px",
-                                        fontSize: { xs: 16, sm: 19 }
-                                    }}
-                                >
-                                    VIDEO INTELLIGENCE
-                                </Typography>
-                                <Chip
-                                    label="ML v4.0"
-                                    size="small"
-                                    sx={{
-                                        bgcolor: "rgba(20, 184, 166, 0.15)",
-                                        color: "#14b8a6",
-                                        fontWeight: 700,
-                                        fontSize: 10,
-                                        height: 20
-                                    }}
-                                />
-                            </Stack>
-                            <Typography sx={{ color: "#94A3B8", fontSize: 11, display: { xs: "none", sm: "block" } }}>
-                                Adaptive Learning & Performance Forecasting Platform
-                            </Typography>
-                        </Box>
-                    </Stack>
-
-                    {/* Navigation Links (Desktop) */}
-                    <Stack
-                        direction="row"
-                        spacing={1}
-                        sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}
-                    >
-                        {navItems.map((item) => {
-                            const active = isActive(item.path);
-                            return (
-                                <Button
-                                    key={item.label}
-                                    startIcon={item.icon}
-                                    onClick={() => {
-                                        if (item.path.includes("#")) {
-                                            if (location.pathname !== "/") {
-                                                navigate("/");
-                                                setTimeout(() => {
-                                                    const el = document.getElementById("recommendations-section");
-                                                    el?.scrollIntoView({ behavior: "smooth" });
-                                                }, 300);
-                                            } else {
-                                                const el = document.getElementById("recommendations-section");
-                                                el?.scrollIntoView({ behavior: "smooth" });
-                                            }
-                                        } else {
-                                            navigate(item.path);
-                                        }
-                                    }}
-                                    sx={{
-                                        color: active ? "#14B8A6" : "#94A3B8",
-                                        bgcolor: active ? "rgba(20, 184, 166, 0.12)" : "transparent",
-                                        fontWeight: active ? 700 : 500,
-                                        px: 2,
-                                        py: 1,
-                                        borderRadius: 2,
-                                        transition: "all 0.2s ease",
-                                        "&:hover": {
+                            <Box
+                                sx={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 2.5,
+                                    background: "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    boxShadow: "0 0 18px rgba(20, 184, 166, 0.45)"
+                                }}
+                            >
+                                <AutoGraphIcon sx={{ color: "#F8FAFC", fontSize: 26 }} />
+                            </Box>
+                            <Box>
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            fontWeight: 800,
                                             color: "#F8FAFC",
-                                            bgcolor: "rgba(255, 255, 255, 0.06)"
-                                        }
-                                    }}
-                                >
-                                    {item.label}
-                                </Button>
-                            );
-                        })}
+                                            letterSpacing: "-0.5px",
+                                            fontSize: { xs: 17, sm: 20 }
+                                        }}
+                                    >
+                                        VIDEO INTELLIGENCE
+                                    </Typography>
+                                </Stack>
+                                <Typography sx={{ color: "#94A3B8", fontSize: 12, display: { xs: "none", sm: "block" } }}>
+                                    Adaptive Learning & Performance Forecasting Platform
+                                </Typography>
+                            </Box>
+                        </Stack>
+
+                        {/* Navigation Links (Desktop) */}
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}
+                        >
+                            {navItems.map((item) => {
+                                const active = isActive(item.path);
+                                return (
+                                    <Button
+                                        key={item.label}
+                                        startIcon={item.icon}
+                                        onClick={() => navigate(item.path)}
+                                        sx={{
+                                            color: active ? "#14B8A6" : "#94A3B8",
+                                            bgcolor: active ? "rgba(20, 184, 166, 0.12)" : "transparent",
+                                            fontWeight: active ? 700 : 600,
+                                            fontSize: 15,
+                                            px: 2.2,
+                                            py: 1.1,
+                                            borderRadius: 2,
+                                            transition: "all 0.2s ease",
+                                            "&:hover": {
+                                                color: "#F8FAFC",
+                                                bgcolor: "rgba(255, 255, 255, 0.06)"
+                                            }
+                                        }}
+                                    >
+                                        {item.label}
+                                    </Button>
+                                );
+                            })}
+                        </Stack>
                     </Stack>
 
                     {/* User Profile Avatar & Dropdown */}
@@ -205,8 +158,8 @@ export default function Navbar() {
                             onClick={handleMenuOpen}
                             endIcon={<KeyboardArrowDownIcon sx={{ color: "#94A3B8", transition: "transform 0.2s", transform: anchorEl ? "rotate(180deg)" : "none" }} />}
                             sx={{
-                                p: 0.5,
-                                pr: 1.5,
+                                p: 0.8,
+                                pr: 1.8,
                                 borderRadius: 3,
                                 bgcolor: "rgba(30, 41, 59, 0.7)",
                                 border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -217,25 +170,25 @@ export default function Navbar() {
                                 }
                             }}
                         >
-                            <Stack direction="row" alignItems="center" spacing={1.2}>
+                            <Stack direction="row" alignItems="center" spacing={1.4}>
                                 <Avatar
                                     sx={{
-                                        width: 34,
-                                        height: 34,
+                                        width: 38,
+                                        height: 38,
                                         bgcolor: "#0f766e",
                                         color: "#F8FAFC",
                                         fontWeight: 700,
-                                        fontSize: 14,
-                                        border: "1.5px solid #14b8a6"
+                                        fontSize: 15,
+                                        border: "2px solid #14b8a6"
                                     }}
                                 >
                                     {getInitials(user.name)}
                                 </Avatar>
                                 <Box sx={{ textAlign: "left", display: { xs: "none", sm: "block" } }}>
-                                    <Typography sx={{ color: "#F8FAFC", fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>
+                                    <Typography sx={{ color: "#F8FAFC", fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>
                                         {user.name}
                                     </Typography>
-                                    <Typography sx={{ color: "#94A3B8", fontSize: 10 }}>
+                                    <Typography sx={{ color: "#94A3B8", fontSize: 11 }}>
                                         Learner Account
                                     </Typography>
                                 </Box>
@@ -266,49 +219,24 @@ export default function Navbar() {
                                 <Typography sx={{ fontWeight: 700, fontSize: 14, color: "#F8FAFC" }}>
                                     {user.name}
                                 </Typography>
-                                <Typography sx={{ color: "#94A3B8", fontSize: 12, wordBreak: "break-all" }}>
+                                <Typography sx={{ color: "#94A3B8", fontSize: 12 }}>
                                     {user.email}
                                 </Typography>
-                                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 1 }}>
-                                    <CheckCircleIcon sx={{ fontSize: 14, color: "#10b981" }} />
-                                    <Typography sx={{ color: "#10b981", fontSize: 11, fontWeight: 600 }}>
-                                        Active Learning Session
-                                    </Typography>
-                                </Stack>
                             </Box>
 
-                            <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", my: 1 }} />
+                            <Divider sx={{ my: 1, borderColor: "rgba(255, 255, 255, 0.08)" }} />
 
                             <MenuItem
                                 onClick={() => {
                                     handleMenuClose();
                                     navigate("/profile");
                                 }}
-                                sx={{
-                                    borderRadius: 2,
-                                    py: 1,
-                                    color: "#F8FAFC",
-                                    "&:hover": { bgcolor: "rgba(20, 184, 166, 0.12)", color: "#14b8a6" }
-                                }}
+                                sx={{ borderRadius: 2, py: 1, gap: 1.5 }}
                             >
-                                <PersonIcon sx={{ mr: 1.5, fontSize: 18, color: "#14b8a6" }} />
-                                Profile & Analytics
-                            </MenuItem>
-
-                            <MenuItem
-                                onClick={() => {
-                                    handleMenuClose();
-                                    navigate("/ml-performance");
-                                }}
-                                sx={{
-                                    borderRadius: 2,
-                                    py: 1,
-                                    color: "#F8FAFC",
-                                    "&:hover": { bgcolor: "rgba(20, 184, 166, 0.12)", color: "#14b8a6" }
-                                }}
-                            >
-                                <ScienceIcon sx={{ mr: 1.5, fontSize: 18, color: "#38bdf8" }} />
-                                ML Model Metrics Hub
+                                <PersonIcon sx={{ fontSize: 18, color: "#38bdf8" }} />
+                                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                                    My Learning Profile
+                                </Typography>
                             </MenuItem>
 
                             <MenuItem
@@ -316,37 +244,37 @@ export default function Navbar() {
                                     handleMenuClose();
                                     setSettingsOpen(true);
                                 }}
-                                sx={{
-                                    borderRadius: 2,
-                                    py: 1,
-                                    color: "#F8FAFC",
-                                    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.08)" }
-                                }}
+                                sx={{ borderRadius: 2, py: 1, gap: 1.5 }}
                             >
-                                <SettingsIcon sx={{ mr: 1.5, fontSize: 18, color: "#94a3b8" }} />
-                                Settings
+                                <SettingsIcon sx={{ fontSize: 18, color: "#14b8a6" }} />
+                                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                                    System Settings & Audit
+                                </Typography>
                             </MenuItem>
 
-                            <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", my: 1 }} />
+                            <Divider sx={{ my: 1, borderColor: "rgba(255, 255, 255, 0.08)" }} />
 
                             <MenuItem
                                 onClick={handleLogout}
                                 sx={{
                                     borderRadius: 2,
                                     py: 1,
+                                    gap: 1.5,
                                     color: "#ef4444",
-                                    "&:hover": { bgcolor: "rgba(239, 68, 68, 0.12)" }
+                                    "&:hover": { bgcolor: "rgba(239, 68, 68, 0.1)" }
                                 }}
                             >
-                                <LogoutIcon sx={{ mr: 1.5, fontSize: 18 }} />
-                                Sign Out
+                                <LogoutIcon sx={{ fontSize: 18 }} />
+                                <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+                                    Log Out
+                                </Typography>
                             </MenuItem>
                         </Menu>
                     </Stack>
                 </Toolbar>
             </Container>
 
-            {/* Settings Modal */}
+            {/* System Settings Modal */}
             <Dialog
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
@@ -354,30 +282,44 @@ export default function Navbar() {
                     sx: {
                         bgcolor: "#0F172A",
                         color: "#F8FAFC",
-                        borderRadius: 3,
+                        borderRadius: 4,
+                        p: 1,
                         border: "1px solid rgba(20, 184, 166, 0.3)",
-                        p: 1
+                        maxWidth: 500,
+                        width: "100%"
                     }
                 }}
             >
-                <DialogTitle sx={{ fontWeight: 800 }}>Platform Settings</DialogTitle>
-                <DialogContent>
-                    <Typography sx={{ color: "#94A3B8", fontSize: 14, mb: 2 }}>
-                        Configured Machine Learning & Platform Preferences:
-                    </Typography>
-                    <Stack spacing={1.5}>
-                        <Box sx={{ p: 1.5, bgcolor: "rgba(30, 41, 59, 0.6)", borderRadius: 2, border: "1px solid rgba(255,255,255,0.08)" }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: 13, color: "#14b8a6" }}>ML Prediction Pipeline</Typography>
-                            <Typography sx={{ fontSize: 12, color: "#94a3b8" }}>Extra Trees Regressor_v4.0 (38 Domain Features)</Typography>
+                <DialogTitle sx={{ fontWeight: 800, color: "#F8FAFC" }}>
+                    System Architecture & Model Info
+                </DialogTitle>
+                <DialogContent dividers sx={{ borderColor: "rgba(255, 255, 255, 0.08)" }}>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        <Box>
+                            <Typography sx={{ color: "#14b8a6", fontWeight: 700, fontSize: 12 }}>
+                                PRODUCTION REGRESSOR
+                            </Typography>
+                            <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
+                                Extra Trees Regressor_v4.0 (38 Features)
+                            </Typography>
                         </Box>
-                        <Box sx={{ p: 1.5, bgcolor: "rgba(30, 41, 59, 0.6)", borderRadius: 2, border: "1px solid rgba(255,255,255,0.08)" }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: 13, color: "#38bdf8" }}>Pass Classifier Threshold</Typography>
-                            <Typography sx={{ fontSize: 12, color: "#94a3b8" }}>70.0% Pass Threshold (High: &ge;70%, Moderate: 45%-69.9%, Unlikely: &lt;45%)</Typography>
+                        <Box>
+                            <Typography sx={{ color: "#10b981", fontWeight: 700, fontSize: 12 }}>
+                                LEAK-FREE ISOLATION CONTRACT
+                            </Typography>
+                            <Typography sx={{ fontSize: 13, color: "#94a3b8" }}>
+                                Users 1 and 2 excluded from training set. 100% temporal isolation verified.
+                            </Typography>
                         </Box>
                     </Stack>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setSettingsOpen(false)} sx={{ color: "#14b8a6" }}>Close</Button>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button
+                        onClick={() => setSettingsOpen(false)}
+                        sx={{ color: "#14b8a6", fontWeight: 700 }}
+                    >
+                        Close
+                    </Button>
                 </DialogActions>
             </Dialog>
         </AppBar>

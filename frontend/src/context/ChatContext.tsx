@@ -9,6 +9,7 @@ export interface ChatMessage {
     role: "user" | "assistant";
     text: string;
     sources?: any;
+    isError?: boolean;
 }
 
 interface ChatContextType {

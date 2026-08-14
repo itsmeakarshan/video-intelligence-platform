@@ -2,8 +2,7 @@
 ML Prediction Service for Video Intelligence Platform.
 
 Handles in-memory cached model loading and prediction generation for:
-1. Next Quiz Score Regression (GradientBoostingRegressor)
-2. Next Quiz Pass/Fail Classification (Logistic Regression)
+1. Next Quiz Score Regression (ExtraTreesRegressor_v4.0)
 
 Ensures zero target leakage, strict multi-user data isolation, and robust error handling.
 """
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def generate_next_quiz_prediction(user_id: int, target_difficulty: str, db: Session) -> dict:
     """
-    Generates next-quiz performance and pass predictions for user_id.
+    Generates next-quiz performance forecast for user_id.
     Includes all committed attempts for user_id in the database.
     """
     try:
@@ -60,7 +59,6 @@ def generate_next_quiz_prediction(user_id: int, target_difficulty: str, db: Sess
         predictor: ScorePredictor = get_predictor()
 
         reg_res = predictor.predict_from_user_history(attempts_data, target_difficulty=target_difficulty)
-        clf_res = predictor.predict_pass_from_user_history(attempts_data, target_difficulty=target_difficulty)
 
         if not reg_res.get("has_sufficient_history"):
             return {
@@ -72,18 +70,12 @@ def generate_next_quiz_prediction(user_id: int, target_difficulty: str, db: Sess
         pred_score = float(reg_res["predicted_percentage"])
         pred_score_clipped = round(max(0.0, min(100.0, pred_score)), 1)
 
-        pass_prob = float(clf_res["probability_of_pass"])
-        pass_prob_clipped = round(max(0.0, min(1.0, pass_prob)), 2)
-
         return {
             "available": True,
             "predicted_score": pred_score_clipped,
-            "pass_probability": pass_prob_clipped,
-            "pass_threshold": 70,
             "attempt_count": len(attempts_data),
             "target_difficulty": target_difficulty,
-            "regression_model": predictor.model_version,
-            "classification_model": predictor.clf_version
+            "regression_model": predictor.model_version
         }
 
     except Exception as e:

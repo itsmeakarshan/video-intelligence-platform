@@ -1,0 +1,33 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CPU-only PyTorch binaries to prevent downloading 8.5 GB CUDA GPU drivers
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Copy and install Python dependencies
+COPY backend/requirements.txt /app/backend/requirements.txt
+COPY ml/requirements.txt /app/ml/requirements.txt
+
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt -r /app/ml/requirements.txt
+
+# Copy source code and ML artifacts
+COPY ml /app/ml
+COPY backend /app/backend
+
+WORKDIR /app/backend
+
+# Create runtime upload/audio directories
+RUN mkdir -p uploads temp_audio chroma_db outputs
+
+EXPOSE 8000
+
+ENV PYTHONPATH=/app
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
