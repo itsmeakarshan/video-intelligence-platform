@@ -25,7 +25,7 @@ This project does not claim ownership of the original video content.
 If you use your own videos, make sure you have the appropriate rights or permission to process and use them.
 
 
-# ⚙️ Setup & Deployment Guide
+# ⚙️ Setup
 
 Follow the steps below to set up and run the Video Intelligence Platform.
 
@@ -47,6 +47,10 @@ cp backend/.env.example backend/.env
 
 
 # 2. Add your GEMINI_API_KEY to backend/.env
+
+Open `backend/.env` and add your Gemini API key:
+
+GEMINI_API_KEY=your_api_key_here
 
 # 3. Build and launch Docker containers
 docker-compose up --build
