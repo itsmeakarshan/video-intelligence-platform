@@ -13,10 +13,12 @@ services:
       - backend/.env
     environment:
       - PORT=8000
+      - DATABASE_PATH=db/video_intelligence.db
     volumes:
       - backend_uploads:/app/backend/uploads
       - backend_audio:/app/backend/temp_audio
       - backend_chroma:/app/backend/chroma_db
+      - backend_db:/app/backend/db
 
   frontend:
     build:
@@ -33,3 +35,5 @@ volumes:
   backend_uploads:
   backend_audio:
   backend_chroma:
+  backend_db:
+

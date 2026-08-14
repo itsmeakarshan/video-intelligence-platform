@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import { VideoProvider } from "./context/VideoContext";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -73,79 +74,82 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
     return (
-        <AuthProvider>
-            <BrowserRouter>
-                <VideoProvider>
-                    <ChatProvider>
-                        <Routes>
-                            <Route
-                                path="/login"
-                                element={
-                                    <PublicRoute>
-                                        <Login />
-                                    </PublicRoute>
-                                }
-                            />
-                            <Route
-                                path="/register"
-                                element={
-                                    <PublicRoute>
-                                        <Register />
-                                    </PublicRoute>
-                                }
-                            />
-                            <Route
-                                path="/"
-                                element={
-                                    <ProtectedRoute>
-                                        <Dashboard />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/profile"
-                                element={
-                                    <ProtectedRoute>
-                                        <Profile />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/summary"
-                                element={
-                                    <ProtectedRoute>
-                                        <Summary />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/notes"
-                                element={
-                                    <ProtectedRoute>
-                                        <Notes />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/quiz"
-                                element={
-                                    <ProtectedRoute>
-                                        <Quiz />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/ml-performance"
-                                element={
-                                    <ProtectedRoute>
-                                        <MLPerformance />
-                                    </ProtectedRoute>
-                                }
-                            />
-                        </Routes>
-                    </ChatProvider>
-                </VideoProvider>
-            </BrowserRouter>
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <BrowserRouter>
+                    <VideoProvider>
+                        <ChatProvider>
+                            <Routes>
+                                <Route
+                                    path="/login"
+                                    element={
+                                        <PublicRoute>
+                                            <Login />
+                                        </PublicRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/register"
+                                    element={
+                                        <PublicRoute>
+                                            <Register />
+                                        </PublicRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/"
+                                    element={
+                                        <ProtectedRoute>
+                                            <Dashboard />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/profile"
+                                    element={
+                                        <ProtectedRoute>
+                                            <Profile />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/summary"
+                                    element={
+                                        <ProtectedRoute>
+                                            <Summary />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/notes"
+                                    element={
+                                        <ProtectedRoute>
+                                            <Notes />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/quiz"
+                                    element={
+                                        <ProtectedRoute>
+                                            <Quiz />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/ml-performance"
+                                    element={
+                                        <ProtectedRoute>
+                                            <MLPerformance />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                            </Routes>
+                        </ChatProvider>
+                    </VideoProvider>
+                </BrowserRouter>
+            </AuthProvider>
+        </ErrorBoundary>
     );
 }
+

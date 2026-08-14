@@ -24,7 +24,7 @@ COPY backend /app/backend
 WORKDIR /app/backend
 
 # Create runtime upload/audio directories
-RUN mkdir -p uploads temp_audio chroma_db outputs
+RUN mkdir -p uploads temp_audio chroma_db outputs db
 
 EXPOSE 8000
 

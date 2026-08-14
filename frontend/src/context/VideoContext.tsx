@@ -4,6 +4,8 @@ import {
     useRef,
     useState
 } from "react";
+import { API_URL } from "../utils/constants";
+
 
 export interface VideoItem {
     id: number;
@@ -76,8 +78,9 @@ export function VideoProvider({
             video.original_filename
         );
         setVideoUrl(
-            `http://127.0.0.1:8000/videos/${video.id}/file?access_token=${encodeURIComponent(localStorage.getItem("access_token") || "")}`
+            `${API_URL}/videos/${video.id}/file?access_token=${encodeURIComponent(localStorage.getItem("access_token") || "")}`
         );
+
     }
 
     function jumpToVideo(

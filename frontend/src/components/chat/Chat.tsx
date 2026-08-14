@@ -17,6 +17,8 @@ import { useChat } from "../../context/ChatContext";
 import { askAI } from "../../services/chatService";
 import TypingIndicator from "./TypingIndicator";
 import Message from "./Message";
+import { generateUUID } from "../../utils/uuid";
+
 
 interface SpeechRecognitionEventLike extends Event {
     results: SpeechRecognitionResultList;
@@ -310,7 +312,7 @@ export default function Chat() {
         setMessages(prev => [
             ...prev,
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 role: "user",
                 text: question
             }
@@ -332,7 +334,7 @@ export default function Chat() {
             setMessages(prev => [
                 ...prev,
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     role: "assistant",
                     text: result.answer,
                     sources: result.sources ?? [],
@@ -343,7 +345,7 @@ export default function Chat() {
             setMessages(prev => [
                 ...prev,
                 {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     role: "assistant",
                     text: error?.message ?? "Unable to contact the AI.",
                     sources: [],

@@ -1,4 +1,18 @@
-export const API_URL = "http://127.0.0.1:8000";
+const resolveApiUrl = (): string => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL as string;
+    }
+    if (typeof window !== "undefined") {
+        if (window.location.port === "5173") {
+            return "http://localhost:8000";
+        }
+        return `${window.location.origin}/api`;
+    }
+    return "http://localhost:8000";
+};
+
+export const API_URL = resolveApiUrl();
+
 
 export const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
 

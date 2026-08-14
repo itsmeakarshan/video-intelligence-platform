@@ -1,4 +1,6 @@
 import { api } from "../api/api";
+import { API_URL } from "../utils/constants";
+
 
 export async function askAI(
     question: string,
@@ -135,8 +137,9 @@ export async function askAIStream(
 ) {
 
     const response = await fetch(
-        "http://127.0.0.1:8000/chat/stream",
+        `${API_URL}/chat/stream`,
         {
+
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
