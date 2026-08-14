@@ -31,23 +31,26 @@ Follow the steps below to set up and run the Video Intelligence Platform.
 
 ---
 
+
+
 ## 🐳 Option A: Quick Docker Deployment (Recommended)
 
 Run the complete multi-container stack with a single command:
 
 ```bash
-# 1. Copy environment variable template
+# 1. Clone Git & Copy environment variable template
+git clone https://github.com/itsmeakarshan/video-intelligence-platform.git
+
+cd video-intelligence-platform
+
 cp backend/.env.example backend/.env
 
-# 2. Add your GEMINI_API_KEY and JWT_SECRET_KEY to backend/.env
+
+# 2. Add your GEMINI_API_KEY to backend/.env
 
 # 3. Build and launch Docker containers
 docker-compose up --build
 ```
-
-This provisions:
-- **`vip-backend`**: FastAPI backend service on port `8000` with Python 3.11, ffmpeg, PyTorch, Sentence Transformers, and ExtraTreesRegressor_v4.0.
-- **`vip-frontend`**: Production React SPA served via Nginx on port `3000` (reverse-proxying `/api/`, `/ml/`, `/chat/`, `/auth/` to backend).
 
 ---
 
@@ -138,7 +141,7 @@ sudo apt install ffmpeg
 # Step 4 - Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/video-intelligence-platform.git
+git clone https://github.com/itsmeakarshan/video-intelligence-platform.git
 
 cd video-intelligence-platform
 ```
