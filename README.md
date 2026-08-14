@@ -5,10 +5,15 @@ An AI-powered video learning platform which predicts User's next quiz Score and 
 ## 🚀 Key Features
 
 User can Ask Questions related to the processed video and Ai will give accurate answers with exact timestamps.
+
 User can upload from device or can download from Youtube as there is a feature where user can paste youtube link and video gets downloaded.
+
 User can User the Feature of Ai notes or Ai summary of uploaded video and can download them in PDF format.
+
 User can take quizzes on the uploaded video and the ai will give score and weak topic detection.
+
 User can get youtube video recommendations based on his weak topics.
+
 User can view his knowledge profile based on the quizzes he has taken.
 
 ---
