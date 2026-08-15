@@ -6,9 +6,9 @@ const resolveApiUrl = (): string => {
         if (window.location.port === "5173") {
             return "http://localhost:8000";
         }
-        return `${window.location.origin}/api`;
+        return "/api";
     }
-    return "http://localhost:8000";
+    return "/api";
 };
 
 export const API_URL = resolveApiUrl();
