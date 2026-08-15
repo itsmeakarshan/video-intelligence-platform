@@ -1,6 +1,10 @@
 export function generateUUID(): string {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-        return crypto.randomUUID();
+        try {
+            return crypto.randomUUID();
+        } catch {
+            // Fallback for unsecure HTTP browser context
+        }
     }
     // Fallback standard RFC4122 version 4 compliant generator
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
