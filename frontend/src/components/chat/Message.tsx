@@ -149,6 +149,23 @@ export default function Message({
         return elements.length > 0 ? elements : content;
     }
 
+    function processChild(child: any): any {
+        if (typeof child === "string") {
+            return renderTextWithTimestamps(child);
+        }
+        if (React.isValidElement(child)) {
+            const props: any = child.props;
+            if (props && props.children) {
+                const newChildren = Array.isArray(props.children)
+                    ? props.children.map((c: any, i: number) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
+                    : processChild(props.children);
+
+                return React.cloneElement(child, {}, newChildren);
+            }
+        }
+        return child;
+    }
+
     const renderMarkdownComponents = {
         code: ({ children, ...props }: any) => {
             const str = String(children).trim();
@@ -202,14 +219,14 @@ export default function Message({
                 </Box>
             );
         },
+        strong: ({ children }: any) => {
+            const rawText = Array.isArray(children) ? children.join("") : String(children);
+            if (typeof children === "string" && /^\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—]\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\s*$/.test(rawText.trim())) {
+                return <React.Fragment>{renderTextWithTimestamps(rawText.trim())}</React.Fragment>;
+            }
+            return <strong>{processChild(children)}</strong>;
+        },
         p: ({ children }: any) => {
-            const processChild = (child: any): any => {
-                if (typeof child === "string") {
-                    return renderTextWithTimestamps(child);
-                }
-                return child;
-            };
-
             const processedChildren = Array.isArray(children)
                 ? children.map((c, i) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
                 : processChild(children);
@@ -217,13 +234,6 @@ export default function Message({
             return <p>{processedChildren}</p>;
         },
         li: ({ children }: any) => {
-            const processChild = (child: any): any => {
-                if (typeof child === "string") {
-                    return renderTextWithTimestamps(child);
-                }
-                return child;
-            };
-
             const processedChildren = Array.isArray(children)
                 ? children.map((c, i) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
                 : processChild(children);
