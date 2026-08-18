@@ -119,6 +119,9 @@ ANSWERING INSTRUCTIONS
 
 Answer the user's question using the supplied video context.
 
+MANDATORY TIMESTAMP REQUIREMENT:
+You MUST cite the exact formatted timestamps (e.g. 0:29, 1:07) from the supplied context for each key concept, topic, or point mentioned in your answer so the user can click to play that section.
+
 If several sections of the context are relevant, combine them
 naturally into one complete answer.
 

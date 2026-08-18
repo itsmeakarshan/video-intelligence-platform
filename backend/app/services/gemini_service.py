@@ -51,15 +51,12 @@ IMPORTANT RESPONSE RULES:
 
 7. Give a useful, complete answer to the user's actual question.
 
-8. If the user asks WHEN, WHERE, WHICH PART, or WHAT PART:
-   - explain what is being discussed
-   - give the relevant timestamp information from the context
-   - clearly connect the timestamp to the answer
+8. ALWAYS include relevant timestamps from the supplied context (e.g. 0:29, 1:48) for each main topic, point, or event discussed in your response.
 
 9. If the user asks a factual question about the video:
    - answer the question directly
+   - include the exact timestamps (e.g. 0:29 - 1:07) next to each point/bullet
    - explain the relevant information from the transcript
-   - do not merely identify the video
 
 10. Use the supplied video transcript/context as the primary source.
 
