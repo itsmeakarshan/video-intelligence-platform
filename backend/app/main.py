@@ -54,12 +54,9 @@ async def lifespan(app: FastAPI):
     try:
         from app.core.model_registry import get_embedding_model
         print("=" * 60)
-        print("WARMING UP EMBEDDING MODEL")
+        print("STARTING ASYNC EMBEDDING MODEL WARMUP")
         print("=" * 60)
-        get_embedding_model()
-        print("=" * 60)
-        print("EMBEDDING MODEL READY")
-        print("=" * 60)
+        threading.Thread(target=get_embedding_model, daemon=True).start()
     except Exception as e:
         print(f"Embedding model pre-warm error: {e}")
 
