@@ -1,6 +1,5 @@
-import time
-
 from google import genai
+from google.genai import types
 from google.genai.errors import ClientError, ServerError
 
 from app.core.config import settings
@@ -137,30 +136,22 @@ def _generate(
 
         try:
 
-            config = {
+            config_kwargs = {
                 "max_output_tokens": max_tokens
             }
 
             if system_instruction:
-
-                config["system_instruction"] = (
-                    system_instruction
-                )
+                config_kwargs["system_instruction"] = system_instruction
 
             if response_mime_type:
+                config_kwargs["response_mime_type"] = response_mime_type
 
-                config["response_mime_type"] = (
-                    response_mime_type
-                )
+            gen_config = types.GenerateContentConfig(**config_kwargs)
 
             response = client.models.generate_content(
-
                 model=settings.GEMINI_MODEL,
-
                 contents=prompt,
-
-                config=config
-
+                config=gen_config
             )
 
             elapsed = (
@@ -370,19 +361,15 @@ def ask_gemini_stream(
 
         try:
 
-            config = {
-                "max_output_tokens": 1000,
-                "system_instruction": CHAT_SYSTEM_INSTRUCTION
-            }
+            gen_config = types.GenerateContentConfig(
+                max_output_tokens=1000,
+                system_instruction=CHAT_SYSTEM_INSTRUCTION
+            )
 
             stream = client.models.generate_content_stream(
-
                 model=settings.GEMINI_MODEL,
-
                 contents=prompt,
-
-                config=config
-
+                config=gen_config
             )
 
             for chunk in stream:

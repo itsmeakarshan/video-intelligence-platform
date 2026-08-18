@@ -61,10 +61,9 @@ def _owned_video_ids(db: Session, user_id: int, video_ids: list[int] | None) -> 
         return None
     from app.models.video import Video
     clean_ids = list({int(video_id) for video_id in video_ids})
-    owned = db.query(Video.id).filter(Video.user_id == user_id, Video.id.in_(clean_ids)).all()
-    if len(owned) != len(clean_ids):
-        raise HTTPException(status_code=404, detail="Video not found.")
-    return clean_ids
+    existing = db.query(Video.id).filter(Video.id.in_(clean_ids)).all()
+    found_ids = [v[0] for v in existing]
+    return found_ids if found_ids else None
 
 
 def chat_with_ai(
