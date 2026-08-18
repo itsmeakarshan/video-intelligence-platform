@@ -15,7 +15,9 @@ RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pyt
 COPY backend/requirements.txt /app/backend/requirements.txt
 COPY ml/requirements.txt /app/ml/requirements.txt
 
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt -r /app/ml/requirements.txt
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r /app/backend/requirements.txt -r /app/ml/requirements.txt \
+    && apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/* /root/.cache/pip
 
 # Copy source code and ML artifacts
 COPY ml /app/ml

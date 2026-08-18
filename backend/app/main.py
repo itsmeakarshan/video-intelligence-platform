@@ -51,6 +51,18 @@ async def lifespan(app: FastAPI):
     print("BACKGROUND QUEUE WORKER STARTED")
     print("=" * 60)
 
+    try:
+        from app.core.model_registry import get_embedding_model
+        print("=" * 60)
+        print("WARMING UP EMBEDDING MODEL")
+        print("=" * 60)
+        get_embedding_model()
+        print("=" * 60)
+        print("EMBEDDING MODEL READY")
+        print("=" * 60)
+    except Exception as e:
+        print(f"Embedding model pre-warm error: {e}")
+
     yield
 
     print("=" * 60)

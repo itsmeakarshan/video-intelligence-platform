@@ -3,12 +3,13 @@ const resolveApiUrl = (): string => {
         return import.meta.env.VITE_API_URL as string;
     }
     if (typeof window !== "undefined") {
-        if (window.location.port === "5173") {
+        const hostname = window.location.hostname;
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
             return "http://localhost:8000";
         }
         return "/api";
     }
-    return "/api";
+    return "http://localhost:8000";
 };
 
 export const API_URL = resolveApiUrl();

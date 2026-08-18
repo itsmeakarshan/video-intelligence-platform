@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # Authentication (Auto-generated fallback)
     # --------------------------------------------------
 
-    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    JWT_SECRET_KEY: str = Field(default="vip_super_secret_jwt_key_local_dev_2026_secure")
 
     JWT_ALGORITHM: str = "HS256"
 
