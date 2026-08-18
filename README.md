@@ -69,10 +69,9 @@ For step-by-step installation instructions, Docker container deployment, environ
 ## ⚡ How to Reproduce Model Training & Evaluation
 
 Notebooks are located at:
-- `ml/notebooks/01_learner_data_eda.ipynb`
-- `ml/notebooks/02_feature_engineering.ipynb`
-- `ml/notebooks/02_model_comparison_and_evaluation.ipynb`
-- `ml/notebooks/04_model_explainability_and_uncertainty.ipynb`
+- `ml/notebooks/01_learner_data_eda.ipynb` (Exploratory Data Analysis & Outlier Auditing)
+- `ml/notebooks/02_model_comparison_and_evaluation.ipynb` (GroupKFold CV & Model Benchmarking)
+- `ml/notebooks/03_model_explainability_and_uncertainty.ipynb` (SHAP Attributions & Conformal Prediction Intervals)
 
 ---
 

@@ -19,17 +19,17 @@ ml/
 │   └── processed/
 │       └── clean_learner_dataset.csv           # Cleaned learner dataset
 ├── notebooks/
-│   ├── 01_learner_data_eda.ipynb               # Exploratory Data Analysis notebook
-│   └── 02_model_comparison_and_evaluation.ipynb # Model comparison & evaluation notebook
+│   ├── 01_learner_data_eda.ipynb               # Exploratory Data Analysis & Outlier Auditing
+│   ├── 02_model_comparison_and_evaluation.ipynb # Model comparison & GroupKFold CV evaluation
+│   └── 03_model_explainability_and_uncertainty.ipynb # SHAP attributions & Conformal prediction intervals
 ├── src/
 │   ├── data_loader.py                          # Database extraction pipeline
 │   ├── features.py                             # Feature generator & 38-feature D_CORE_LEARNING contract
-│   ├── audit_dataset.py                        # Data quality audit script
-│   ├── optimize_models.py                      # Model tuning & evaluation script
 │   ├── predict.py                              # ScorePredictor inference engine
-│   ├── leakage_test.py                         # Automated leakage testing suite
-│   ├── test_end_to_end.py                      # End-to-end integration test suite
-│   └── verify_regression_architecture.py       # 13-point regression architecture test suite
+│   ├── train_all_models.py                     # Comprehensive model training & selection pipeline
+│   ├── evaluate.py                             # Model evaluation suite
+│   ├── leakage_test.py                         # Automated target leakage testing suite
+│   └── run_eda.py                              # Dataset statistical distribution audit
 ├── models/
 │   ├── best_regression_model.joblib            # Production ExtraTreesRegressor_v4.0 artifact
 │   ├── pipeline_meta.joblib                    # Pipeline metadata & feature contract

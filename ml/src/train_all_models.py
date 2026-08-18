@@ -533,6 +533,7 @@ def train_and_select_production_models():
     os.makedirs(REPORTS_DIR, exist_ok=True)
 
     joblib.dump(final_reg, os.path.join(MODELS_DIR, "best_regression_model.joblib"))
+    joblib.dump(final_clf, os.path.join(MODELS_DIR, "best_classifier.joblib"))
     joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.joblib"))
 
     reg_meta = {
@@ -555,8 +556,20 @@ def train_and_select_production_models():
     }
     joblib.dump(reg_meta, os.path.join(MODELS_DIR, "regression_meta.joblib"))
 
+    clf_meta = {
+        "model_name": best_clf_name,
+        "feature_columns": ALL_EXPANDED_FEATURE_COLUMNS,
+        "training_dataset_version": "clean_learner_dataset_v3.0",
+        "group_kfold_f1": clf_gkf[best_clf_name]["f1"],
+        "group_kfold_roc_auc": clf_gkf[best_clf_name]["roc_auc"],
+        "training_date": pd.Timestamp.now().isoformat(),
+        "random_seed": RANDOM_SEED
+    }
+    joblib.dump(clf_meta, os.path.join(MODELS_DIR, "classification_meta.joblib"))
+
     pipeline_meta = {
-        "best_model_name": best_reg_name.lower().replace(" ", "_"),
+        "best_regression_model_name": best_reg_name.lower().replace(" ", "_"),
+        "best_classification_model_name": best_clf_name.lower().replace(" ", "_"),
         "feature_columns": ALL_EXPANDED_FEATURE_COLUMNS,
         "target_column": TARGET_COLUMN,
         "version": "v3.0"
@@ -727,89 +740,12 @@ def train_and_select_production_models():
     with open(os.path.join(REPORTS_DIR, "experiment_registry.json"), "w") as f:
         json.dump(exp_registry, f, indent=2)
 
-    # Write Final Markdown Report (final_model_evaluation.md)
-    write_final_markdown_report(df_feat, reg_comp_table, clf_comp_table, best_reg_name, best_clf_name, temporal_meta)
-
     print("\n================ PIPELINE EXECUTION COMPLETE ================")
     print(f"Artifacts successfully saved to: {MODELS_DIR}")
-    print(f"Evaluation reports successfully generated in: {REPORTS_DIR}")
+    print(f"Evaluation JSON dashboards saved to: {REPORTS_DIR}")
     print("=============================================================\n")
-
-
-def write_final_markdown_report(df_feat, reg_comp, clf_comp, best_reg_name, best_clf_name, temporal_meta):
-    report_path = os.path.join(REPORTS_DIR, "final_model_evaluation.md")
-    
-    df_reg = pd.DataFrame(reg_comp)
-    df_clf = pd.DataFrame(clf_comp)
-
-    doc = f"""# Final Machine Learning System Evaluation Report (`ml/reports/final_model_evaluation.md`)
-
-## 1. Executive Summary & Dataset Disclosure
-- **Platform Component:** Video Intelligence Platform Machine Learning System.
-- **Dataset Context:** Synthetic development dataset created for multi-user pilot testing (Users 3–103).
-- **Users 1 & 2 Excluded:** Confirmed 0 attempts from Users 1 & 2 in training dataset.
-- **Total Users Evaluated:** {df_feat['user_id'].nunique()} users.
-- **Usable Supervised Instances:** {len(df_feat)} attempts (for attempt $N \\ge 2$). Attempt 1 records are reserved strictly as historical context to prevent leakage.
-
----
-
-## 2. Regression Task — Next Quiz Score Percentage Prediction
-
-Target variable: `next_percentage` (Float, 0.0% – 100.0%).
-Selected Production Model: **{best_reg_name}** (`Ridge(alpha=10.0, random_state=42)`).
-
-### Regression Evaluation Summary Table
-
-| Model | GroupKFold MAE (%) | GroupKFold R² | Unseen User MAE (%) | Unseen User R² | Temporal MAE (%) | Temporal R² |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-"""
-    for r in reg_comp:
-        doc += f"| **{r['model']}** | {r['group_kfold_mae']:.2f} | {r['group_kfold_r2']:.3f} | {r['unseen_user_mae']:.2f} | {r['unseen_user_r2']:.3f} | {r['temporal_mae']:.2f} | {r['temporal_r2']:.3f} |\n"
-
-    doc += f"""
-*Selection Rationale:* **{best_reg_name}** achieved the most consistent out-of-sample performance across all 3 independent evaluation strategies without overfitting.
-
----
-
-## 3. Classification Task — Next Quiz Pass/Fail Prediction
-
-Target variable: `next_pass` = 1 if `next_percentage >= 70%` else 0.
-Selected Production Model: **{best_clf_name}** (`ExtraTreesClassifier(n_estimators=100, max_depth=6, random_state=42)`).
-
-### Classification Evaluation Summary Table
-
-| Model | GroupKFold Acc | GroupKFold F1 | GroupKFold ROC-AUC | Brier Score | Unseen Acc | Unseen ROC-AUC | Temporal Acc | Temporal ROC-AUC |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-"""
-    for c in clf_comp:
-        doc += f"| **{c['model']}** | {c['accuracy']:.3f} | {c['f1_score']:.3f} | {c['roc_auc']:.3f} | {c['brier_score']:.4f} | {c['unseen_user_accuracy']:.3f} | {c['unseen_user_roc_auc']:.3f} | {c['temporal_accuracy']:.3f} | {c['temporal_roc_auc']:.3f} |\n"
-
-    doc += f"""
-*Selection Rationale:* **{best_clf_name}** achieved the top ROC-AUC (0.969) and best probability calibration (Brier Score: {clf_comp[6]['brier_score']:.4f}).
-
----
-
-## 4. Temporal Evaluation Methodology Disclosure
-
-- **Strategy:** Global Chronological 80/20 Holdout.
-- **Train Window:** {temporal_meta['earliest_train_timestamp']} to {temporal_meta['latest_train_timestamp']} ({temporal_meta['train_attempts']} attempts).
-- **Test Window:** {temporal_meta['earliest_test_timestamp']} to {temporal_meta['latest_test_timestamp']} ({temporal_meta['test_attempts']} attempts).
-- **Constraint Verified:** `max(train_timestamp)` < `min(test_timestamp)`.
-- **Note on Learner History Sparsity:** Because learner trajectories vary in length, global temporal splitting places later attempts from earlier learners into the train set and early attempts from late-joining learners into the test set.
-
----
-
-## 5. Verification Summary
-
-- **Users 1 & 2 Excluded:** PASSED
-- **Zero Target Leakage:** PASSED
-- **Independent Evaluation Splits:** PASSED
-"""
-
-    with open(report_path, "w") as f:
-        f.write(doc)
-    print(f"Generated updated report: {report_path}")
 
 
 if __name__ == "__main__":
     train_and_select_production_models()
+
