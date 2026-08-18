@@ -240,6 +240,8 @@ def build_context(matches):
             start_time = 0.0
             end_time = 0.0
 
+        formatted_ts = f"{format_seconds_to_timestamp(start_time)} - {format_seconds_to_timestamp(end_time)}"
+
         # ----------------------------------------------------
         # THIS is the actual text Gemini receives.
         # ----------------------------------------------------
@@ -254,7 +256,7 @@ VIDEO ID:
 {video_id}
 
 SOURCE TIMESTAMP:
-{start_time:.2f} - {end_time:.2f}
+{start_time:.2f} - {end_time:.2f} ({formatted_ts})
 
 TRANSCRIPT:
 {text}
@@ -480,8 +482,14 @@ def format_seconds_to_timestamp(seconds: float) -> str:
 def is_mention_question(question: str) -> bool:
     q = question.lower().strip()
     patterns = [
-        r"\bwhere\b", r"\bwhen\b", r"\bhow many times\b", r"\bwhere do\b", r"\bwhere does\b",
-        r"\bis .* mentioned\b", r"\btalk about\b", r"\bdiscussed\b", r"\bappear\b", r"\boccur\b"
+        r"\bwhere in the video\b",
+        r"\bwhen in the video\b",
+        r"\bat what timestamp\b",
+        r"\bwhat timestamp\b",
+        r"\bhow many times\b",
+        r"\bexact timestamp\b",
+        r"\bwhere is .* mentioned\b",
+        r"\bwhen is .* mentioned\b"
     ]
     return any(re.search(p, q) for p in patterns)
 
