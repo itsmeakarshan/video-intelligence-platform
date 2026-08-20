@@ -648,11 +648,42 @@ export default function Login() {
                     sx={{
                         textAlign: "center",
                         color: "#94A3B8",
-                        mb: 3.5
+                        mb: 2
                     }}
                 >
                     Sign in to your Video Intelligence account.
                 </Typography>
+
+
+                <Box
+                    onClick={() => {
+                        setEmail("user@ex.com");
+                        setPassword("password");
+                    }}
+                    sx={{
+                        mb: 3,
+                        p: 1.75,
+                        borderRadius: 2,
+                        bgcolor: "rgba(20, 184, 166, 0.08)",
+                        border: "1px dashed rgba(20, 184, 166, 0.3)",
+                        textAlign: "center",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                            bgcolor: "rgba(20, 184, 166, 0.14)",
+                            borderColor: "#14B8A6"
+                        }
+                    }}
+                >
+                    <Typography variant="body2" sx={{ color: "#94A3B8", fontSize: "0.875rem", fontFamily: "monospace" }}>
+                        for quick check, use id: <Box component="span" sx={{ color: "#14B8A6", fontWeight: 700 }}>user@ex.com</Box>
+                        <br />
+                        pass: <Box component="span" sx={{ color: "#14B8A6", fontWeight: 700 }}>password</Box>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748B", display: "block", mt: 0.5, fontStyle: "italic" }}>
+                        (it is preprocessed on vidoes)
+                    </Typography>
+                </Box>
 
 
                 {error && (
