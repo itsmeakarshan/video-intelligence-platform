@@ -22,7 +22,6 @@ User can view his knowledge profile based on the quizzes he has taken.
 
 ### 1. Data Safety & Cohort Methodology
 - **Production User Protection**: Real application Users 1 and 2 and their historical quiz attempts are strictly preserved in the SQLite database (`backend/video_intelligence.db`) and **EXCLUDED** from ML dataset extraction, feature engineering, model training, and evaluation.
-- **Learner Cohort**: Users 3–103 (95 clean modeling learners, 636 leak-free attempt instances).
 - **Outlier Learner Detection**: EDA independently evaluated learner-level behavioral consistency. 6 high-variance learners were objectively excluded from modeling and documented. They remain intact in the SQLite database.
 
 ### 2. Leak-Free Feature Engineering
