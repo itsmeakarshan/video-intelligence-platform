@@ -45,3 +45,7 @@ frontend/.vite/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# ML datasets & notebooks
+ml/data/
+.ipynb_checkpoints/

@@ -28,3 +28,8 @@ backend/outputs/*
 !backend/uploads/.gitkeep
 !backend/temp_audio/.gitkeep
 !backend/outputs/.gitkeep
+
+# ML datasets & research notebooks (not needed at runtime)
+ml/data/
+ml/notebooks/
+
