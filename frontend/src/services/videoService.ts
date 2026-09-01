@@ -6,12 +6,12 @@ import {
 
 export async function upload(
     file: File,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    courseId?: number | null
 ) {
-
     return await uploadVideo(
         file,
-        onProgress
+        onProgress,
+        courseId
     );
-
 }

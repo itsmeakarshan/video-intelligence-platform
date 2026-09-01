@@ -1,19 +1,22 @@
+import React from "react";
 import {
     BrowserRouter,
     Routes,
     Route,
     Navigate
 } from "react-router-dom";
-import { Box, CircularProgress } from "@mui/material";
 
 import Dashboard from "./pages/Dashboard";
+import Courses from "./pages/Courses";
+import CourseStudio from "./pages/CourseStudio";
 import Summary from "./pages/Summary";
 import Notes from "./pages/Notes";
 import Quiz from "./pages/Quiz";
+import QuizScores from "./pages/QuizScores";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import MLPerformance from "./pages/MLPerformance";
-import Profile from "./pages/Profile";
+import AdminPanel from "./pages/AdminPanel";
+import InstructorChat from "./pages/InstructorChat";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
@@ -25,17 +28,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     if (isLoading) {
         return (
-            <Box
-                sx={{
-                    minHeight: "100vh",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: "#0F172A"
-                }}
-            >
-                <CircularProgress sx={{ color: "#14B8A6" }} />
-            </Box>
+            <div className="min-h-screen flex items-center justify-center bg-[#18191E]">
+                <div className="w-10 h-10 border-4 border-[#E5F842] border-t-transparent rounded-full animate-spin" />
+            </div>
         );
     }
 
@@ -46,22 +41,58 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isAdmin, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#18191E]">
+                <div className="w-10 h-10 border-4 border-[#E5F842] border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (!isAdmin) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+}
+
+function StudentRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isAdmin, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#18191E]">
+                <div className="w-10 h-10 border-4 border-[#E5F842] border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (isAdmin) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
 
     if (isLoading) {
         return (
-            <Box
-                sx={{
-                    minHeight: "100vh",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: "#0F172A"
-                }}
-            >
-                <CircularProgress sx={{ color: "#14B8A6" }} />
-            </Box>
+            <div className="min-h-screen flex items-center justify-center bg-[#18191E]">
+                <div className="w-10 h-10 border-4 border-[#E5F842] border-t-transparent rounded-full animate-spin" />
+            </div>
         );
     }
 
@@ -100,15 +131,59 @@ export default function App() {
                                     path="/"
                                     element={
                                         <ProtectedRoute>
-                                            <Dashboard />
+                                            <Courses />
                                         </ProtectedRoute>
                                     }
                                 />
                                 <Route
-                                    path="/profile"
+                                    path="/courses"
                                     element={
                                         <ProtectedRoute>
-                                            <Profile />
+                                            <Courses />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/courses/:courseId"
+                                    element={
+                                        <ProtectedRoute>
+                                            <CourseStudio />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/dashboard"
+                                    element={
+                                        <StudentRoute>
+                                            <Dashboard />
+                                        </StudentRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/admin"
+                                    element={
+                                        <AdminRoute>
+                                            <AdminPanel />
+                                        </AdminRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/profile"
+                                    element={<Navigate to="/scores" replace />}
+                                />
+                                <Route
+                                    path="/doubts"
+                                    element={
+                                        <ProtectedRoute>
+                                            <InstructorChat />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/instructor-chat"
+                                    element={
+                                        <ProtectedRoute>
+                                            <InstructorChat />
                                         </ProtectedRoute>
                                     }
                                 />
@@ -137,10 +212,18 @@ export default function App() {
                                     }
                                 />
                                 <Route
-                                    path="/ml-performance"
+                                    path="/scores"
                                     element={
                                         <ProtectedRoute>
-                                            <MLPerformance />
+                                            <QuizScores />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/quiz-history"
+                                    element={
+                                        <ProtectedRoute>
+                                            <QuizScores />
                                         </ProtectedRoute>
                                     }
                                 />
@@ -152,4 +235,3 @@ export default function App() {
         </ErrorBoundary>
     );
 }
-

@@ -1,881 +1,326 @@
-import { useEffect, useState } from "react";
-
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-    Avatar,
-    Box,
-    Button,
-    Checkbox,
-    Chip,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Divider,
-    IconButton,
-    LinearProgress,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    Tooltip,
-    Typography,
-    Stack
-} from "@mui/material";
-
-import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-
+  Video as VideoIcon,
+  Play,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Trash2,
+  BookOpen,
+  GraduationCap,
+  Search
+} from "lucide-react";
 import toast from "react-hot-toast";
-
-import {
-    deleteVideo,
-    generateTranscript,
-    getVideos
-} from "../../api/api";
-
+import { deleteVideo, generateTranscript, getVideos } from "../../api/api";
+import { API_URL } from "../../utils/constants";
 import { useVideo } from "../../context/VideoContext";
+import type { VideoItem } from "../../context/VideoContext";
 import { useChat } from "../../context/ChatContext";
-import Upload from "../upload/Upload";
+import { useAuth } from "../../context/AuthContext";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 export default function VideoLibrary() {
-    const {
-        videos,
-        setVideos,
-        selectedVideo,
-        setSelectedVideo,
-        setVideoId,
-        setVideoTitle,
-        setVideoUrl,
-        loadVideo,
-        getVideoDisplayNumber
-    } = useVideo();
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const {
+    videos,
+    setVideos,
+    selectedVideo,
+    setSelectedVideo,
+    setVideoUrl,
+    loadVideo,
+    getVideoDisplayNumber
+  } = useVideo();
 
-    const {
-        setSelectedVideos: setChatSelectedVideos
-    } = useChat();
+  const { setSelectedVideos: setChatSelectedVideos } = useChat();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deletingVideo, setDeletingVideo] = useState<{ id: number; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [videoToDelete, setVideoToDelete] = useState<any>(null);
-    const [isBulkDelete, setIsBulkDelete] = useState(false);
-    const [deleting, setDeleting] = useState(false);
+  useEffect(() => {
+    loadVideos();
+    const handleVideosUpdated = () => loadVideos();
+    window.addEventListener("videosUpdated", handleVideosUpdated);
+    return () => window.removeEventListener("videosUpdated", handleVideosUpdated);
+  }, []);
 
-    useEffect(() => {
-        setChatSelectedVideos(selectedVideos);
-    }, [selectedVideos, setChatSelectedVideos]);
-
-    useEffect(() => {
-
-        loadVideos();
-
-        const handleVideosUpdated = () => {
-            loadVideos();
-        };
-
-        window.addEventListener(
-            "videosUpdated",
-            handleVideosUpdated
-        );
-
-        return () => {
-            window.removeEventListener(
-                "videosUpdated",
-                handleVideosUpdated
-            );
-        };
-
-    }, []);
-
-    useEffect(() => {
-        const hasActive = videos.some(
-            (video: any) =>
-                video.status === "processing" ||
-                video.status === "queued"
-        );
-
-        if (!hasActive) {
-            return;
-        }
-
-        const interval = setInterval(() => {
-            loadVideos();
-        }, 800);
-
-        return () => clearInterval(interval);
-    }, [videos]);
-
-    async function loadVideos() {
-        try {
-            const data = await getVideos();
-            setVideos(data);
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-    async function processVideo(videoId: number) {
-        try {
-            await generateTranscript(videoId);
-
-            toast.success("Processing started.");
-
-            setSelectedVideos(prev =>
-                prev.filter(id => id !== videoId)
-            );
-
-            await loadVideos();
-        } catch {
-            toast.error("Unable to start processing.");
-        }
-    }
-
-    async function processSelected() {
-        try {
-            for (const id of selectedVideos) {
-                await generateTranscript(id);
-            }
-
-            toast.success("Processing started.");
-
-            setSelectedVideos([]);
-
-            await loadVideos();
-        } catch {
-            toast.error("Unable to start processing.");
-        }
-    }
-
-    const uploadedVideos = videos.filter(
-        (v: any) => v.status === "uploaded"
+  useEffect(() => {
+    const hasActive = videos.some(
+      (v) => v.status === "processing" || v.status === "queued"
     );
+    if (!hasActive) return;
 
-    const queuedVideos = videos.filter(
-        (v: any) => v.status === "queued"
-    );
+    const interval = setInterval(() => {
+      loadVideos();
+    }, 1200);
 
-    function handleToggleSelect(
-        id: number,
-        event: React.MouseEvent
-    ) {
-        event.stopPropagation();
+    return () => clearInterval(interval);
+  }, [videos]);
 
-        setSelectedVideos((prev) =>
-            prev.includes(id)
-                ? prev.filter((item) => item !== id)
-                : [...prev, id]
-        );
+  async function loadVideos() {
+    try {
+      const data = await getVideos();
+      setVideos(data);
+    } catch (err) {
+      console.error("Failed to load videos", err);
     }
+  }
 
-    function handleSelectAll() {
-        if (selectedVideos.length === uploadedVideos.length) {
-            setSelectedVideos([]);
-        } else {
-            setSelectedVideos(
-                uploadedVideos.map((v: any) => v.id)
+  async function handleProcessVideo(e: React.MouseEvent, videoId: number) {
+    e.stopPropagation();
+    try {
+      await generateTranscript(videoId);
+      toast.success("Video added to processing queue.");
+      loadVideos();
+    } catch {
+      toast.error("Unable to start video processing.");
+    }
+  }
+
+  function handleDeleteVideo(e: React.MouseEvent, videoId: number, title: string) {
+    e.stopPropagation();
+    setDeletingVideo({ id: videoId, title });
+  }
+
+  async function confirmDeleteVideo() {
+    if (!deletingVideo) return;
+    setIsDeleting(true);
+    try {
+      await deleteVideo(deletingVideo.id);
+      toast.success("Video and associated files completely deleted.");
+      if (selectedVideo?.id === deletingVideo.id) {
+        setSelectedVideo(null);
+        setVideoUrl("");
+      }
+      setVideos(videos.filter((v) => v.id !== deletingVideo.id));
+      setDeletingVideo(null);
+      loadVideos();
+    } catch {
+      toast.error("Unable to delete video.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  function handleSelectVideo(video: VideoItem) {
+    loadVideo(video);
+    setChatSelectedVideos([video.id]);
+    window.scrollTo({ top: 120, behavior: "smooth" });
+  }
+
+  const filteredVideos = videos.filter((v) => {
+    const matchesQuery = (v.original_filename || v.filename).toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesQuery;
+  });
+
+  return (
+    <div className="bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-xs text-white">
+      
+      {/* Section Header matching Wise theme */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#333642]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center font-bold">
+            <VideoIcon className="w-5 h-5 text-[#E5F842]" />
+          </div>
+          <div>
+            <h2 className="text-lg font-extrabold text-white">
+              Video Library
+            </h2>
+            <p className="text-xs text-slate-400 font-medium">
+              Select, view, and manage your processed learning video collection.
+            </p>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search videos..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-xs bg-[#18191E] text-white placeholder-slate-500 rounded-xl border border-[#333642] focus:outline-hidden focus:border-[#E5F842] transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Videos List / Grid */}
+      <div className="mt-5 space-y-3">
+        {filteredVideos.length === 0 ? (
+          <div className="text-center py-10 text-slate-500 text-sm">
+            No videos found matching your search.
+          </div>
+        ) : (
+          filteredVideos.map((video) => {
+            const isSelected = selectedVideo?.id === video.id;
+            const title = video.original_filename || video.filename || `Video #${video.id}`;
+            const displayNum = getVideoDisplayNumber(video.id);
+            const token = localStorage.getItem("access_token") || "";
+            const thumbUrl = `${API_URL}/videos/${video.id}/thumbnail?access_token=${encodeURIComponent(token)}`;
+
+            return (
+              <div
+                key={video.id}
+                onClick={() => handleSelectVideo(video)}
+                className={`group p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  isSelected
+                    ? "bg-[#E5F842]/10 border-[#E5F842]/60 shadow-xs"
+                    : "bg-[#18191E] hover:bg-[#2E313B] border-[#333642] hover:border-[#E5F842]/40"
+                }`}
+              >
+                {/* Left: Video Thumbnail & Info */}
+                <div className="flex items-center gap-4 min-w-0">
+                  
+                  {/* Real Video Thumbnail Frame */}
+                  <div className="relative w-36 sm:w-44 aspect-video rounded-xl overflow-hidden bg-[#0E0F12] border border-[#333642] shrink-0 group-hover:border-[#E5F842]/50 transition-all shadow-inner">
+                    <img
+                      src={thumbUrl}
+                      alt={title}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+
+                    {/* Lesson Sequence Number Overlay Badge */}
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-xs text-[#E5F842] font-black text-xs border border-white/10 shadow-xs">
+                      #{displayNum}
+                    </div>
+
+                    {/* Center Play Overlay Icon on Hover */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-opacity ${
+                      isSelected ? "opacity-100 bg-[#E5F842]/20" : "opacity-0 group-hover:opacity-100 bg-black/40"
+                    }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${
+                        isSelected ? "bg-[#E5F842] text-[#121316]" : "bg-black/80 text-white border border-white/20"
+                      }`}>
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-white truncate group-hover:text-[#E5F842] transition-colors">
+                      {title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {video.status === "completed" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E5F842] bg-[#E5F842]/15 border border-[#E5F842]/30 px-2 py-0.5 rounded-md">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Processed & Ready
+                        </span>
+                      )}
+
+                      {video.status === "processing" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md animate-pulse">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Processing {video.progress || 0}%
+                        </span>
+                      )}
+
+                      {video.status === "queued" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-md">
+                          <Clock className="w-3 h-3" />
+                          Queued
+                        </span>
+                      )}
+
+                      {video.status === "uploaded" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-[#25272F] border border-[#333642] px-2 py-0.5 rounded-md">
+                          Uploaded
+                        </span>
+                      )}
+
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {(video.file_size / (1024 * 1024)).toFixed(1)} MB
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {video.status === "uploaded" && isAdmin && (
+                    <button
+                      onClick={(e) => handleProcessVideo(e, video.id)}
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] shadow-xs transition-colors cursor-pointer"
+                    >
+                      Process Video
+                    </button>
+                  )}
+
+                  {video.status === "completed" && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectVideo(video);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-[#E5F842] text-[#121316] font-extrabold"
+                            : "bg-[#25272F] border border-[#333642] text-slate-300 hover:text-white hover:bg-[#2E313B]"
+                        }`}
+                      >
+                        {isSelected ? "Watching" : "Watch"}
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectVideo(video);
+                          navigate("/quiz", { state: { courseId: video.course_id } });
+                        }}
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-[#E5F842] hover:bg-[#25272F] transition-colors cursor-pointer"
+                        title="Take Quiz on this Video"
+                      >
+                        <GraduationCap className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectVideo(video);
+                          navigate("/notes", { state: { courseId: video.course_id } });
+                        }}
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-[#E5F842] hover:bg-[#25272F] transition-colors cursor-pointer"
+                        title="Generate Notes"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => handleDeleteVideo(e, video.id, title)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      title="Delete video"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
             );
-        }
-    }
+          })
+        )}
+      </div>
 
-    function openDeleteDialog(video: any) {
-        setVideoToDelete(video);
-        setIsBulkDelete(false);
-        setDeleteDialogOpen(true);
-    }
-
-    function openBulkDeleteDialog() {
-        if (selectedVideos.length === 0) return;
-
-        setIsBulkDelete(true);
-        setDeleteDialogOpen(true);
-    }
-
-    async function confirmDelete() {
-        try {
-            setDeleting(true);
-
-            if (isBulkDelete) {
-                for (const id of selectedVideos) {
-                    await deleteVideo(id);
-
-                    if (selectedVideo?.id === id) {
-                        setSelectedVideo(null);
-                        setVideoId(undefined as any);
-                        setVideoTitle("");
-                        setVideoUrl("");
-                    }
-                }
-
-                toast.success("Selected videos deleted.");
-
-                setSelectedVideos([]);
-            } else if (videoToDelete) {
-                await deleteVideo(videoToDelete.id);
-
-                toast.success("Video deleted.");
-
-                if (selectedVideo?.id === videoToDelete.id) {
-                    setSelectedVideo(null);
-                    setVideoId(undefined as any);
-                    setVideoTitle("");
-                    setVideoUrl("");
-                }
-            }
-
-            await loadVideos();
-        } catch {
-            toast.error("Unable to delete video(s).");
-        } finally {
-            setDeleting(false);
-            setDeleteDialogOpen(false);
-            setVideoToDelete(null);
-            setIsBulkDelete(false);
-        }
-    }
-
-    return (
-        <>
-            <Box
-                sx={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    color: "#F8FAFC"
-                }}
-            >
-                <Typography
-                    variant="h5"
-                    sx={{
-                        fontWeight: 700,
-                        mb: 1,
-                        color: "#F8FAFC"
-                    }}
-                >
-                    📂 Uploaded Videos
-                </Typography>
-
-                <Typography
-                    sx={{
-                        color: "#94A3B8",
-                        mb: 2
-                    }}
-                >
-                    Upload videos now and choose when to process them.
-                </Typography>
-
-                {uploadedVideos.length > 0 && (
-                    <Box
-                        sx={{
-                            position: "sticky",
-                            top: 0,
-                            zIndex: 10,
-                            background: "rgba(15,23,42,.85)",
-                            backdropFilter: "blur(12px)",
-                            border: "1px solid rgba(20,184,166,.2)",
-                            borderRadius: 1.5,
-                            p: 2,
-                            mb: 2,
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center"
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1.5
-                            }}
-                        >
-                            <Checkbox
-                                checked={
-                                    uploadedVideos.length > 0 &&
-                                    selectedVideos.length === uploadedVideos.length
-                                }
-                                indeterminate={
-                                    selectedVideos.length > 0 &&
-                                    selectedVideos.length < uploadedVideos.length
-                                }
-                                onChange={handleSelectAll}
-                                disabled={uploadedVideos.length === 0}
-                                sx={{
-                                    color: "#14B8A6",
-                                    "&.Mui-checked": {
-                                        color: "#14B8A6"
-                                    }
-                                }}
-                            />
-
-                            <Typography
-                                sx={{
-                                    color: "#F8FAFC",
-                                    fontWeight: 600,
-                                    fontSize: 14
-                                }}
-                            >
-                                Select All
-                            </Typography>
-
-                            <Typography
-                                sx={{
-                                    color: "#94A3B8",
-                                    fontSize: 13,
-                                    ml: 1
-                                }}
-                            >
-                                Selected: {selectedVideos.length}
-                            </Typography>
-                        </Box>
-
-                        <Box
-                            sx={{
-                                display: "flex",
-                                gap: 1
-                            }}
-                        >
-                            <Button
-                                size="small"
-                                variant="contained"
-                                disabled={selectedVideos.length === 0}
-                                onClick={processSelected}
-                                sx={{
-                                    bgcolor: "#14B8A6",
-                                    color: "#021617",
-                                    fontWeight: 700,
-                                    borderRadius: 1,
-                                    "&:hover": {
-                                        bgcolor: "#10B981"
-                                    },
-                                    "&.Mui-disabled": {
-                                        bgcolor: "rgba(20,184,166,.12)",
-                                        color: "rgba(255,255,255,.3)"
-                                    }
-                                }}
-                            >
-                                Process Selected
-                            </Button>
-
-                            <Button
-                                size="small"
-                                variant="outlined"
-                                color="error"
-                                disabled={
-                                    selectedVideos.length === 0 ||
-                                    deleting
-                                }
-                                onClick={openBulkDeleteDialog}
-                                sx={{
-                                    borderRadius: 1
-                                }}
-                            >
-                                Delete Selected
-                            </Button>
-                        </Box>
-                    </Box>
-                )}
-
-                <Divider
-                    sx={{
-                        mb: 2,
-                        borderColor: "rgba(20,184,166,.2)"
-                    }}
-                />
-
-                <List
-                    sx={{
-                        flex: 1,
-                        overflowY: "auto",
-                        maxHeight: 520,
-                        pr: 1
-                    }}
-                >
-                    {videos.length === 0 && (
-                        <Box
-                            sx={{
-                                py: 6,
-                                textAlign: "center"
-                            }}
-                        >
-                            <MovieRoundedIcon
-                                sx={{
-                                    fontSize: 48,
-                                    mb: 1,
-                                    color: "#14B8A6",
-                                    opacity: 0.8
-                                }}
-                            />
-
-                            <Typography
-                                variant="h6"
-                                sx={{
-                                    color: "#F8FAFC",
-                                    fontWeight: 600,
-                                    mb: 0.5
-                                }}
-                            >
-                                No videos yet
-                            </Typography>
-
-                            <Typography
-                                sx={{
-                                    color: "#94A3B8",
-                                    fontSize: 14
-                                }}
-                            >
-                                Upload one or more videos to begin.
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {[...videos]
-                        .sort((a, b) => a.id - b.id)
-                        .map((video: any, index: number) => {
-                            const isSelected =
-                                selectedVideos.includes(video.id);
-
-                            const isUploaded =
-                                video.status === "uploaded";
-
-                            const isProcessing =
-                                video.status === "processing";
-
-                            const isQueued =
-                                video.status === "queued";
-
-                            const progressValue =
-                                video.progress !== undefined
-                                    ? video.progress
-                                    : undefined;
-
-                            return (
-                                <Box
-                                    key={video.id}
-                                    sx={{
-                                        mb: 2,
-                                        borderRadius: 1.5,
-                                        background: "rgba(15,23,42,.65)",
-                                        border:
-                                            selectedVideo?.id === video.id
-                                                ? "2px solid #14B8A6"
-                                                : "1px solid rgba(20,184,166,.15)",
-                                        boxShadow:
-                                            "0 4px 20px rgba(0,0,0,.2)",
-                                        overflow: "hidden",
-                                        transition: "all .25s ease",
-                                        backdropFilter: "blur(12px)",
-                                        "&:hover": {
-                                            borderColor:
-                                                "rgba(20,184,166,.4)",
-                                            transform: "translateY(-1px)"
-                                        }
-                                    }}
-                                >
-                                    <ListItemButton
-                                        onClick={() => loadVideo(video)}
-                                        sx={{
-                                            py: 1.5,
-                                            "&:hover": {
-                                                background:
-                                                    "rgba(20,184,166,.08)"
-                                            }
-                                        }}
-                                    >
-                                        <Box
-                                            onClick={(e) =>
-                                                handleToggleSelect(
-                                                    video.id,
-                                                    e
-                                                )
-                                            }
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                mr: 1
-                                            }}
-                                        >
-                                            <Checkbox
-                                                size="small"
-                                                checked={isSelected}
-                                                disabled={!isUploaded}
-                                                sx={{
-                                                    color: "#14B8A6",
-                                                    "&.Mui-checked": {
-                                                        color: "#14B8A6"
-                                                    }
-                                                }}
-                                            />
-                                        </Box>
-
-                                        <ListItemIcon
-                                            sx={{
-                                                minWidth: 44
-                                            }}
-                                        >
-                                            <Avatar
-                                                sx={{
-                                                    bgcolor:
-                                                        "rgba(20,184,166,.2)",
-                                                    color: "#14B8A6",
-                                                    border:
-                                                        "1px solid rgba(20,184,166,.3)",
-                                                    borderRadius: 1
-                                                }}
-                                            >
-                                                <MovieRoundedIcon />
-                                            </Avatar>
-                                        </ListItemIcon>
-
-                                        <ListItemText
-                                            primary={
-                                                <Box>
-                                                    <Typography
-                                                        sx={{
-                                                            color: "#14B8A6",
-                                                            fontWeight: 700,
-                                                            fontSize: 14
-                                                        }}
-                                                    >
-                                                        Video #{getVideoDisplayNumber ? getVideoDisplayNumber(video.id) : index + 1}
-                                                    </Typography>
-
-                                                    <Typography
-                                                        sx={{
-                                                            color: "#F8FAFC",
-                                                            fontWeight: 600
-                                                        }}
-                                                    >
-                                                        {video.original_filename}
-                                                    </Typography>
-                                                </Box>
-                                            }
-                                            secondary={
-                                                <Box
-                                                    sx={{
-                                                        mt: 0.8,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 0.8
-                                                    }}
-                                                >
-                                                    {isProcessing ? (
-                                                        <Chip
-                                                            size="small"
-                                                            label="Processing"
-                                                            color="warning"
-                                                            sx={{
-                                                                fontWeight: 700,
-                                                                borderRadius: 0.75
-                                                            }}
-                                                        />
-                                                    ) : isQueued ? (
-                                                        <Chip
-                                                            size="small"
-                                                            label={`Queued #${
-                                                                queuedVideos.findIndex(
-                                                                    (v: any) =>
-                                                                        v.id === video.id
-                                                                ) + 1
-                                                            }`}
-                                                            sx={{
-                                                                bgcolor: "#F97316",
-                                                                color: "#fff",
-                                                                fontWeight: 700,
-                                                                borderRadius: 0.75
-                                                            }}
-                                                        />
-                                                    ) : video.status === "completed" ? (
-                                                        <Chip
-                                                            size="small"
-                                                            label="Ready"
-                                                            sx={{
-                                                                bgcolor: "#10B981",
-                                                                color: "#fff",
-                                                                fontWeight: 700,
-                                                                borderRadius: 0.75
-                                                            }}
-                                                        />
-                                                    ) : video.status === "failed" ? (
-                                                        <Chip
-                                                            size="small"
-                                                            label="Failed"
-                                                            color="error"
-                                                            sx={{
-                                                                fontWeight: 700,
-                                                                borderRadius: 0.75
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <Chip
-                                                            size="small"
-                                                            label="Uploaded"
-                                                            sx={{
-                                                                bgcolor:
-                                                                    "rgba(255,255,255,.08)",
-                                                                color: "#CBD5E1",
-                                                                border:
-                                                                    "1px solid rgba(255,255,255,.15)",
-                                                                fontWeight: 700,
-                                                                borderRadius: 0.75
-                                                            }}
-                                                        />
-                                                    )}
-                                                </Box>
-                                            }
-                                        />
-
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 0.5
-                                            }}
-                                        >
-                                            <Tooltip title="Delete Video">
-                                                <IconButton
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        openDeleteDialog(video);
-                                                    }}
-                                                    sx={{
-                                                        color: "#94A3B8",
-                                                        "&:hover": {
-                                                            color: "#EF4444",
-                                                            background:
-                                                                "rgba(239,68,68,.12)"
-                                                        }
-                                                    }}
-                                                >
-                                                    <DeleteOutlineRoundedIcon />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
-                                    </ListItemButton>
-
-                                    {video.status === "uploaded" && (
-                                        <Box
-                                            sx={{
-                                                px: 2,
-                                                pb: 2
-                                            }}
-                                        >
-                                            <Button
-                                                fullWidth
-                                                variant="contained"
-                                                disabled={
-                                                    video.status !== "uploaded"
-                                                }
-                                                startIcon={
-                                                    <PlayArrowRoundedIcon />
-                                                }
-                                                onClick={() =>
-                                                    processVideo(video.id)
-                                                }
-                                                sx={{
-                                                    bgcolor: "#14B8A6",
-                                                    color: "#021617",
-                                                    fontWeight: 700,
-                                                    borderRadius: 1,
-                                                    "&:hover": {
-                                                        bgcolor: "#10B981"
-                                                    }
-                                                }}
-                                            >
-                                                Process
-                                            </Button>
-                                        </Box>
-                                    )}
-
-                                    {(isProcessing || isQueued) && (
-                                        <Box
-                                            sx={{
-                                                px: 2,
-                                                pb: 2,
-                                                pt: 0.5
-                                            }}
-                                        >
-                                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
-                                                <Stack direction="row" alignItems="center" spacing={1}>
-                                                    <Box
-                                                        sx={{
-                                                            width: 8,
-                                                            height: 8,
-                                                            borderRadius: "50%",
-                                                            bgcolor: isProcessing ? "#14B8A6" : "#F59E0B",
-                                                            boxShadow: isProcessing
-                                                                ? "0 0 10px #14B8A6"
-                                                                : "0 0 8px #F59E0B",
-                                                            animation: "pulse 1.5s infinite ease-in-out",
-                                                            "@keyframes pulse": {
-                                                                "0%": { transform: "scale(0.95)", opacity: 0.7 },
-                                                                "50%": { transform: "scale(1.2)", opacity: 1 },
-                                                                "100%": { transform: "scale(0.95)", opacity: 0.7 }
-                                                            }
-                                                        }}
-                                                    />
-                                                    <Typography
-                                                        sx={{
-                                                            color: isProcessing ? "#F8FAFC" : "#F59E0B",
-                                                            fontWeight: 600,
-                                                            fontSize: 12
-                                                        }}
-                                                    >
-                                                        {isProcessing
-                                                            ? video.current_step || "Processing pipeline..."
-                                                            : `Waiting in queue (Position #${queuedVideos.findIndex((v: any) => v.id === video.id) + 1})`}
-                                                    </Typography>
-                                                </Stack>
-                                                {isProcessing && progressValue !== undefined && (
-                                                    <Typography
-                                                        sx={{
-                                                            color: "#14B8A6",
-                                                            fontWeight: 800,
-                                                            fontSize: 12
-                                                        }}
-                                                    >
-                                                        {Math.round(progressValue)}%
-                                                    </Typography>
-                                                )}
-                                            </Stack>
-
-                                            <LinearProgress
-                                                variant={
-                                                    isProcessing && progressValue !== undefined
-                                                        ? "determinate"
-                                                        : "indeterminate"
-                                                }
-                                                value={progressValue ?? 0}
-                                                sx={{
-                                                    height: 7,
-                                                    borderRadius: 4,
-                                                    bgcolor: "rgba(20,184,166,.12)",
-                                                    "& .MuiLinearProgress-bar": {
-                                                        bgcolor: "#14B8A6",
-                                                        borderRadius: 4,
-                                                        transition: "transform 0.4s ease-out"
-                                                    }
-                                                }}
-                                            />
-                                        </Box>
-                                    )}
-                                </Box>
-                            );
-                        })}
-                </List>
-
-                <Divider
-                    sx={{
-                        my: 2,
-                        borderColor: "rgba(20,184,166,.2)"
-                    }}
-                />
-
-                <Upload />
-            </Box>
-
-            <Dialog
-                open={deleteDialogOpen}
-                onClose={() =>
-                    !deleting &&
-                    setDeleteDialogOpen(false)
-                }
-                maxWidth="xs"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        background: "rgba(4,47,46,.95)",
-                        border:
-                            "1px solid rgba(239,68,68,.30)",
-                        color: "#F8FAFC",
-                        borderRadius: 1.5,
-                        backdropFilter: "blur(18px)"
-                    }
-                }}
-            >
-                <DialogTitle
-                    sx={{
-                        color: "#F8FAFC",
-                        fontWeight: 700
-                    }}
-                >
-                    🗑 Delete{" "}
-                    {isBulkDelete
-                        ? `${selectedVideos.length} videos?`
-                        : "Video"}
-                </DialogTitle>
-
-                <DialogContent>
-                    <Typography>
-                        {isBulkDelete
-                            ? `Are you sure you want to permanently delete the ${selectedVideos.length} selected videos?`
-                            : "Are you sure you want to permanently delete"}
-                    </Typography>
-
-                    {!isBulkDelete && (
-                        <Typography
-                            sx={{
-                                mt: 2,
-                                fontWeight: 700,
-                                color: "#F87171"
-                            }}
-                        >
-                            {videoToDelete?.original_filename}
-                        </Typography>
-                    )}
-
-                    <Typography
-                        sx={{
-                            mt: 3,
-                            color: "#94A3B8",
-                            fontSize: 14
-                        }}
-                    >
-                        This will permanently remove:
-                    </Typography>
-
-                    <Box
-                        sx={{
-                            mt: 1,
-                            color: "#CBD5E1",
-                            fontSize: 14
-                        }}
-                    >
-                        • Uploaded video(s)
-                        <br />
-                        • Transcript
-                        <br />
-                        • Transcript segments
-                        <br />
-                        • Transcript chunks
-                    </Box>
-                </DialogContent>
-
-                <DialogActions>
-                    <Button
-                        onClick={() =>
-                            setDeleteDialogOpen(false)
-                        }
-                        sx={{
-                            borderRadius: 1
-                        }}
-                    >
-                        Cancel
-                    </Button>
-
-                    <Button
-                        color="error"
-                        variant="contained"
-                        disabled={deleting}
-                        onClick={confirmDelete}
-                        sx={{
-                            borderRadius: 1
-                        }}
-                    >
-                        {deleting
-                            ? "Deleting..."
-                            : "Delete"}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </>
-    );
+      {/* DELETE VIDEO CONFIRMATION MODAL */}
+      <ConfirmDialog
+        isOpen={!!deletingVideo}
+        title="Delete Video?"
+        message={`Are you sure you want to permanently delete "${deletingVideo?.title}"? This will remove the video file, transcripts, and embeddings.`}
+        confirmText="Delete Completely"
+        cancelText="Cancel"
+        isDestructive={true}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteVideo}
+        onCancel={() => setDeletingVideo(null)}
+      />
+    </div>
+  );
 }

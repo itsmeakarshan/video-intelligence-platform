@@ -6,14 +6,18 @@ import {
 } from "react";
 import { API_URL } from "../utils/constants";
 
-
 export interface VideoItem {
     id: number;
+    course_id?: number | null;
+    order_index?: number;
+    title?: string;
     filename: string;
     original_filename: string;
     file_path: string;
     file_size: number;
     status: string;
+    progress?: number;
+    current_step?: string;
     created_at: string;
 }
 
@@ -59,7 +63,11 @@ export function VideoProvider({
     const playerRef = useRef<HTMLVideoElement>(null);
 
     function getVideoDisplayNumber(targetVideoId: number): number {
-        const sorted = [...videos].sort((a, b) => a.id - b.id);
+        const found = videos.find(v => v.id === targetVideoId);
+        if (found && found.order_index != null && found.order_index > 0) {
+            return found.order_index;
+        }
+        const sorted = [...videos].sort((a, b) => (a.order_index ?? a.id) - (b.order_index ?? b.id));
         const index = sorted.findIndex(v => v.id === targetVideoId);
         return index !== -1 ? index + 1 : targetVideoId;
     }
@@ -75,12 +83,11 @@ export function VideoProvider({
         setSelectedVideo(video);
         setVideoId(video.id);
         setVideoTitle(
-            video.original_filename
+            video.title || video.original_filename || video.filename
         );
         setVideoUrl(
             `${API_URL}/videos/${video.id}/file?access_token=${encodeURIComponent(localStorage.getItem("access_token") || "")}`
         );
-
     }
 
     function jumpToVideo(
@@ -95,10 +102,7 @@ export function VideoProvider({
         loadVideo(video);
 
         const player = playerRef.current;
-
-        if (!player) {
-            return;
-        }
+        if (!player) return;
 
         const onLoaded = () => {
             player.currentTime = time;

@@ -1,359 +1,182 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useVideo } from "../../context/VideoContext";
+import { getSegments } from "../../api/api";
 import {
-    Box,
-    Chip,
-    Divider,
-    IconButton,
-    InputAdornment,
-    List,
-    Paper,
-    Stack,
-    TextField,
-    Tooltip,
-    Typography
-} from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
-import ArticleRoundedIcon from "@mui/icons-material/ArticleRounded";
+  FileText,
+  Search,
+  Copy,
+  Check,
+  Play
+} from "lucide-react";
 import toast from "react-hot-toast";
 
-interface Segment {
-    segment_index: number;
-    start_time: number;
-    end_time: number;
-    text: string;
+export interface Segment {
+  segment_index: number;
+  start_time: number;
+  end_time: number;
+  text: string;
 }
 
 interface Props {
-    segments: Segment[];
-    onSeek: (time: number) => void;
+  segments?: Segment[];
+  onSeek?: (time: number) => void;
 }
 
 function formatTime(seconds: number) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds
-        .toString()
-        .padStart(2, "0")}`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-export default function Transcript({
-    segments,
-    onSeek
-}: Props) {
-    const [search, setSearch] = useState("");
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const listRef = useRef<HTMLDivElement>(null);
+export default function Transcript({ segments: propSegments, onSeek: propOnSeek }: Props) {
+  const { selectedVideo, seekTo } = useVideo();
+  const [loadedSegments, setLoadedSegments] = useState<Segment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-    const filteredSegments = useMemo(() => {
-        if (!search.trim()) {
-            return segments;
-        }
-        return segments.filter(segment =>
-            segment.text
-                .toLowerCase()
-                .includes(search.toLowerCase())
-        );
-    }, [segments, search]);
-
-    async function copyTranscript() {
-        try {
-            const text = filteredSegments
-                .map(segment => segment.text)
-                .join("\n");
-            await navigator.clipboard.writeText(text);
-            toast.success("Transcript copied");
-        } catch {
-            toast.error("Unable to copy transcript");
-        }
+  useEffect(() => {
+    if (propSegments) {
+      setLoadedSegments(propSegments);
+      return;
     }
 
-    useEffect(() => {
-        if (activeIndex === null) return;
-        const element = document.getElementById(
-            `segment-${activeIndex}`
-        );
-        element?.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-        });
-    }, [activeIndex]);
+    if (selectedVideo && selectedVideo.status === "completed") {
+      setLoading(true);
+      getSegments(selectedVideo.id)
+        .then((data) => {
+          setLoadedSegments(data || []);
+        })
+        .catch((err) => {
+          console.error("Failed to load transcript segments:", err);
+          setLoadedSegments([]);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoadedSegments([]);
+    }
+  }, [selectedVideo, propSegments]);
 
-    return (
-        <Paper
-            elevation={0}
-            sx={{
-                height: 620,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                borderRadius: 5,
-                background:
-                    "rgba(255,255,255,.72)",
-                backdropFilter: "blur(20px)",
-                border:
-                    "1px solid rgba(255,255,255,.55)",
-                boxShadow:
-                    "0 20px 60px rgba(0,0,0,.08)"
-            }}
-        >
-            {/* Header */}
-            <Box
-                sx={{
-                    p: 3,
-                    pb: 2
-                }}
-            >
-                <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                >
-                    <Box>
-                        <Typography
-                            variant="h5"
-                            sx={{
-                                fontWeight: 800
-                            }}
-                        >
-                            📝 Transcript
-                        </Typography>
-                        <Typography
-                            sx={{
-                                color: "#64748B",
-                                mt: .5
-                            }}
-                        >
-                            Click any sentence to jump the video.
-                        </Typography>
-                    </Box>
-                    <Tooltip title="Copy Transcript">
-                        <IconButton
-                            onClick={copyTranscript}
-                        >
-                            <ContentCopyRoundedIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
-                <Stack
-                    direction="row"
-                    spacing={1.5}
-                    sx={{
-                        mt: 2
-                    }}
-                >
-                    <Chip
-                        icon={
-                            <ArticleRoundedIcon />
-                        }
-                        label={`${segments.length} Segments`}
-                        color="primary"
-                        variant="outlined"
-                    />
-                    <Chip
-                        icon={
-                            <AccessTimeRoundedIcon />
-                        }
-                        label={
-                            segments.length > 0
-                                ? formatTime(
-                                    segments[
-                                        segments.length - 1
-                                    ].end_time
-                                )
-                                : "00:00"
-                        }
-                        color="secondary"
-                        variant="outlined"
-                    />
-                </Stack>
-                <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Search transcript..."
-                    value={search}
-                    onChange={event =>
-                        setSearch(event.target.value)
-                    }
-                    sx={{
-                        mt: 3
-                    }}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment
-                                position="start"
-                            >
-                                <SearchRoundedIcon />
-                            </InputAdornment>
-                        )
-                    }}
-                />
-            </Box>
-            <Divider />
-            <Box
-                ref={listRef}
-                sx={{
-                    flex: 1,
-                    overflowY: "auto",
-                    p: 2,
+  const activeSegments = propSegments || loadedSegments;
 
-                    "&::-webkit-scrollbar": {
-                        width: 8
-                    },
-
-                    "&::-webkit-scrollbar-track": {
-                        background: "transparent"
-                    },
-
-                    "&::-webkit-scrollbar-thumb": {
-                        background: "#CBD5E1",
-                        borderRadius: 20
-                    },
-
-                    "&::-webkit-scrollbar-thumb:hover": {
-                        background: "#94A3B8"
-                    }
-                }}
-            >
-                <List disablePadding>
-                    {
-                        filteredSegments.length === 0 && (
-                            <Box
-                                sx={{
-                                    py: 8,
-                                    textAlign: "center",
-                                    color: "#64748B"
-                                }}
-                            >
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 700,
-                                        mb: 1
-                                    }}
-                                >
-                                    No matching transcript
-                                </Typography>
-                                <Typography>
-                                    Try another search keyword.
-                                </Typography>
-                            </Box>
-                        )
-                    }
-                    {
-                        filteredSegments.map((segment) => {
-                            const active =
-                                activeIndex === segment.segment_index;
-                            return (
-                                <Paper
-                                    id={`segment-${segment.segment_index}`}
-                                    key={segment.segment_index}
-                                    elevation={0}
-                                    onClick={() => {
-                                        setActiveIndex(segment.segment_index);
-                                        onSeek(segment.start_time);
-                                        toast.success(
-                                            `Jumped to ${formatTime(segment.start_time)}`
-                                        );
-                                    }}
-                                    sx={{
-                                        mb: 1.5,
-                                        p: 2,
-                                        borderRadius: 4,
-                                        cursor: "pointer",
-                                        transition:
-                                            "all .25s ease",
-                                        background: active
-                                            ? "linear-gradient(135deg,#EEF2FF,#E0E7FF)"
-                                            : "#FFFFFF",
-                                        border: active
-                                            ? "2px solid #6366F1"
-                                            : "1px solid #E5E7EB",
-                                        boxShadow: active
-                                            ? "0 12px 35px rgba(99,102,241,.18)"
-                                            : "0 3px 12px rgba(0,0,0,.05)",
-                                        "&:hover": {
-                                            transform:
-                                                "translateX(6px)",
-                                            boxShadow:
-                                                "0 10px 25px rgba(0,0,0,.08)",
-                                            borderColor:
-                                                "#6366F1"
-                                        }
-                                    }}
-                                >
-                                    <Stack
-                                        direction="row"
-                                        spacing={2}
-                                        alignItems="flex-start"
-                                    >
-                                        <Chip
-                                            label={
-                                                formatTime(
-                                                    segment.start_time
-                                                )
-                                            }
-                                            color={
-                                                active
-                                                    ? "primary"
-                                                    : "default"
-                                            }
-                                            sx={{
-                                                minWidth: 70,
-                                                fontWeight: 700,
-                                                mt: .5
-                                            }}
-                                        />
-                                        <Box
-                                            sx={{
-                                                flex: 1
-                                            }}
-                                        >
-                                            <Typography
-                                                sx={{
-                                                    lineHeight: 1.8,
-                                                    color: "#111827",
-                                                    fontWeight: active
-                                                        ? 700
-                                                        : 500
-                                                }}
-                                            >
-                                                {segment.text}
-                                            </Typography>
-                                            <Typography
-                                                sx={{
-                                                    mt: 1,
-                                                    fontSize: 13,
-                                                    color: "#94A3B8"
-                                                }}
-                                            >
-                                                Segment #
-                                                {
-                                                    segment.segment_index + 1
-                                                }
-                                                {" • "}
-                                                Ends at
-                                                {" "}
-                                                {
-                                                    formatTime(
-                                                        segment.end_time
-                                                    )
-                                                }
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </Paper>
-                            );
-                        })
-                    }
-                    <Box
-                        sx={{
-                            height: 20
-                        }}
-                    />
-                </List>
-            </Box>
-        </Paper>
+  const filteredSegments = useMemo(() => {
+    if (!search.trim()) return activeSegments;
+    return activeSegments.filter((s) =>
+      s.text.toLowerCase().includes(search.toLowerCase())
     );
+  }, [activeSegments, search]);
+
+  function handleSeek(time: number, idx: number) {
+    setActiveIndex(idx);
+    if (propOnSeek) {
+      propOnSeek(time);
+    } else if (seekTo) {
+      seekTo(time);
+    }
+  }
+
+  async function copyTranscript() {
+    try {
+      const fullText = filteredSegments.map((s) => `[${formatTime(s.start_time)}] ${s.text}`).join("\n");
+      await navigator.clipboard.writeText(fullText);
+      setCopied(true);
+      toast.success("Transcript copied to clipboard.");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy transcript.");
+    }
+  }
+
+  if (!selectedVideo && !propSegments) {
+    return null;
+  }
+
+  return (
+    <div className="bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-xs text-white">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#333642]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center font-bold">
+            <FileText className="w-5 h-5 text-[#E5F842]" />
+          </div>
+          <div>
+            <h3 className="text-base font-extrabold text-white">
+              Interactive Transcript
+            </h3>
+            <p className="text-xs text-slate-400 font-medium">
+              Click any timestamp or sentence to jump video playback directly.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-lg bg-[#18191E] text-slate-300 border border-[#333642] text-xs font-bold">
+            {activeSegments.length} Segments
+          </span>
+          <button
+            onClick={copyTranscript}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#333642] hover:border-[#E5F842]/40 text-xs font-bold text-slate-300 hover:bg-[#2E313B] hover:text-white transition-colors cursor-pointer"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-[#E5F842]" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Input */}
+      <div className="relative mt-4">
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search transcript by keyword..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 text-xs bg-[#18191E] text-white placeholder-slate-500 rounded-xl border border-[#333642] focus:outline-hidden focus:border-[#E5F842] transition-colors"
+        />
+      </div>
+
+      {/* Segments List */}
+      <div className="mt-4 max-h-80 overflow-y-auto space-y-2 pr-1">
+        {loading ? (
+          <div className="text-center py-8 text-xs text-slate-500">
+            Loading transcript segments...
+          </div>
+        ) : filteredSegments.length === 0 ? (
+          <div className="text-center py-8 text-xs text-slate-500">
+            {search ? "No matching sentences found." : "No transcript available for this video."}
+          </div>
+        ) : (
+          filteredSegments.map((segment) => {
+            const isActive = activeIndex === segment.segment_index;
+            return (
+              <div
+                key={segment.segment_index}
+                onClick={() => handleSeek(segment.start_time, segment.segment_index)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 text-xs leading-relaxed ${
+                  isActive
+                    ? "bg-[#E5F842]/15 border-[#E5F842] shadow-2xs font-semibold text-white"
+                    : "bg-[#18191E] hover:bg-[#2E313B] border-[#333642] text-slate-200"
+                }`}
+              >
+                <button
+                  type="button"
+                  className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#25272F] border border-[#333642] text-[#E5F842] font-bold text-[11px] shadow-2xs hover:border-[#E5F842]"
+                >
+                  <Play className="w-2.5 h-2.5 fill-[#E5F842] text-[#E5F842]" />
+                  {formatTime(segment.start_time)}
+                </button>
+
+                <p className="flex-1 pt-0.5">
+                  {segment.text}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+    </div>
+  );
 }

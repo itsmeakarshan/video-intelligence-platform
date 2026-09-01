@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 
 import {
     Box,
-    CircularProgress,
     IconButton,
     Slider,
     Stack,
@@ -13,7 +12,6 @@ import {
     ListItemText
 } from "@mui/material";
 
-import MovieIcon from "@mui/icons-material/Movie";
 import Replay10Icon from "@mui/icons-material/Replay10";
 import Forward10Icon from "@mui/icons-material/Forward10";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -24,6 +22,7 @@ import FullscreenRoundedIcon from "@mui/icons-material/FullscreenRounded";
 import FullscreenExitRoundedIcon from "@mui/icons-material/FullscreenExitRounded";
 import SpeedIcon from "@mui/icons-material/Speed";
 import CheckIcon from "@mui/icons-material/Check";
+import { Film, Sparkles, Loader2 } from "lucide-react";
 
 import { useVideo } from "../../context/VideoContext";
 
@@ -322,92 +321,39 @@ export default function VideoPlayer() {
 
     if (processing) {
         return (
-            <Box
-                sx={{
-                    height: 600,
-                    width: "100%",
-                    borderRadius: 3,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    background: "rgba(15, 23, 42, 0.6)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(20, 184, 166, 0.15)",
-                    color: "#f8fafc"
-                }}
-            >
-                <CircularProgress
-                    size={70}
-                    sx={{
-                        color: "#14b8a6",
-                        mb: 3
-                    }}
-                />
-
-                <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700 }}
-                >
-                    Processing Video...
-                </Typography>
-
-                <Typography
-                    sx={{
-                        mt: 1,
-                        opacity: 0.7,
-                        fontSize: 14
-                    }}
-                >
-                    Generating transcript and AI knowledge...
-                </Typography>
-            </Box>
+            <div className="w-full h-[560px] bg-[#25272F] rounded-3xl border border-[#333642] p-8 text-center flex flex-col items-center justify-center shadow-xs space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center animate-pulse">
+                    <Loader2 className="w-8 h-8 text-[#E5F842] animate-spin" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-extrabold text-white tracking-tight">
+                        Processing Video Lesson...
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-400 max-w-sm mt-1 font-medium leading-relaxed">
+                        Generating AI transcript, indexed chapters, and knowledge search index.
+                    </p>
+                </div>
+            </div>
         );
     }
 
     if (!videoUrl) {
         return (
-            <Box
-                sx={{
-                    height: 600,
-                    width: "100%",
-                    borderRadius: 3,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    background: "rgba(15, 23, 42, 0.4)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
-                    color: "#f8fafc"
-                }}
-            >
-                <MovieIcon
-                    sx={{
-                        fontSize: 80,
-                        opacity: 0.5,
-                        mb: 2,
-                        color: "#14b8a6"
-                    }}
-                />
-
-                <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700 }}
-                >
+            <div className="w-full h-[560px] bg-[#25272F] rounded-3xl border-2 border-dashed border-[#333642] p-8 text-center flex flex-col items-center justify-center shadow-xs">
+                <div className="w-16 h-16 rounded-3xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center mb-4 shadow-xs">
+                    <Film className="w-8 h-8 text-[#E5F842]" />
+                </div>
+                <h3 className="text-xl font-extrabold text-white tracking-tight">
                     No Video Selected
-                </Typography>
-
-                <Typography
-                    sx={{
-                        mt: 1,
-                        opacity: 0.6,
-                        fontSize: 14
-                    }}
-                >
-                    Upload or choose a video from your library to start learning.
-                </Typography>
-            </Box>
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-sm mt-1.5 font-medium leading-relaxed">
+                    Select a video lesson from the curriculum below to start watching and learning with AI.
+                </p>
+                <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#E5F842]/15 text-[#E5F842] text-xs font-extrabold border border-[#E5F842]/30 shadow-2xs">
+                    <Sparkles className="w-3.5 h-3.5 text-[#E5F842]" />
+                    <span>Select any lesson to play</span>
+                </div>
+            </div>
         );
     }
 
@@ -424,15 +370,15 @@ export default function VideoPlayer() {
             sx={{
                 position: "relative",
                 width: "100%",
-                height: isFullscreen ? "100vh" : "620px",
-                maxHeight: isFullscreen ? "100vh" : "620px",
+                height: isFullscreen ? "100vh" : { xs: "480px", md: "520px", lg: "560px" },
+                maxHeight: isFullscreen ? "100vh" : "560px",
                 overflow: "hidden",
-                borderRadius: isFullscreen ? 0 : 3,
-                background: "#000",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+                borderRadius: isFullscreen ? 0 : "24px",
+                background: "#0E0F12",
+                boxShadow: "0 12px 36px rgba(0,0,0,0.6)",
                 border: isFullscreen
                     ? "none"
-                    : "1px solid rgba(20, 184, 166, 0.2)",
+                    : "1px solid #333642",
                 cursor: showControls ? "default" : "none",
                 display: "flex",
                 alignItems: "center",
@@ -449,7 +395,7 @@ export default function VideoPlayer() {
                     height: "100%",
                     display: "block",
                     objectFit: "contain",
-                    background: "#000"
+                    background: "#0E0F12"
                 }}
             />
 
@@ -462,10 +408,8 @@ export default function VideoPlayer() {
                     flexDirection: "column",
                     justifyContent: "space-between",
                     opacity: showControls ? 1 : 0,
-                    transition: "opacity 0.3s ease-in-out",
-                    pointerEvents: showControls ? "auto" : "none",
-                    background:
-                        "linear-gradient(to bottom, rgba(3,7,18,0.75) 0%, transparent 20%, transparent 75%, rgba(3,7,18,0.9) 100%)"
+                    transition: "opacity 0.25s ease-in-out",
+                    pointerEvents: showControls ? "auto" : "none"
                 }}
             >
                 {/* Top Header Bar */}
@@ -475,38 +419,41 @@ export default function VideoPlayer() {
                         justifyContent: "space-between",
                         alignItems: "center",
                         px: 4,
-                        py: 3
+                        py: 2.5,
+                        background:
+                            "linear-gradient(to bottom, rgba(14, 15, 18, 0.92) 0%, rgba(14, 15, 18, 0.4) 60%, transparent 100%)"
                     }}
                 >
                     <Typography
                         sx={{
                             color: "#FFF",
                             fontWeight: 700,
-                            fontSize: 22,
-                            textShadow:
-                                "0 2px 4px rgba(0,0,0,0.6)"
+                            fontSize: 18,
+                            maxWidth: "75%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            textShadow: "0 2px 4px rgba(0,0,0,0.6)"
                         }}
                     >
-                        🎬 {videoTitle || "Current Video"}
+                        🎬 {videoTitle || "Current Lesson"}
                     </Typography>
 
                     <Box
                         sx={{
-                            px: 3,
-                            py: 1,
-                            borderRadius: 4,
-                            bgcolor:
-                                "rgba(20, 184, 166, 0.2)",
-                            border:
-                                "1px solid rgba(20, 184, 166, 0.4)",
+                            px: 2.5,
+                            py: 0.6,
+                            borderRadius: 3,
+                            bgcolor: "rgba(229, 248, 66, 0.15)",
+                            border: "1px solid rgba(229, 248, 66, 0.35)",
                             backdropFilter: "blur(8px)"
                         }}
                     >
                         <Typography
                             sx={{
-                                color: "#14b8a6",
-                                fontSize: 14,
-                                fontWeight: 700,
+                                color: "#E5F842",
+                                fontSize: 12,
+                                fontWeight: 800,
                                 letterSpacing: 0.5
                             }}
                         >
@@ -527,31 +474,28 @@ export default function VideoPlayer() {
                     <IconButton
                         onClick={togglePlay}
                         sx={{
-                            width: 100,
-                            height: 100,
-                            bgcolor:
-                                "rgba(20, 184, 166, 0.25)",
-                            backdropFilter: "blur(16px)",
-                            border:
-                                "1px solid rgba(20, 184, 166, 0.5)",
-                            color: "#FFF",
-                            transition:
-                                "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                            width: 84,
+                            height: 84,
+                            bgcolor: "rgba(229, 248, 66, 0.2)",
+                            backdropFilter: "blur(14px)",
+                            border: "1px solid rgba(229, 248, 66, 0.45)",
+                            color: "#E5F842",
+                            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                             "&:hover": {
-                                bgcolor:
-                                    "rgba(20, 184, 166, 0.45)",
-                                transform: "scale(1.1)"
+                                bgcolor: "rgba(229, 248, 66, 0.35)",
+                                transform: "scale(1.08)"
                             }
                         }}
                     >
                         {playing ? (
                             <PauseRoundedIcon
-                                sx={{ fontSize: 52 }}
+                                sx={{ fontSize: 44 }}
                             />
                         ) : (
                             <PlayArrowRoundedIcon
                                 sx={{
-                                    fontSize: 52,
+                                    fontSize: 44,
                                     ml: 0.5
                                 }}
                             />
@@ -562,10 +506,13 @@ export default function VideoPlayer() {
                 {/* Bottom Control Bar */}
                 <Box
                     sx={{
-                        px: 3,
-                        pb: 2.5,
+                        px: 4,
+                        pb: 3,
+                        pt: 4,
                         display: "flex",
-                        flexDirection: "column"
+                        flexDirection: "column",
+                        background:
+                            "linear-gradient(to top, rgba(14, 15, 18, 0.98) 0%, rgba(14, 15, 18, 0.75) 50%, rgba(14, 15, 18, 0.2) 85%, transparent 100%)"
                     }}
                 >
                     {/* Progress Slider */}
@@ -576,25 +523,31 @@ export default function VideoPlayer() {
                         onChange={handleProgress}
                         size="small"
                         sx={{
-                            color: "#14b8a6",
-                            height: 7,
-                            mb: 2,
-
+                            color: "#E5F842",
+                            height: 4,
+                            p: "6px 0",
+                            mb: 1.5,
+                            transition: "height 0.15s ease",
+                            "&:hover": {
+                                height: 6
+                            },
                             "& .MuiSlider-thumb": {
-                                width: 18,
-                                height: 18,
-                                transition:
-                                    "transform 0.1s ease",
-
-                                "&:hover, &.Mui-focusVisible": {
-                                    boxShadow:
-                                        "0px 0px 0px 8px rgba(20, 184, 166, 0.3)",
-                                    transform: "scale(1.25)"
+                                width: 12,
+                                height: 12,
+                                backgroundColor: "#E5F842",
+                                boxShadow: "none",
+                                transition: "all 0.15s ease",
+                                "&:hover, &.Mui-focusVisible, &.Mui-active": {
+                                    boxShadow: "0 0 10px rgba(229, 248, 66, 0.8)",
+                                    transform: "scale(1.3)"
                                 }
                             },
-
+                            "& .MuiSlider-track": {
+                                border: "none",
+                                backgroundColor: "#E5F842"
+                            },
                             "& .MuiSlider-rail": {
-                                opacity: 0.4,
+                                opacity: 0.3,
                                 backgroundColor: "#94a3b8"
                             }
                         }}
@@ -611,7 +564,7 @@ export default function VideoPlayer() {
                         {/* Left Side */}
                         <Stack
                             direction="row"
-                            spacing={2}
+                            spacing={1.5}
                             alignItems="center"
                             sx={{
                                 flex: 1,
@@ -621,13 +574,13 @@ export default function VideoPlayer() {
                             {/* Volume */}
                             <Stack
                                 direction="row"
-                                spacing={1.5}
+                                spacing={1}
                                 alignItems="center"
                                 sx={{
                                     "&:hover .volume-slider": {
-                                        width: 110,
+                                        width: 100,
                                         opacity: 1,
-                                        ml: 1.5
+                                        ml: 1
                                     }
                                 }}
                             >
@@ -635,7 +588,7 @@ export default function VideoPlayer() {
                                     onClick={toggleMute}
                                     sx={{
                                         color: "#FFF",
-                                        p: 1.5,
+                                        p: 1,
                                         "&:hover": {
                                             bgcolor:
                                                 "rgba(255,255,255,0.12)"
@@ -644,11 +597,11 @@ export default function VideoPlayer() {
                                 >
                                     {muted || volume === 0 ? (
                                         <VolumeOffRoundedIcon
-                                            sx={{ fontSize: 32 }}
+                                            sx={{ fontSize: 26 }}
                                         />
                                     ) : (
                                         <VolumeUpRoundedIcon
-                                            sx={{ fontSize: 32 }}
+                                            sx={{ fontSize: 26 }}
                                         />
                                     )}
                                 </IconButton>
@@ -672,12 +625,14 @@ export default function VideoPlayer() {
                                         onChange={handleVolume}
                                         size="small"
                                         sx={{
-                                            width: 100,
-                                            color: "#14b8a6",
+                                            width: 90,
+                                            color: "#E5F842",
+                                            height: 4,
                                             "& .MuiSlider-thumb":
                                                 {
-                                                    width: 14,
-                                                    height: 14
+                                                    width: 10,
+                                                    height: 10,
+                                                    boxShadow: "none"
                                                 }
                                         }}
                                     />
@@ -687,9 +642,10 @@ export default function VideoPlayer() {
                             <Typography
                                 sx={{
                                     color: "#94a3b8",
-                                    ml: 1,
-                                    fontSize: 17,
-                                    fontWeight: 500,
+                                    ml: 0.5,
+                                    fontSize: 13,
+                                    fontFamily: "monospace",
+                                    fontVariantNumeric: "tabular-nums",
                                     userSelect: "none"
                                 }}
                             >
@@ -697,7 +653,7 @@ export default function VideoPlayer() {
                                     component="span"
                                     sx={{
                                         color: "#fff",
-                                        fontWeight: 600
+                                        fontWeight: 700
                                     }}
                                 >
                                     {formatTime(currentTime)}
@@ -709,7 +665,7 @@ export default function VideoPlayer() {
                         {/* Center Controls */}
                         <Stack
                             direction="row"
-                            spacing={1.5}
+                            spacing={1}
                             alignItems="center"
                             sx={{
                                 flex: 1,
@@ -724,7 +680,7 @@ export default function VideoPlayer() {
                                     onClick={() => skip(-10)}
                                     sx={{
                                         color: "#FFF",
-                                        p: 1.5,
+                                        p: 1,
                                         "&:hover": {
                                             bgcolor:
                                                 "rgba(255,255,255,0.12)"
@@ -732,7 +688,7 @@ export default function VideoPlayer() {
                                     }}
                                 >
                                     <Replay10Icon
-                                        sx={{ fontSize: 32 }}
+                                        sx={{ fontSize: 24 }}
                                     />
                                 </IconButton>
                             </Tooltip>
@@ -748,23 +704,21 @@ export default function VideoPlayer() {
                                 <IconButton
                                     onClick={togglePlay}
                                     sx={{
-                                        color: "#FFF",
-                                        p: 1.5,
-                                        bgcolor:
-                                            "rgba(20, 184, 166, 0.3)",
+                                        color: "#121316",
+                                        p: 1,
+                                        bgcolor: "#E5F842",
                                         "&:hover": {
-                                            bgcolor:
-                                                "rgba(20, 184, 166, 0.5)"
+                                            bgcolor: "#D6EA35"
                                         }
                                     }}
                                 >
                                     {playing ? (
                                         <PauseRoundedIcon
-                                            sx={{ fontSize: 34 }}
+                                            sx={{ fontSize: 24 }}
                                         />
                                     ) : (
                                         <PlayArrowRoundedIcon
-                                            sx={{ fontSize: 34 }}
+                                            sx={{ fontSize: 24 }}
                                         />
                                     )}
                                 </IconButton>
@@ -778,7 +732,7 @@ export default function VideoPlayer() {
                                     onClick={() => skip(10)}
                                     sx={{
                                         color: "#FFF",
-                                        p: 1.5,
+                                        p: 1,
                                         "&:hover": {
                                             bgcolor:
                                                 "rgba(255,255,255,0.12)"
@@ -786,7 +740,7 @@ export default function VideoPlayer() {
                                     }}
                                 >
                                     <Forward10Icon
-                                        sx={{ fontSize: 32 }}
+                                        sx={{ fontSize: 24 }}
                                     />
                                 </IconButton>
                             </Tooltip>
@@ -816,32 +770,33 @@ export default function VideoPlayer() {
                                         onClick={toggleSpeedMenu}
                                         sx={{
                                             color: "#FFF",
-                                            p: 1,
+                                            py: 0.6,
+                                            px: 1.2,
                                             gap: 0.6,
-                                            borderRadius: 2,
+                                            borderRadius: 2.5,
                                             bgcolor:
-                                                "rgba(15, 23, 42, 0.5)",
+                                                "rgba(24, 25, 30, 0.85)",
                                             border:
-                                                "1px solid rgba(20, 184, 166, 0.3)",
+                                                "1px solid #333642",
                                             "&:hover": {
                                                 bgcolor:
-                                                    "rgba(20, 184, 166, 0.2)"
+                                                    "rgba(229, 248, 66, 0.15)",
+                                                borderColor: "rgba(229, 248, 66, 0.4)"
                                             }
                                         }}
                                     >
                                         <SpeedIcon
                                             sx={{
-                                                fontSize: 22,
-                                                color: "#14b8a6"
+                                                fontSize: 18,
+                                                color: "#E5F842"
                                             }}
                                         />
 
                                         <Typography
                                             sx={{
-                                                fontSize: 13,
-                                                fontWeight: 700,
-                                                color: "#ffffff",
-                                                pr: 0.5
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                color: "#ffffff"
                                             }}
                                         >
                                             {playbackRate === 1
@@ -851,12 +806,6 @@ export default function VideoPlayer() {
                                     </IconButton>
                                 </Tooltip>
 
-                                {/* 
-                                    Speed menu is rendered directly inside
-                                    the player instead of using MUI Popover.
-                                    This fixes positioning and interaction
-                                    in normal and fullscreen modes.
-                                */}
                                 {showSpeedMenu && (
                                     <Box
                                         sx={{
@@ -864,13 +813,13 @@ export default function VideoPlayer() {
                                             bottom: "calc(100% + 12px)",
                                             right: 0,
                                             width: 140,
-                                            bgcolor: "#0f172a",
+                                            bgcolor: "#25272F",
                                             border:
-                                                "1px solid rgba(20, 184, 166, 0.4)",
+                                                "1px solid #333642",
                                             color: "#ffffff",
-                                            borderRadius: 2,
+                                            borderRadius: 2.5,
                                             boxShadow:
-                                                "0 10px 25px rgba(0,0,0,0.8)",
+                                                "0 12px 32px rgba(0,0,0,0.8)",
                                             overflow: "hidden",
                                             zIndex: 1000
                                         }}
@@ -898,13 +847,13 @@ export default function VideoPlayer() {
                                                                 px: 2,
                                                                 bgcolor:
                                                                     isSelected
-                                                                        ? "rgba(20, 184, 166, 0.25)"
+                                                                        ? "rgba(229, 248, 66, 0.2)"
                                                                         : "transparent",
 
                                                                 "&:hover":
                                                                     {
                                                                         bgcolor:
-                                                                            "rgba(20, 184, 166, 0.35)"
+                                                                            "rgba(229, 248, 66, 0.3)"
                                                                     }
                                                             }}
                                                         >
@@ -921,7 +870,7 @@ export default function VideoPlayer() {
                                                                     <CheckIcon
                                                                         sx={{
                                                                             fontSize: 14,
-                                                                            color: "#14b8a6"
+                                                                            color: "#E5F842"
                                                                         }}
                                                                     />
                                                                 )}
@@ -943,7 +892,7 @@ export default function VideoPlayer() {
                                                                                 : 400,
                                                                         color:
                                                                             isSelected
-                                                                                ? "#14b8a6"
+                                                                                ? "#E5F842"
                                                                                 : "#ffffff"
                                                                     }
                                                                 }}
@@ -970,7 +919,7 @@ export default function VideoPlayer() {
                                     onClick={toggleFullscreen}
                                     sx={{
                                         color: "#FFF",
-                                        p: 1.5,
+                                        p: 1,
                                         "&:hover": {
                                             bgcolor:
                                                 "rgba(255,255,255,0.12)"
@@ -980,13 +929,13 @@ export default function VideoPlayer() {
                                     {isFullscreen ? (
                                         <FullscreenExitRoundedIcon
                                             sx={{
-                                                fontSize: 34
+                                                fontSize: 26
                                             }}
                                         />
                                     ) : (
                                         <FullscreenRoundedIcon
                                             sx={{
-                                                fontSize: 34
+                                                fontSize: 26
                                             }}
                                         />
                                     )}

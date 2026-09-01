@@ -1,35 +1,49 @@
-FROM python:3.13-slim
+# ========================================================
+# Video Intelligence Platform - .NET Backend Dockerfile
+# Multi-stage build for ASP.NET Core & Whisper Engine
+# ========================================================
 
+# Stage 1: Build .NET Backend
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY backend/VideoIntelligencePlatform.Backend.csproj backend/
+RUN dotnet restore backend/VideoIntelligencePlatform.Backend.csproj
+
+COPY backend/ backend/
+RUN dotnet publish backend/VideoIntelligencePlatform.Backend.csproj -c Release -o /app/publish
+
+# Stage 2: Runtime Environment
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
-# Install system dependencies
+# Install system utilities, ffmpeg, python3, and yt-dlp for Whisper speech-to-text
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    build-essential \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CPU-only PyTorch binaries to prevent downloading 8.5 GB CUDA GPU drivers
-RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Install Whisper & audio requirements
+COPY backend/ml/requirements.txt /app/backend/ml/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /app/backend/ml/requirements.txt \
+    && rm -rf /root/.cache/pip
 
-# Copy and install Python dependencies
-COPY backend/requirements.txt /app/backend/requirements.txt
-COPY ml/requirements.txt /app/ml/requirements.txt
+# Copy Whisper transcription scripts
+COPY backend/ml /app/backend/ml
 
-RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r /app/backend/requirements.txt -r /app/ml/requirements.txt \
-    && apt-get purge -y --auto-remove build-essential \
-    && rm -rf /var/lib/apt/lists/* /root/.cache/pip
-
-# Copy source code and ML artifacts
-COPY ml /app/ml
-COPY backend /app/backend
+# Copy published ASP.NET Core backend
+COPY --from=build /app/publish /app/backend
 
 WORKDIR /app/backend
 
-# Create runtime upload/audio directories
-RUN mkdir -p uploads temp_audio chroma_db outputs db
+# Runtime storage folders
+RUN mkdir -p uploads temp_audio outputs db
 
 EXPOSE 8000
+ENV PORT=8000
+ENV ASPNETCORE_URLS=http://+:8000
 
-ENV PYTHONPATH=/app
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["dotnet", "VideoIntelligencePlatform.Backend.dll"]

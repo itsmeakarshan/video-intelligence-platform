@@ -1,35 +1,12 @@
-.git
-.gitignore
-.DS_Store
-*.md
-*.log
-
-# Python local environments and caches
-
-backend/.venv
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/node_modules
+**/dist
 **/.venv
 **/__pycache__
 **/*.pyc
-**/*.pyo
-**/*.pyd
-.pytest_cache
-.ipynb_checkpoints
-*.sqlite3-journal
-
-# Node local build outputs
-frontend/node_modules
-frontend/dist
-frontend/.vite
-node_modules
-
-# Temporary local data
-backend/temp_audio/*
-backend/outputs/*
-!backend/uploads/.gitkeep
-!backend/temp_audio/.gitkeep
-!backend/outputs/.gitkeep
-
-# ML datasets & research notebooks (not needed at runtime)
-ml/data/
-ml/notebooks/
-
+**/.DS_Store

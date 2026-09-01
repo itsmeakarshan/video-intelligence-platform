@@ -1,491 +1,228 @@
 import { useState, useEffect } from "react";
-import {
-    Box,
-    Grid,
-    Paper,
-    Typography,
-    Container,
-    Chip,
-    Button,
-    Stack,
-    Card,
-    CardContent
-} from "@mui/material";
-
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
-import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import AutoGraphIcon from "@mui/icons-material/AutoGraph";
-import SchoolIcon from "@mui/icons-material/School";
-import SmartToyRoundedIcon from "@mui/icons-material/SmartToyRounded";
-import VideoLibraryRoundedIcon from "@mui/icons-material/VideoLibraryRounded";
-import YouTubeIcon from "@mui/icons-material/YouTube";
-
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
-import StarTrail from "./StarTrail";
-import Chat from "../components/chat/Chat";
-import VideoPlayer from "../components/video/VideoPlayer";
-import VideoLibrary from "../components/video/VideoLibrary";
-import YouTubeDownloader from "../components/video/YouTubeDownloader";
-import DraggableRobot from "../components/common/DraggableRobot";
-import { getLearningPrediction } from "../api/api";
+import { getCourses, type CourseItem } from "../api/api";
+import { API_URL } from "../utils/constants";
 import { useAuth } from "../context/AuthContext";
+import {
+  Bot,
+  BookOpen,
+  ArrowRight,
+  Loader2,
+  Video,
+  CheckCircle2,
+  Trophy
+} from "lucide-react";
 
 export default function Dashboard() {
-    const navigate = useNavigate();
-    const { user: authUser } = useAuth();
+  const navigate = useNavigate();
+  const { user: authUser, isAdmin } = useAuth();
 
-    const [predScore, setPredScore] = useState<number | null>(null);
-    const [histAvg, setHistAvg] = useState<number | null>(null);
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const user = authUser || { name: "Learner" };
+  const user = authUser || { name: "User", role: "student" };
 
-    useEffect(() => {
-        window.scrollTo(0, 0);
-        loadOverviewPredictions();
-    }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchEnrolledCourses();
+  }, []);
 
-    async function loadOverviewPredictions() {
-        try {
-            const regRes = await getLearningPrediction("Medium");
-            if (regRes && regRes.has_sufficient_history) {
-                setPredScore(regRes.predicted_percentage);
-                setHistAvg(regRes.historical_avg);
-            }
-        } catch (err) {
-            console.error("Failed to load overview predictions", err);
-        }
+  async function fetchEnrolledCourses() {
+    setLoading(true);
+    try {
+      const allCourses = await getCourses();
+      const enrolled = allCourses.filter((c) => isAdmin || c.is_enrolled);
+      setEnrolledCourses(enrolled);
+    } catch (err) {
+      console.error("Failed to load enrolled courses:", err);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    const cardGlassStyle = {
-        borderRadius: 3,
-        backdropFilter: "blur(20px)",
-        background: "rgba(15, 23, 42, 0.75)",
-        border: "1px solid rgba(20, 184, 166, 0.2)",
-        boxShadow: "0 20px 40px rgba(0, 0, 0, 0.45)"
-    };
+  function getThumbnailFullUrl(url?: string | null) {
+    if (!url) return null;
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
+      return url;
+    }
+    return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+  }
 
-    return (
-        <Box
-            sx={{
-                minHeight: "100vh",
-                overflowX: "hidden",
-                bgcolor: "#0F172A",
-                color: "#f8fafc",
-                position: "relative",
-                pb: 8
-            }}
-        >
-            <Navbar />
-            <StarTrail />
+  return (
+    <div className="min-h-screen bg-transparent text-white pb-16">
+      <Navbar />
 
-            <Container
-                maxWidth={false}
-                sx={{
-                    maxWidth: "2560px",
-                    width: { xs: "96%", md: "88%", lg: "80%" },
-                    mx: "auto",
-                    px: { xs: 2, sm: 3, md: 4 },
-                    position: "relative",
-                    zIndex: 1,
-                    pt: 4
-                }}
+      <main className="w-full px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+        
+        {/* 1. WELCOME HEADER BANNER */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#333642]">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#25272F] border border-[#333642] text-[#E5F842] flex items-center justify-center shadow-lg shadow-black/40 shrink-0">
+              <Bot className="w-7 h-7" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                  Welcome back, {user.name} 👋
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30">
+                  <span className="w-2 h-2 rounded-full bg-[#E5F842] animate-pulse" />
+                  {isAdmin ? "Instructor / Admin Session" : "Active Student Session"}
+                </span>
+              </div>
+              <p className="text-sm text-slate-400 mt-1 font-medium">
+                Your enrolled learning tracks, interactive video lectures & AI tutor workspace
+              </p>
+            </div>
+          </div>
+
+          {!isAdmin && (
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <button
+                onClick={() => navigate("/scores")}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#E5F842] text-[#121316] font-extrabold text-sm hover:bg-[#d6e838] transition-all duration-150 cursor-pointer shadow-lg shadow-[#E5F842]/10"
+              >
+                <Trophy className="w-4.5 h-4.5 text-[#121316]" />
+                My Scores & Attempts
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 2. ENROLLED COURSES SECTION */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#E5F842]/15 text-[#E5F842] flex items-center justify-center font-bold border border-[#E5F842]/20">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <span>My Enrolled Courses</span>
+                  {!loading && (
+                    <span className="px-2 py-0.5 rounded-full bg-[#E5F842] text-[#121316] text-[11px] font-black">
+                      {enrolledCourses.length}
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-slate-400 font-medium">
+                  Select any course to view its curriculum, video lessons, and interactive AI chat
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate("/courses")}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25272F] hover:bg-[#2E313B] text-slate-300 hover:text-white border border-[#333642] text-xs font-bold transition-all cursor-pointer"
             >
-                {/* 1. WELCOME / HEADER */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        mb: 4,
-                        pb: 2.5,
-                        borderBottom: "1px solid rgba(255,255,255,0.08)",
-                        flexWrap: "wrap",
-                        gap: 2
-                    }}
-                >
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                        {/* Animated Floating Robot Visual */}
-                        <Box
-                            sx={{
-                                width: 52,
-                                height: 52,
-                                borderRadius: "18px",
-                                background: "linear-gradient(135deg, #14b8a6, #0ea5e9)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 0 24px rgba(20, 184, 166, 0.45)",
-                                animation: "floatRobot 3.2s ease-in-out infinite",
-                                "@keyframes floatRobot": {
-                                    "0%, 100%": { transform: "translateY(0px)" },
-                                    "50%": { transform: "translateY(-7px)" }
-                                }
-                            }}
-                        >
-                            <SmartToyRoundedIcon sx={{ color: "#ffffff", fontSize: 30 }} />
-                        </Box>
-                        <Box>
-                            <Stack direction="row" alignItems="center" spacing={1.5}>
-                                <Typography
-                                    variant="h4"
-                                    sx={{
-                                        fontWeight: 800,
-                                        letterSpacing: "-0.5px",
-                                        color: "#f8fafc",
-                                        fontSize: { xs: 24, sm: 30 }
-                                    }}
-                                >
-                                    Welcome back, {user.name} 👋
-                                </Typography>
-                                <Chip
-                                    icon={<SchoolIcon sx={{ fontSize: 16, color: "#14b8a6" }} />}
-                                    label="Active Student Session"
-                                    sx={{ bgcolor: "rgba(20, 184, 166, 0.15)", color: "#14b8a6", fontWeight: 700 }}
-                                />
-                            </Stack>
-                            <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
-                                AI-powered real-time video intelligence & personalized score forecasting workspace
-                            </Typography>
-                        </Box>
-                    </Stack>
+              <span>Explore All Courses</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#E5F842]" />
+            </button>
+          </div>
 
-                    <Stack direction="row" spacing={1.5}>
-                        <Button
-                            variant="contained"
-                            startIcon={<QuizRoundedIcon />}
-                            onClick={() => navigate("/quiz")}
-                            sx={{
-                                bgcolor: "#0f766e",
-                                color: "#f8fafc",
-                                fontWeight: 700,
-                                px: 3,
-                                py: 1,
-                                borderRadius: 2.5,
-                                "&:hover": { bgcolor: "#14b8a6" }
-                            }}
-                        >
-                            Generate Quiz
-                        </Button>
-                        <Button
-                            variant="outlined"
-                            startIcon={<SchoolIcon />}
-                            onClick={() => navigate("/profile")}
-                            sx={{
-                                color: "#38bdf8",
-                                borderColor: "rgba(56, 189, 248, 0.3)",
-                                fontWeight: 700,
-                                borderRadius: 2.5,
-                                px: 2.5,
-                                py: 1,
-                                "&:hover": { bgcolor: "rgba(56, 189, 248, 0.15)" }
-                            }}
-                        >
-                            View Analytics Profile
-                        </Button>
-                    </Stack>
-                </Box>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center p-16 bg-[#25272F] rounded-3xl border border-[#333642] text-slate-400 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E5F842]" />
+              <span className="text-xs font-bold">Loading your enrolled courses...</span>
+            </div>
+          ) : enrolledCourses.length === 0 ? (
+            /* No enrolled courses empty state */
+            <div className="p-12 rounded-3xl bg-[#25272F] border border-[#333642] text-center flex flex-col items-center justify-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center shadow-lg">
+                <BookOpen className="w-8 h-8" />
+              </div>
+              <div className="space-y-1 max-w-md">
+                <h3 className="text-lg font-extrabold text-white">
+                  No Enrolled Courses Yet
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  You have not enrolled in any courses yet. Browse our Course Catalog to unlock interactive video lectures, lesson notes, quizzes, and live AI tutor chat.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/courses")}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              >
+                <span>Browse & Enroll in Courses</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            /* Enrolled courses card grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {enrolledCourses.map((course) => {
+                const thumb = getThumbnailFullUrl(course.thumbnail_url);
 
-                {/* 2. ML METRICS (2 CARDS: PREDICTED NEXT SCORE & HISTORICAL AVERAGE) */}
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                    {/* Card 1: Predicted Next Score */}
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <Card
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 1,
-                                border: "1px solid rgba(20, 184, 166, 0.3)",
-                                transition: "all 0.2s ease",
-                                "&:hover": { transform: "translateY(-4px)", borderColor: "#14b8a6" }
-                            }}
-                        >
-                            <CardContent>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-                                    <Typography sx={{ color: "#94A3B8", fontSize: 13, fontWeight: 700 }}>
-                                        PREDICTED NEXT SCORE
-                                    </Typography>
-                                    <AutoGraphIcon sx={{ color: "#14b8a6" }} />
-                                </Stack>
-                                <Typography variant="h3" sx={{ color: "#14b8a6", fontWeight: 800 }}>
-                                    {predScore !== null ? `${predScore}%` : "--"}
-                                </Typography>
-                                <Typography sx={{ color: "#64748B", fontSize: 11, mt: 1 }}>
-                                    ExtraTreesRegressor_v4.0
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
+                return (
+                  <div
+                    key={course.id}
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                    className="group bg-[#25272F] rounded-3xl border border-[#333642] shadow-xs hover:shadow-2xl hover:border-[#E5F842]/60 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer"
+                  >
+                    {/* Thumbnail Image Container */}
+                    <div className="relative w-full h-48 bg-[#18191E] overflow-hidden shrink-0">
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={course.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#2E313B] via-[#1E2028] to-[#18191E] flex flex-col items-center justify-center p-6 text-white text-center">
+                          <BookOpen className="w-12 h-12 text-[#E5F842] mb-2 opacity-80" />
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-[#E5F842]">
+                            Course Track
+                          </span>
+                        </div>
+                      )}
 
-                    {/* Card 2: Historical Average */}
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <Card
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 1,
-                                border: "1px solid rgba(56, 189, 248, 0.3)",
-                                transition: "all 0.2s ease",
-                                "&:hover": { transform: "translateY(-4px)", borderColor: "#38bdf8" }
-                            }}
-                        >
-                            <CardContent>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-                                    <Typography sx={{ color: "#94A3B8", fontSize: 13, fontWeight: 700 }}>
-                                        HISTORICAL AVERAGE
-                                    </Typography>
-                                    <SchoolIcon sx={{ color: "#38bdf8" }} />
-                                </Stack>
-                                <Typography variant="h3" sx={{ color: "#F8FAFC", fontWeight: 800 }}>
-                                    {histAvg !== null ? `${histAvg}%` : "--"}
-                                </Typography>
-                                <Typography sx={{ color: "#64748B", fontSize: 11, mt: 1 }}>
-                                    Across historical quiz attempts
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
+                      {/* Lesson Count & Enrolled Badges */}
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                        <div className="bg-[#18191E]/90 backdrop-blur-md px-3 py-1 rounded-full text-white text-[11px] font-bold flex items-center gap-1.5 border border-white/10 shadow-xs">
+                          <Video className="w-3 h-3 text-[#E5F842]" />
+                          <span>{course.video_count} {course.video_count === 1 ? "Lesson" : "Lessons"}</span>
+                        </div>
 
-                {/* 3. MAIN LEARNING WORKSPACE (VIDEO PLAYER ~70% | AI CHAT ~30%) */}
-                <Grid container spacing={3} sx={{ mb: 4 }} alignItems="stretch">
-                    {/* LEFT SIDE — VIDEO PLAYER (~70%) */}
-                    <Grid size={{ xs: 12, lg: 8.4 }}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 3,
-                                height: "100%",
-                                minHeight: 600,
-                                display: "flex",
-                                flexDirection: "column"
-                            }}
-                        >
-                            <VideoPlayer />
-                        </Paper>
-                    </Grid>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1 shadow-md">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Enrolled
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* RIGHT SIDE — AI VIDEO INTELLIGENCE CHAT (~30%) */}
-                    <Grid size={{ xs: 12, lg: 3.6 }}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 0,
-                                 height: "100%",
-                                minHeight: 640,
-                                maxHeight: 760,
-                                display: "flex",
-                                flexDirection: "column",
-                                overflow: "hidden",
-                                borderRadius: 3
-                            }}
-                        >
-                            <Box sx={{ flex: 1, minHeight: 0, height: "100%" }}>
-                                <Chat />
-                            </Box>
-                        </Paper>
-                    </Grid>
-                </Grid>
+                    {/* Course Body */}
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-extrabold text-white group-hover:text-[#E5F842] transition-colors line-clamp-1">
+                          {course.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-medium line-clamp-2 leading-relaxed">
+                          {course.description || "No description provided for this course."}
+                        </p>
+                      </div>
 
-                {/* 4. VIDEO LIBRARY — DIRECTLY BELOW MAIN WORKSPACE */}
-                <Box sx={{ mb: 4 }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-                        <VideoLibraryRoundedIcon sx={{ color: "#14b8a6", fontSize: 28 }} />
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 800, color: "#F8FAFC" }}>
-                                Video Library
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                                Select, view, and manage your processed learning video collection.
-                            </Typography>
-                        </Box>
-                    </Stack>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            ...cardGlassStyle,
-                            p: 3,
-                            transition: "border-color 0.3s ease",
-                            "&:hover": { borderColor: "rgba(20, 184, 166, 0.55)" }
-                        }}
-                    >
-                        <VideoLibrary />
-                    </Paper>
-                </Box>
+                      {/* Footer Info & Action */}
+                      <div className="pt-4 border-t border-[#333642] flex items-center justify-between">
+                        <div className="text-[11px] text-slate-500 font-semibold">
+                          By {course.user_name || "Instructor"}
+                        </div>
 
-                {/* 5. YOUTUBE DOWNLOAD — BELOW VIDEO LIBRARY */}
-                <Box id="recommendations-section" sx={{ mb: 4 }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-                        <YouTubeIcon sx={{ color: "#ef4444", fontSize: 30 }} />
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 800, color: "#F8FAFC" }}>
-                                Add YouTube Video
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                                Paste a YouTube video link to download, index, and generate AI insights.
-                            </Typography>
-                        </Box>
-                    </Stack>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            ...cardGlassStyle,
-                            p: 3,
-                            transition: "border-color 0.3s ease",
-                            "&:hover": { borderColor: "rgba(20, 184, 166, 0.45)" }
-                        }}
-                    >
-                        <YouTubeDownloader />
-                    </Paper>
-                </Box>
+                        <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#E5F842] group-hover:bg-[#D6EA35] text-[#121316] font-extrabold text-xs shadow-sm transition-all">
+                          <span>Continue Learning</span>
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                {/* 7. AI TOOLS — 3 EQUAL COLUMNS SIDE BY SIDE */}
-                <Grid container spacing={3}>
-                    {/* Summary Card */}
-                    <Grid size={{ xs: 12, md: 4 }} id="summary-section">
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 4,
-                                minHeight: 260,
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                transition: ".3s",
-                                "&:hover": {
-                                    transform: "translateY(-6px)",
-                                    borderColor: "#14B8A6",
-                                    boxShadow: "0 24px 48px rgba(20,184,166,.22)"
-                                }
-                            }}
-                        >
-                            <Box>
-                                <DescriptionRoundedIcon sx={{ fontSize: 44, color: "#14B8A6", mb: 2 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: "#F8FAFC" }}>
-                                    Video Summaries
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                                    Structured, AI-generated transcript summaries with key insights.
-                                </Typography>
-                            </Box>
-                            <Button
-                                variant="contained"
-                                endIcon={<ArrowForwardRoundedIcon />}
-                                onClick={() => navigate("/summary")}
-                                sx={{
-                                    bgcolor: "#0f766e",
-                                    color: "#f8fafc",
-                                    fontWeight: 700,
-                                    alignSelf: "flex-start",
-                                    mt: 2,
-                                    boxShadow: "0 4px 14px rgba(20, 184, 166, 0.35)",
-                                    "&:hover": { bgcolor: "#14b8a6", transform: "translateY(-2px)" }
-                                }}
-                            >
-                                Open Summaries
-                            </Button>
-                        </Paper>
-                    </Grid>
-
-                    {/* Notes Card */}
-                    <Grid size={{ xs: 12, md: 4 }} id="notes-section">
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 4,
-                                minHeight: 260,
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                transition: ".3s",
-                                "&:hover": {
-                                    transform: "translateY(-6px)",
-                                    borderColor: "#14B8A6",
-                                    boxShadow: "0 24px 48px rgba(20,184,166,.22)"
-                                }
-                            }}
-                        >
-                            <Box>
-                                <NotesRoundedIcon sx={{ fontSize: 44, color: "#14B8A6", mb: 2 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: "#F8FAFC" }}>
-                                    Smart Notes
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                                    Automated study notes mapped to video timestamps.
-                                </Typography>
-                            </Box>
-                            <Button
-                                variant="contained"
-                                endIcon={<ArrowForwardRoundedIcon />}
-                                onClick={() => navigate("/notes")}
-                                sx={{
-                                    bgcolor: "#0f766e",
-                                    color: "#f8fafc",
-                                    fontWeight: 700,
-                                    alignSelf: "flex-start",
-                                    mt: 2,
-                                    boxShadow: "0 4px 14px rgba(20, 184, 166, 0.35)",
-                                    "&:hover": { bgcolor: "#14b8a6", transform: "translateY(-2px)" }
-                                }}
-                            >
-                                Open Notes
-                            </Button>
-                        </Paper>
-                    </Grid>
-
-                    {/* Quiz Studio Card */}
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                ...cardGlassStyle,
-                                p: 4,
-                                minHeight: 260,
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                transition: ".3s",
-                                "&:hover": {
-                                    transform: "translateY(-6px)",
-                                    borderColor: "#14B8A6",
-                                    boxShadow: "0 24px 48px rgba(20,184,166,.22)"
-                                }
-                            }}
-                        >
-                            <Box>
-                                <QuizRoundedIcon sx={{ fontSize: 44, color: "#14B8A6", mb: 2 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: "#F8FAFC" }}>
-                                    Quiz Studio
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                                    Adaptive quiz generation with real-time feedback & scoring.
-                                </Typography>
-                            </Box>
-                            <Button
-                                variant="contained"
-                                endIcon={<ArrowForwardRoundedIcon />}
-                                onClick={() => navigate("/quiz")}
-                                sx={{
-                                    bgcolor: "#0f766e",
-                                    color: "#f8fafc",
-                                    alignSelf: "flex-start",
-                                    mt: 2,
-                                    "&:hover": { bgcolor: "#14b8a6" }
-                                }}
-                            >
-                                Launch Quiz Studio
-                            </Button>
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </Container>
-
-            {/* DRAGGABLE FLOATING ROBOT ASSISTANT */}
-            <DraggableRobot />
-        </Box>
-    );
+      </main>
+    </div>
+  );
 }

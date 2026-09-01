@@ -1,482 +1,289 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
-import {
-    Box,
-    Button,
-    Chip,
-    IconButton,
-    Paper,
-    Stack,
-    Tooltip,
-    Typography
-} from "@mui/material";
-
-import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
-import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
-import ThumbDownOutlinedIcon from "@mui/icons-material/ThumbDownOutlined";
-import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
-import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-
 import { useVideo } from "../../context/VideoContext";
+import {
+  Sparkles,
+  Play,
+  Copy,
+  Check,
+  Volume2,
+  VolumeX,
+  ThumbsUp,
+  ThumbsDown,
+  RefreshCw,
+  AlertCircle
+} from "lucide-react";
 
 interface Source {
-    video_id: number;
-    start_time: number;
-    end_time: number;
+  video_id: number;
+  start_time: number;
+  end_time: number;
 }
 
 interface Props {
-    id?: string;
-    role: "user" | "assistant";
-    text: string;
-    sources?: Source[];
-    isError?: boolean;
-    onRegenerate?: () => void;
-    onListen?: () => void;
-    isSpeaking?: boolean;
-    onFollowUp?: () => void;
+  id?: string;
+  role: "user" | "assistant";
+  text: string;
+  sources?: Source[];
+  isError?: boolean;
+  onRegenerate?: () => void;
+  onListen?: () => void;
+  isSpeaking?: boolean;
 }
 
 function parseStartTimestampToSeconds(tsRangeStr: string): number {
-    const firstPart = tsRangeStr.split(/[\-–—]/)[0].trim();
-    const parts = firstPart.split(":").map(Number);
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 60 + parts[1];
-    if (parts.length === 1 && !isNaN(parts[0])) return parts[0];
-    return 0;
+  const clean = tsRangeStr.replace(/[()\[\]]/g, "").trim();
+  const firstPart = clean.split(/[\-–—]|to/i)[0].trim();
+  const parts = firstPart.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1 && !isNaN(parts[0])) return parts[0];
+  return 0;
 }
 
 export default function Message({
-    role,
-    text,
-    sources = [],
-    isError = false,
-    onRegenerate,
-    onListen,
-    isSpeaking = false,
-    onFollowUp
+  role,
+  text,
+  sources = [],
+  isError = false,
+  onRegenerate,
+  onListen,
+  isSpeaking = false
 }: Props) {
-    const isUser = role === "user";
-    const { videos, selectedVideo, jumpToVideo, seekTo } = useVideo();
+  const isUser = role === "user";
+  const { videos, selectedVideo, jumpToVideo, seekTo } = useVideo();
 
-    const [liked, setLiked] = useState(false);
-    const [disliked, setDisliked] = useState(false);
-    const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-    function handleCopy() {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+  function handleCopy() {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleTimestampClick(tsMatch: string) {
+    const startSec = parseStartTimestampToSeconds(tsMatch);
+    const sourceVideoId = sources && sources.length > 0 ? sources[0].video_id : null;
+
+    let targetVideo = null;
+    if (sourceVideoId) {
+      targetVideo = videos.find(v => v.id === sourceVideoId);
+    }
+    if (!targetVideo) {
+      targetVideo = selectedVideo || (videos.length > 0 ? videos[0] : null);
     }
 
-    function handleTimestampClick(tsMatch: string) {
-        const startSec = parseStartTimestampToSeconds(tsMatch);
-        const sourceVideoId = sources && sources.length > 0 ? sources[0].video_id : null;
-
-        let targetVideo = null;
-        if (sourceVideoId) {
-            targetVideo = videos.find(v => v.id === sourceVideoId);
-        }
-        if (!targetVideo) {
-            targetVideo = selectedVideo || (videos.length > 0 ? videos[0] : null);
-        }
-
-        if (targetVideo && jumpToVideo) {
-            jumpToVideo(targetVideo, startSec);
-        } else if (seekTo) {
-            seekTo(startSec);
-        }
+    if (targetVideo && jumpToVideo) {
+      jumpToVideo(targetVideo, startSec);
+    } else if (seekTo) {
+      seekTo(startSec);
     }
+  }
 
-    function renderTextWithTimestamps(content: string) {
-        const regex = /\b(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—]\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\b/g;
-        const elements: (string | React.ReactNode)[] = [];
-        let lastIndex = 0;
-        let match: RegExpExecArray | null;
+  function renderTextWithTimestamps(content: string) {
+    const regex = /(?:\(|\[)?\b(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—to]+\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\b(?:\)|\])?/g;
+    const elements: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
 
-        while ((match = regex.exec(content)) !== null) {
-            if (match.index > lastIndex) {
-                elements.push(content.substring(lastIndex, match.index));
-            }
-            const tsMatch = match[0];
-            elements.push(
-                <Chip
-                    key={`${match.index}-${tsMatch}`}
-                    icon={<PlayArrowRoundedIcon sx={{ fontSize: "14px !important", color: "#38bdf8" }} />}
-                    label={tsMatch}
-                    size="small"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleTimestampClick(tsMatch);
-                    }}
-                    sx={{
-                        bgcolor: "rgba(56, 189, 248, 0.15)",
-                        color: "#38bdf8",
-                        border: "1px solid rgba(56, 189, 248, 0.35)",
-                        fontWeight: 700,
-                        fontSize: "0.82rem",
-                        cursor: "pointer",
-                        verticalAlign: "middle",
-                        mx: 0.5,
-                        my: 0.25,
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                            bgcolor: "rgba(56, 189, 248, 0.28)",
-                            borderColor: "#38bdf8",
-                            transform: "translateY(-1px)",
-                            boxShadow: "0 2px 8px rgba(56, 189, 248, 0.25)"
-                        }
-                    }}
-                />
-            );
-            lastIndex = regex.lastIndex;
-        }
-
-        if (lastIndex < content.length) {
-            elements.push(content.substring(lastIndex));
-        }
-
-        return elements.length > 0 ? elements : content;
-    }
-
-    function processChild(child: any): any {
-        if (typeof child === "string") {
-            return renderTextWithTimestamps(child);
-        }
-        if (React.isValidElement(child)) {
-            const props: any = child.props;
-            if (props && props.children) {
-                const newChildren = Array.isArray(props.children)
-                    ? props.children.map((c: any, i: number) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
-                    : processChild(props.children);
-
-                return React.cloneElement(child, {}, newChildren);
-            }
-        }
-        return child;
-    }
-
-    const renderMarkdownComponents = {
-        code: ({ children, ...props }: any) => {
-            const str = String(children).trim();
-            if (/^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—]\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?$/.test(str)) {
-                return (
-                    <Chip
-                        icon={<PlayArrowRoundedIcon sx={{ fontSize: "14px !important", color: "#38bdf8" }} />}
-                        label={str}
-                        size="small"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleTimestampClick(str);
-                        }}
-                        sx={{
-                            bgcolor: "rgba(56, 189, 248, 0.15)",
-                            color: "#38bdf8",
-                            border: "1px solid rgba(56, 189, 248, 0.35)",
-                            fontWeight: 700,
-                            fontSize: "0.82rem",
-                            cursor: "pointer",
-                            verticalAlign: "middle",
-                            mx: 0.5,
-                            my: 0.25,
-                            transition: "all 0.2s ease",
-                            "&:hover": {
-                                bgcolor: "rgba(56, 189, 248, 0.28)",
-                                borderColor: "#38bdf8",
-                                transform: "translateY(-1px)",
-                                boxShadow: "0 2px 8px rgba(56, 189, 248, 0.25)"
-                            }
-                        }}
-                    />
-                );
-            }
-            return (
-                <Box
-                    component="code"
-                    sx={{
-                        bgcolor: "rgba(255, 255, 255, 0.08)",
-                        border: "1px solid rgba(255, 255, 255, 0.12)",
-                        px: 1,
-                        py: 0.3,
-                        borderRadius: 1,
-                        fontSize: "0.85rem",
-                        fontFamily: "monospace",
-                        color: "#38bdf8"
-                    }}
-                    {...props}
-                >
-                    {children}
-                </Box>
-            );
-        },
-        strong: ({ children }: any) => {
-            const rawText = Array.isArray(children) ? children.join("") : String(children);
-            if (typeof children === "string" && /^\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—]\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\s*$/.test(rawText.trim())) {
-                return <React.Fragment>{renderTextWithTimestamps(rawText.trim())}</React.Fragment>;
-            }
-            return <strong>{processChild(children)}</strong>;
-        },
-        p: ({ children }: any) => {
-            const processedChildren = Array.isArray(children)
-                ? children.map((c, i) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
-                : processChild(children);
-
-            return <p>{processedChildren}</p>;
-        },
-        li: ({ children }: any) => {
-            const processedChildren = Array.isArray(children)
-                ? children.map((c, i) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
-                : processChild(children);
-
-            return <li>{processedChildren}</li>;
-        }
-    };
-
-    if (isUser) {
-        return (
-            <Box
-                sx={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    mb: 2
-                }}
-            >
-                <Paper
-                    elevation={0}
-                    sx={{
-                        py: 1.4,
-                        px: 2.6,
-                        borderRadius: "20px",
-                        bgcolor: "rgba(255, 255, 255, 0.14)",
-                        color: "#F8FAFC",
-                        maxWidth: "85%",
-                        fontSize: "1rem",
-                        fontWeight: 500,
-                        lineHeight: 1.55,
-                        wordBreak: "break-word"
-                    }}
-                >
-                    {text}
-                </Paper>
-            </Box>
-        );
-    }
-
-    return (
-        <Box
-            sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-                mb: 3
-            }}
+    while ((match = regex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        elements.push(content.substring(lastIndex, match.index));
+      }
+      const tsMatch = match[0];
+      const displayLabel = tsMatch.replace(/[()\[\]]/g, "").trim();
+      elements.push(
+        <button
+          key={`${match.index}-${tsMatch}`}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleTimestampClick(tsMatch);
+          }}
+          className="inline-flex items-center gap-1 mx-1 my-0.5 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/35 hover:bg-[#E5F842]/30 hover:border-[#E5F842] transition-all cursor-pointer shadow-2xs group"
+          title={`Click to jump to ${displayLabel} in video player`}
         >
-            <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                <Box
-                    sx={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: "50%",
-                        bgcolor: isError ? "rgba(239, 68, 68, 0.15)" : "rgba(20, 184, 166, 0.15)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        mt: 0.5
-                    }}
-                >
-                    <AutoAwesomeRoundedIcon sx={{ color: isError ? "#f87171" : "#38bdf8", fontSize: 19 }} />
-                </Box>
+          <Play className="w-2.5 h-2.5 fill-[#E5F842] text-[#E5F842] group-hover:scale-110 transition-transform" />
+          <span>{displayLabel}</span>
+        </button>
+      );
+      lastIndex = regex.lastIndex;
+    }
 
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            p: 2.2,
-                            borderRadius: "16px",
-                            bgcolor: isError ? "rgba(239, 68, 68, 0.08)" : "rgba(15, 23, 42, 0.6)",
-                            border: isError ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
-                            color: "#F8FAFC",
-                            "& p": { my: 0.7, lineHeight: 1.65, fontSize: "1rem" },
-                            "& p:first-of-type": { mt: 0 },
-                            "& p:last-of-type": { mb: 0 },
-                            "& h1, & h2, & h3, & h4": { color: "#38bdf8", fontWeight: 700, mt: 1.5, mb: 0.8, fontSize: "1.1rem" },
-                            "& ul, & ol": { pl: 2.5, my: 0.8, fontSize: "1rem" },
-                            "& li": { mb: 0.4, lineHeight: 1.6, fontSize: "1rem" },
-                            "& strong": { color: "#38bdf8", fontWeight: 700 }
-                        }}
-                    >
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={renderMarkdownComponents}
-                        >
-                            {text}
-                        </ReactMarkdown>
-                    </Paper>
+    if (lastIndex < content.length) {
+      elements.push(content.substring(lastIndex));
+    }
 
-                    {/* Action Row */}
-                    {isError ? (
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1, px: 0.5 }}>
-                            {onRegenerate && (
-                                <Button
-                                    size="small"
-                                    onClick={onRegenerate}
-                                    startIcon={<RefreshRoundedIcon fontSize="small" />}
-                                    sx={{
-                                        color: "#f87171",
-                                        bgcolor: "rgba(239, 68, 68, 0.12)",
-                                        border: "1px solid rgba(239, 68, 68, 0.3)",
-                                        borderRadius: 2,
-                                        px: 1.5,
-                                        py: 0.4,
-                                        fontSize: "0.75rem",
-                                        textTransform: "none",
-                                        fontWeight: 600,
-                                        "&:hover": {
-                                            bgcolor: "rgba(239, 68, 68, 0.22)",
-                                            borderColor: "#ef4444"
-                                        }
-                                    }}
-                                >
-                                    Retry Request
-                                </Button>
-                            )}
-                        </Stack>
-                    ) : (
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1, px: 0.5, flexWrap: "wrap", gap: 0.5 }}>
-                            <Stack direction="row" spacing={0.4} alignItems="center">
-                                <Tooltip title="Helpful">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => { setLiked(!liked); if (disliked) setDisliked(false); }}
-                                        aria-label="Mark response as helpful"
-                                        sx={{
-                                            color: liked ? "#10b981" : "#94a3b8",
-                                            p: 0.6,
-                                            borderRadius: 1.5,
-                                            transition: "all 0.15s ease",
-                                            "&:hover": { color: "#10b981", bgcolor: "rgba(16, 185, 129, 0.12)" },
-                                            "&:focus-visible": { outline: "2px solid #38bdf8" }
-                                        }}
-                                    >
-                                        {liked ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOutlinedIcon fontSize="small" />}
-                                    </IconButton>
-                                </Tooltip>
+    return elements.length > 0 ? elements : content;
+  }
 
-                                <Tooltip title="Not helpful">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => { setDisliked(!disliked); if (liked) setLiked(false); }}
-                                        aria-label="Mark response as not helpful"
-                                        sx={{
-                                            color: disliked ? "#ef4444" : "#94a3b8",
-                                            p: 0.6,
-                                            borderRadius: 1.5,
-                                            transition: "all 0.15s ease",
-                                            "&:hover": { color: "#ef4444", bgcolor: "rgba(239, 68, 68, 0.12)" },
-                                            "&:focus-visible": { outline: "2px solid #38bdf8" }
-                                        }}
-                                    >
-                                        {disliked ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOutlinedIcon fontSize="small" />}
-                                    </IconButton>
-                                </Tooltip>
+  function processChild(child: any): any {
+    if (typeof child === "string") {
+      return renderTextWithTimestamps(child);
+    }
+    if (Array.isArray(child)) {
+      return child.map((c: any, i: number) => (
+        <React.Fragment key={i}>{processChild(c)}</React.Fragment>
+      ));
+    }
+    if (React.isValidElement(child)) {
+      const props: any = child.props;
+      if (props && props.children) {
+        const newChildren = Array.isArray(props.children)
+          ? props.children.map((c: any, i: number) => <React.Fragment key={i}>{processChild(c)}</React.Fragment>)
+          : processChild(props.children);
 
-                                <Tooltip title={copied ? "Copied!" : "Copy text"}>
-                                    <IconButton
-                                        size="small"
-                                        onClick={handleCopy}
-                                        aria-label="Copy answer text"
-                                        sx={{
-                                            color: copied ? "#38bdf8" : "#94a3b8",
-                                            p: 0.6,
-                                            borderRadius: 1.5,
-                                            transition: "all 0.15s ease",
-                                            "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
-                                            "&:focus-visible": { outline: "2px solid #38bdf8" }
-                                        }}
-                                    >
-                                        {copied ? <CheckRoundedIcon fontSize="small" /> : <ContentCopyRoundedIcon fontSize="small" />}
-                                    </IconButton>
-                                </Tooltip>
+        return React.cloneElement(child, {}, newChildren);
+      }
+    }
+    return child;
+  }
 
-                                {onListen && (
-                                    <Tooltip title={isSpeaking ? "Stop speaking" : "Listen to answer"}>
-                                        <IconButton
-                                            size="small"
-                                            onClick={onListen}
-                                            aria-label={isSpeaking ? "Stop text to speech" : "Listen to answer audio"}
-                                            sx={{
-                                                color: isSpeaking ? "#f87171" : "#94a3b8",
-                                                p: 0.6,
-                                                borderRadius: 1.5,
-                                                transition: "all 0.15s ease",
-                                                "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
-                                                "&:focus-visible": { outline: "2px solid #38bdf8" }
-                                            }}
-                                        >
-                                            {isSpeaking ? <StopRoundedIcon fontSize="small" /> : <VolumeUpRoundedIcon fontSize="small" />}
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
+  const renderMarkdownComponents = {
+    code: ({ children }: any) => {
+      const str = String(children).trim();
+      if (/^(?:\(|\[)?\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—to]+\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\s*(?:\)|\])?$/.test(str)) {
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTimestampClick(str);
+            }}
+            className="inline-flex items-center gap-1 mx-1 my-0.5 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/35 hover:bg-[#E5F842]/30 hover:border-[#E5F842] cursor-pointer group"
+          >
+            <Play className="w-2.5 h-2.5 fill-[#E5F842] text-[#E5F842] group-hover:scale-110 transition-transform" />
+            <span>{str.replace(/[()\[\]]/g, "").trim()}</span>
+          </button>
+        );
+      }
+      return (
+        <code className="bg-[#18191E] text-[#E5F842] px-1.5 py-0.5 rounded-md font-mono text-xs border border-[#333642]">
+          {children}
+        </code>
+      );
+    },
+    strong: ({ children }: any) => {
+      return <strong className="font-bold text-white">{processChild(children)}</strong>;
+    },
+    em: ({ children }: any) => {
+      return <em className="italic text-slate-200">{processChild(children)}</em>;
+    },
+    p: ({ children }: any) => <p className="mb-2.5 last:mb-0 leading-relaxed text-sm text-slate-200">{processChild(children)}</p>,
+    ul: ({ children }: any) => <ul className="list-disc pl-5 mb-2.5 space-y-1 text-sm text-slate-200">{processChild(children)}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal pl-5 mb-2.5 space-y-1 text-sm text-slate-200">{processChild(children)}</ol>,
+    li: ({ children }: any) => <li className="leading-relaxed">{processChild(children)}</li>,
+    h1: ({ children }: any) => <h1 className="text-base font-extrabold text-white mt-3 mb-1.5">{processChild(children)}</h1>,
+    h2: ({ children }: any) => <h2 className="text-sm font-extrabold text-white mt-2.5 mb-1">{processChild(children)}</h2>,
+    h3: ({ children }: any) => <h3 className="text-xs font-bold text-white mt-2 mb-1">{processChild(children)}</h3>
+  };
 
-                                {onRegenerate && (
-                                    <Tooltip title="Regenerate answer">
-                                        <IconButton
-                                            size="small"
-                                            onClick={onRegenerate}
-                                            aria-label="Regenerate response"
-                                            sx={{
-                                                color: "#94a3b8",
-                                                p: 0.6,
-                                                borderRadius: 1.5,
-                                                transition: "all 0.15s ease",
-                                                "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
-                                                "&:focus-visible": { outline: "2px solid #38bdf8" }
-                                            }}
-                                        >
-                                            <ReplayRoundedIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-
-                                {onFollowUp && (
-                                    <Tooltip title="Ask follow-up question">
-                                        <IconButton
-                                            size="small"
-                                            onClick={onFollowUp}
-                                            aria-label="Ask follow-up question"
-                                            sx={{
-                                                color: "#94a3b8",
-                                                p: 0.6,
-                                                borderRadius: 1.5,
-                                                transition: "all 0.15s ease",
-                                                "&:hover": { color: "#38bdf8", bgcolor: "rgba(56, 189, 248, 0.12)" },
-                                                "&:focus-visible": { outline: "2px solid #38bdf8" }
-                                            }}
-                                        >
-                                            <ChatBubbleOutlineRoundedIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-                            </Stack>
-
-                            <Typography sx={{ color: "#64748B", fontSize: "0.68rem" }}>
-                                AI can make mistakes, so double-check it.
-                            </Typography>
-                        </Stack>
-                    )}
-                </Box>
-            </Stack>
-        </Box>
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] bg-[#E5F842] text-[#121316] font-bold rounded-2xl rounded-br-xs px-4 py-2.5 text-sm leading-relaxed shadow-xs">
+          {text}
+        </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-7 h-7 rounded-xl bg-[#18191E] text-[#E5F842] flex items-center justify-center shrink-0 mt-0.5 border border-[#333642] shadow-2xs">
+        {isError ? <AlertCircle className="w-4 h-4 text-rose-400" /> : <Sparkles className="w-4 h-4" />}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className={`p-4 rounded-2xl text-slate-200 text-sm border shadow-2xs ${
+          isError ? "bg-rose-500/10 border-rose-500/30 text-rose-200" : "bg-[#1E2028] border-[#333642]"
+        }`}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={renderMarkdownComponents}>
+            {text}
+          </ReactMarkdown>
+        </div>
+
+        {/* Action Row */}
+        {!isError && (
+          <div className="flex items-center justify-between mt-1.5 px-1">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => { setLiked(!liked); if (disliked) setDisliked(false); }}
+                className={`p-1.5 rounded-lg text-slate-400 hover:text-[#E5F842] hover:bg-[#2E313B] transition-colors ${
+                  liked ? "text-[#E5F842] bg-[#2E313B]" : ""
+                }`}
+                title="Helpful"
+              >
+                <ThumbsUp className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setDisliked(!disliked); if (liked) setLiked(false); }}
+                className={`p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#2E313B] transition-colors ${
+                  disliked ? "text-rose-400 bg-rose-500/10" : ""
+                }`}
+                title="Not helpful"
+              >
+                <ThumbsDown className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-[#E5F842] hover:bg-[#2E313B] transition-colors"
+                title={copied ? "Copied!" : "Copy response"}
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-[#E5F842]" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+
+              {onListen && (
+                <button
+                  type="button"
+                  onClick={onListen}
+                  className={`p-1.5 rounded-lg text-slate-400 hover:text-[#E5F842] hover:bg-[#2E313B] transition-colors ${
+                    isSpeaking ? "text-[#E5F842] bg-[#2E313B] animate-pulse" : ""
+                  }`}
+                  title={isSpeaking ? "Stop speech" : "Read aloud"}
+                >
+                  {isSpeaking ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5" />}
+                </button>
+              )}
+
+              {onRegenerate && (
+                <button
+                  type="button"
+                  onClick={onRegenerate}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-[#E5F842] hover:bg-[#2E313B] transition-colors"
+                  title="Regenerate answer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <span className="text-[11px] text-slate-500 font-medium">
+              Grounded in video transcripts
+            </span>
+          </div>
+        )}
+
+        {isError && onRegenerate && (
+          <div className="mt-2">
+            <button
+              onClick={onRegenerate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-xs font-bold hover:bg-rose-500/25 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry Question
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

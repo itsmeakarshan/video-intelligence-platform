@@ -1,88 +1,161 @@
-# 🎥 Video Intelligence Platform & ML Engineering Hub
+# 🎥 AI Video Intelligence & Learning Platform
 
-An AI-powered video learning platform which predicts User's next quiz Score and Gives Recommendations in the form of Youtube Video Links based on weak topics. Users can Uplaod any lenghth video and chat with AI about the video like which topic is where in the video and the ai gives exact timestamps with jump to timestamp button. Just need to Upload and then Process the video/videos.
+> **Transforming passive video watching into an active, intelligent, and personalized learning experience.**
 
-## 🚀 Key Features
-
-User can Ask Questions related to the processed video and Ai will give accurate answers with exact timestamps.
-
-User can upload from device or can download from Youtube as there is a feature where user can paste youtube link and video gets downloaded.
-
-User can User the Feature of Ai notes or Ai summary of uploaded video and can download them in PDF format.
-
-User can take quizzes on the uploaded video and the ai will give score and weak topic detection.
-
-User can get youtube video recommendations based on his weak topics.
-
-User can view his knowledge profile based on the quizzes he has taken.
+[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Faster-Whisper](https://img.shields.io/badge/Faster--Whisper-CTranslate2-FF6F00?logo=python&logoColor=white)](https://github.com/SYSTRAN/faster-whisper)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
 ---
 
-## 🔬 Data Science & Machine Learning Engineering Rigor
+## 🎯 What This App Solves
 
-### 1. Data Safety & Cohort Methodology
-- **Production User Protection**: Real application Users 1 and 2 and their historical quiz attempts are strictly preserved in the SQLite database (`backend/video_intelligence.db`) and **EXCLUDED** from ML dataset extraction, feature engineering, model training, and evaluation.
-- **Outlier Learner Detection**: EDA independently evaluated learner-level behavioral consistency. 6 high-variance learners were objectively excluded from modeling and documented. They remain intact in the SQLite database.
-
-### 2. Leak-Free Feature Engineering
-- **38 `D_CORE_LEARNING` Features:** Computed strictly from prior attempt history ($1 \dots N-1$) to eliminate target leakage.
-- Features capture performance moving averages, score variance, recent vs long-term trends, difficulty deltas, and video interaction depth.
-- Automated leakage tests (`ml/src/leakage_test.py`) verify 100% temporal isolation and target exclusion.
-
-### 3. Regression Model Benchmarks (Next Quiz Score Forecast)
-Target: `next_percentage` (0.0% – 100.0%)
-
-| Model / Baseline | GroupKFold MAE | GroupKFold R² | Unseen User MAE | Temporal MAE |
-| :--- | :---: | :---: | :---: | :---: |
-| **Historical Mean (Baseline)** | 9.31% | 0.277 | 10.21% | 10.57% |
-| **Most Recent Score (Baseline)** | 5.27% | 0.739 | 5.14% | 5.15% |
-| **Recent 3-Attempt Avg (Baseline)** | 7.00% | 0.587 | 7.40% | 7.38% |
-| **Random Forest Regressor** | 3.89% | 0.854 | 3.29% | 3.78% |
-| **Gradient Boosting Regressor** | 3.85% | 0.855 | 3.23% | 3.67% |
-| **Extra Trees Regressor (Production v4.0)** | **3.80%** | **0.861** | **3.13%** | **3.60%** |
-
-### 4. Explainability & Uncertainty Calibration
-- **SHAP TreeExplainer**: Calculates exact local feature attributions for individual forecasts and global importance across the dataset. Top model drivers: Previous Quiz Score (2.48%), Personal Best Score (1.69%), EWMA Smooth (1.66%), 2-Quiz Score Average (1.46%).
-- **Split Conformal Prediction**: 5-Fold GroupKFold OOF residual quantile calibration. Target coverage: **90.0%**; Empirical OOF coverage: **89.9%** ($\pm 7.8\%$ score-point prediction margin).
-
-### 5. Vector Search RAG Retrieval Benchmarks
-* **Recall@1:** 88.0%
-* **Recall@3:** 96.0%
-* **Recall@5:** 98.0%
-* **MRR (Mean Reciprocal Rank):** 0.920
-
-### 6. Automated MLOps & Data Quality Audit
-* **Data Quality Checks:** Missing values (0), duplicates (0), score range bounds (0-100%), user isolation (100% ENFORCED).
-* **Drift Monitoring:** Distribution checks and production model drift tracking (`/ml/drift`).
+### The Problem in Modern Digital Learning
+1. **Passive Video Watching & High Drop-Off Rates:**  
+   Traditional video learning is purely linear and passive. Students sit through 1–2 hour lectures, zone out, and retain less than 20% of the material because there is no active recall or real-time dialogue.
+2. **Search Fatigue ("The Needle in a Haystack"):**  
+   When a student forgets a concept, formula, or definition, they are forced to blindly scrub back and forth along a 90-minute video progress bar. Searching through video content is notoriously painful, slow, and frustrating.
+3. **Absence of Immediate Remediation:**  
+   Standard quizzes tell students *what* they got wrong, but leave them stranded on *how* to fix it. Students often do not know which specific topic caused their mistake or where to find a concise explanation.
+4. **Disconnected Communication Channels:**  
+   Course discussion forums, Slack channels, and comment sections are completely decoupled from video playback. Students struggle to describe "the part at the 43rd minute where the instructor wrote on the board", causing back-and-forth communication bottlenecks with instructors.
 
 ---
 
-## ⚙️ Installation & Setup Guide
-
-For step-by-step installation instructions, Docker container deployment, environment setup, and local running instructions, please see the dedicated setup guide:
-
-👉 **[SETUP.md](SETUP.md)**
-
----
-
-## ⚡ How to Reproduce Model Training & Evaluation
-
-Notebooks are located at:
-- `ml/notebooks/01_learner_data_eda.ipynb` (Exploratory Data Analysis & Outlier Auditing)
-- `ml/notebooks/02_model_comparison_and_evaluation.ipynb` (GroupKFold CV & Model Benchmarking)
-- `ml/notebooks/03_model_explainability_and_uncertainty.ipynb` (SHAP Attributions & Conformal Prediction Intervals)
+### How Our Platform Solves It
+* **Video Becomes an Interactive Knowledge Base:**  
+  Every uploaded video or YouTube lecture is automatically transcribed using **Faster-Whisper** with second-by-second word timestamps, transforming raw video into an indexed, searchable semantic database.
+* **Timestamp-Cited AI Video Tutor:**  
+  Students ask natural language questions about any moment in the lecture. The AI tutor retrieves the exact context and generates answers accompanied by **clickable jump-to-timestamp buttons** that immediately navigate the video player to the exact second the concept was taught.
+* **Intelligent Diagnostic Quizzes & Weak-Topic Remediation:**  
+  Generates interactive multiple-choice quizzes tailored directly to the video curriculum. When a student struggles, the platform automatically **diagnoses the weak concept** and delivers **targeted, curated YouTube video tutorials** that specifically teach that missing concept.
+* **Integrated Multi-Modal Instructor Q&A Studio:**  
+  A unified communication hub where learners can send questions, screenshots, code files, PDF documents, and audio voice notes directly to course instructors. Instructors can attach specific video lectures right into the conversation.
 
 ---
 
-## 📸 Application Routes
+## 🤖 Multi-Agent AI System
 
-* **`/` (Learner Dashboard):** Video player, RAG Chat, AI Notes, YouTube Downloader, Learner Forecast, Knowledge Profile.
-* **`/quiz`:** Interactive video quiz, score evaluation, weak-topic detection, personalized YouTube recommendations.
-* **`/ml-performance`:** Recruiter & Data Science Portfolio Dashboard displaying empirical baseline tables, calibration charts, GroupKFold/Temporal splits, RAG recall, and MLOps audit metrics.
+The platform is designed around a cooperative multi-agent architecture powered by **Google Gemini 2.5 Flash** and localized speech models:
+
+```
+                          ┌──────────────────────────┐
+                          │   Video / Audio Ingest   │
+                          │   (yt-dlp + FFmpeg)      │
+                          └─────────────┬────────────┘
+                                        │
+                                        ▼
+                          ┌──────────────────────────┐
+                          │  Speech-to-Text Engine   │
+                          │  (Faster-Whisper int8)   │
+                          └─────────────┬────────────┘
+                                        │
+                      ┌─────────────────┴─────────────────┐
+                      ▼                                   ▼
+          ┌───────────────────────┐           ┌───────────────────────┐
+          │  RAG Video Tutor      │           │  Assessment & Quiz    │
+          │  Agent                │           │  Agent                │
+          │  • Semantic Retrieval │           │  • Dynamic MCQs       │
+          │  • Jump-to-Timestamp  │           │  • Error Diagnosis    │
+          └───────────────────────┘           └───────────┬───────────┘
+                      │                                   │
+                      ▼                                   ▼
+          ┌───────────────────────┐           ┌───────────────────────┐
+          │  Synthesis & Notes    │           │  Remediation Agent    │
+          │  Agent                │           │  • YouTube Recommender│
+          │  • Structured Notes   │           │  • Weak-Topic Search  │
+          │  • Executive Summary  │           │  • Custom Curations   │
+          └───────────────────────┘           └───────────────────────┘
+```
+
+1. **RAG Video Tutor Agent:** Performs sliding-window semantic chunk retrieval over video transcripts, answering queries with exact timestamp citations.
+2. **Assessment & Quiz Agent:** Formulates context-aware quizzes, evaluates learner submissions, and diagnoses cognitive errors.
+3. **Remediation & Recommendation Agent:** Maps quiz errors to micro-topics and queries YouTube for high-yield 3- to 10-minute video tutorials to reinforce identified weaknesses.
+4. **Synthesis & Notes Agent:** Condenses long lectures into structured study guides, key formulas, bulleted summaries, and exportable PDF notes.
+
+---
+
+## ✨ Key Features
+
+- ⏱️ **Clickable Jump-to-Timestamp Navigation:** Jump directly to the exact second in the video player referenced by the AI's explanation.
+- 📚 **Structured Course Curriculum:** Enroll in multi-video courses with isolated learning studios, progress tracking, and personalized bookmarks.
+- 📝 **AI Structured Notes & Summaries:** One-click generation of comprehensive study notes, cheat sheets, and executive summaries with instant PDF export.
+- 🎯 **Diagnostic Quizzes with Score History:** Take quizzes with difficulty selection (Easy, Medium, Hard), instant grade calculations, and detailed historical attempt tracking.
+- 📺 **Curated YouTube Video Recommendations:** Automatic post-quiz detection of weak topics paired with personalized YouTube video recommendation cards.
+- 🎙️ **Multi-Modal Instructor Doubts Studio:** Send text, image attachments, documents, voice notes, and embedded YouTube references in a unified chat with your course instructor.
+- 🔑 **Dynamic In-App API Key Management:** Set, test, and remove your Google Gemini API key directly from the dashboard modal without restarting servers or editing environment files.
+- 📊 **Instructor & Admin Command Center:** Manage courses, inspect enrolled students, monitor quiz completion rates, and review learner performance logs.
+
+---
+
+## 🏗️ Architecture & Technology Stack
+
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS | High-performance Single Page Application (SPA) with custom dark mode design system. |
+| **Backend API** | C# .NET 9, ASP.NET Core Web API | Clean architecture RESTful API with Argon2 password hashing and JWT authentication. |
+| **Database** | Entity Framework Core, SQLite (WAL Mode) | Consolidated database with Write-Ahead Logging for high-concurrency read/write transactions. |
+| **Speech-to-Text** | Faster-Whisper (CTranslate2, int8) | 4.5x faster acoustic speech-to-text inference with second-by-second word alignment. |
+| **Generative AI** | Google Gemini 2.5 Flash | Sub-2-second semantic Q&A, structured study notes, and strict JSON-schema quiz generation. |
+| **Media Processing** | FFmpeg, yt-dlp | Asynchronous background audio demuxing, video downloading, and stream normalization. |
+| **Deployment** | Docker, Docker Compose, Nginx Alpine | Multi-stage production containerization with reverse proxy routing and caching. |
+
+---
+
+## ⚡ Performance Engineering
+
+This platform was built from the ground up for low-latency inference, minimal memory footprint, and instantaneous UI interactions.
+
+For detailed benchmarks, CTranslate2 optimizations, and bundle reduction metrics:
+👉 **[Read the Full Performance Engineering Report (PERFORMANCE_INCREASE.md)](PERFORMANCE_INCREASE.md)**
+
+---
+
+## 🚀 Quick Start & Installation
+
+### Option 1: Docker (Single Command)
+```bash
+# Clone the repository
+git clone https://github.com/itsmeakarshan/video-intelligence-platform.git
+cd video-intelligence-platform
+
+# Configure environment template
+cp backend/.env.example backend/.env
+
+# Build and start the container stack
+docker-compose up --build
+```
+* **Frontend:** `http://localhost`
+* **Backend API:** `http://localhost:8000`
+
+### Option 2: Local Development
+For detailed prerequisites (.NET 9, Node.js 20+, FFmpeg, Python) and step-by-step local commands:
+👉 **[Read the System Setup Guide (SETUP.md)](SETUP.md)**
+
+---
+
+## 🔐 Default Demo Accounts
+
+| Role | Email | Password | Scope |
+| :--- | :--- | :--- | :--- |
+| **Learner (Demo)** | `user@ex.com` | `password` | Enrolled in Computer Basics with pre-processed videos. |
+| **Student 1** | `student1@learn.com` | `Student1@123` | Enrolled across all courses with 15 quiz attempts and scores. |
+| **Administrator** | `admin@example.com` | `admin123` | Full access to Admin Panel, Course Management, and Student Doubts. |
+
+---
+
+## 📄 License & Attribution
+
+All original video, audio, and educational materials processed by this platform belong to their respective copyright owners. This project is intended for educational and research purposes under fair use.
 
 ---
 
 ## 👨‍💻 Author
 
-**Akarshan Rasyal**
-akarshanrasyal4@gmail.com
+**Akarshan Rasyal**  
+* Email: [akarshanrasyal4@gmail.com](mailto:akarshanrasyal4@gmail.com)  
+* GitHub: [@itsmeakarshan](https://github.com/itsmeakarshan)

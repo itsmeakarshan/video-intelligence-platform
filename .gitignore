@@ -1,23 +1,16 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-
-# Virtual environment
-backend/.venv/
+# .NET / C#
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+.vs/
 
 # Environment variables
 .env
 backend/.env
 *.local
-
-# Python cache
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
 
 # Node.js
 node_modules/
@@ -33,19 +26,19 @@ dist-ssr/
 build/
 frontend/.vite/
 
-# IDE settings
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj*
-*.sln
-*.sw?
-
-# Operating system files
-.DS_Store
-Thumbs.db
-
-# ML datasets & notebooks
+# ML / Python virtual environments & cache
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 ml/data/
 .ipynb_checkpoints/
+
+# IDE & Operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

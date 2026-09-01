@@ -1,309 +1,363 @@
-import {
-    Box,
-    Button,
-    CircularProgress,
-    Typography
-} from "@mui/material";
-
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
-
 import { useEffect, useState } from "react";
-
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
-import {
-    generateNotes
-} from "../../services/chatService";
-
-import { getVideos } from "../../api/api";
-
+import { generateNotes } from "../../services/chatService";
+import { getVideos, type CourseItem } from "../../api/api";
 import VideoSelectionDialog from "../common/VideoSelectionDialog";
 import { generatePDF } from "../../utils/pdfGenerator";
+import {
+  BookOpen,
+  Copy,
+  Download,
+  Check,
+  Sparkles,
+  Loader2,
+  FileCheck,
+  UploadCloud,
+  GraduationCap
+} from "lucide-react";
+import toast from "react-hot-toast";
 
-export default function Notes() {
+interface Props {
+  course?: CourseItem | null;
+}
 
-    const [notes, setNotes] = useState("");
+export default function Notes({ course }: Props) {
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [hasVideos, setHasVideos] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [selectedCount, setSelectedCount] = useState<number>(0);
 
-    const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    checkVideos();
+  }, [course?.id]);
 
-    const [dialogOpen, setDialogOpen] = useState(false);
-
-    const [hasVideos, setHasVideos] = useState(true);
-
-    useEffect(() => {
-
-        checkVideos();
-
-    }, []);
-
-    async function checkVideos() {
-
-        try {
-
-            const videos = await getVideos();
-
-            const completed = videos.filter(
-                (video: any) =>
-                    video.status === "completed"
-            );
-
-            setHasVideos(
-                completed.length > 0
-            );
-
-        } catch {
-
-            setHasVideos(false);
-
-        }
-
+  async function checkVideos() {
+    try {
+      const videos = await getVideos(course?.id);
+      const completed = videos.filter(
+        (video: any) =>
+          video.status === "completed" &&
+          (!course?.id || video.course_id === course.id)
+      );
+      setHasVideos(completed.length > 0);
+    } catch {
+      setHasVideos(false);
     }
+  }
 
-    function openDialog() {
+  function openDialog() {
+    setDialogOpen(true);
+  }
 
-        setDialogOpen(true);
+  async function generateNotesHandler(videoIds: number[]) {
+    setDialogOpen(false);
+    setLoading(true);
+    setSelectedCount(videoIds.length);
 
+    try {
+      const result = await generateNotes(videoIds);
+      setNotes(result.answer);
+      toast.success("AI Study Notes generated successfully!");
+    } catch (error) {
+      console.error("Notes generation error:", error);
+      toast.error("Failed to generate notes. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  }
 
-    async function generateNotesHandler(
-        videoIds: number[]
-    ) {
+  function copyNotes() {
+    if (!notes) return;
+    navigator.clipboard.writeText(notes);
+    setCopied(true);
+    toast.success("Notes copied to clipboard!");
+    setTimeout(() => setCopied(false), 2000);
+  }
 
-        setDialogOpen(false);
+  function downloadNotes() {
+    if (!notes) return;
+    generatePDF({
+      title: "AI Study Notes",
+      videoTitle: `${selectedCount > 0 ? selectedCount : "Curated"} Video Collection`,
+      content: notes,
+      docType: "notes"
+    });
+    toast.success("PDF notes downloaded!");
+  }
 
-        setLoading(true);
+  return (
+    <div className="space-y-6">
+      {/* Top Banner / Trigger Section */}
+      <div 
+        className="rounded-3xl border border-[#333642] shadow-xl overflow-hidden relative"
+        style={{
+          backgroundImage: "url('/summary.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center center"
+        }}
+      >
+        <div className="absolute inset-0 bg-[#18191E]/75 backdrop-blur-md" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6">
+          <div className="space-y-1">
+            <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-[#E5F842]" />
+              Study Notes Synthesizer
+            </h3>
+            <p className="text-xs text-slate-300 font-medium">
+              Generate detailed study notes with key terms, concept hierarchies, code snippets, and review questions.
+            </p>
+          </div>
 
-        try {
+          <div>
+            {hasVideos ? (
+              <button
+                onClick={openDialog}
+                disabled={loading}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-extrabold text-sm shadow-md shadow-black/30 transition-all duration-150 disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#121316]" />
+                    <span>Generating Notes...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-[#121316]" />
+                    <span>Select Videos & Generate</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 bg-[#18191E]/90 px-4 py-2 rounded-xl border border-[#333642]">
+                <UploadCloud className="w-4 h-4 text-[#E5F842]" />
+                Upload a video in Dashboard first
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-            const result = await generateNotes(
-                videoIds
-            );
+      {/* Loading Skeleton / Progress */}
+      {loading && (
+        <div 
+          className="rounded-3xl border border-[#333642] shadow-xl overflow-hidden relative"
+          style={{
+            backgroundImage: "url('/summary.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center center"
+          }}
+        >
+          <div className="absolute inset-0 bg-[#18191E]/75 backdrop-blur-md" />
+          <div className="relative z-10 py-16 text-center flex flex-col items-center justify-center p-8">
+            <div className="w-14 h-14 rounded-2xl bg-[#18191E]/90 border border-[#333642] text-[#E5F842] flex items-center justify-center shadow-md mb-4 animate-pulse">
+              <Loader2 className="w-7 h-7 animate-spin text-[#E5F842]" />
+            </div>
+            <h4 className="text-base font-extrabold text-white">
+              Generating Study Notes...
+            </h4>
+            <p className="text-xs text-slate-300 mt-1 max-w-sm font-medium">
+              Structuring lecture points into outline format with summaries, key takeaways, and flashcard-ready snippets.
+            </p>
+          </div>
+        </div>
+      )}
 
-            setNotes(
-                result.answer
-            );
+      {/* Empty State when no notes generated yet and not loading */}
+      {!notes && !loading && (
+        <div 
+          className="rounded-3xl border border-[#333642] shadow-xl overflow-hidden relative"
+          style={{
+            backgroundImage: "url('/summary.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center center"
+          }}
+        >
+          <div className="absolute inset-0 bg-[#18191E]/75 backdrop-blur-md" />
+          <div className="relative z-10 py-16 text-center flex flex-col items-center justify-center p-8">
+            <div className="w-14 h-14 rounded-2xl bg-[#18191E]/90 border border-[#333642] text-[#E5F842] flex items-center justify-center mb-3">
+              <BookOpen className="w-7 h-7 text-[#E5F842]" />
+            </div>
+            <h4 className="text-base font-extrabold text-white">
+              No Study Notes Generated Yet
+            </h4>
+            <p className="text-xs text-slate-300 mt-1 max-w-sm font-medium mb-5">
+              Click "Select Videos & Generate" above to choose lecture videos and create structured study notes.
+            </p>
+            {hasVideos && (
+              <button
+                onClick={openDialog}
+                className="px-5 py-2 rounded-xl bg-[#18191E]/90 border border-[#333642] text-white font-bold text-xs hover:bg-[#2E313B] hover:border-[#E5F842]/40 transition-all cursor-pointer"
+              >
+                Choose Videos Now
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
-        } catch (error) {
+      {/* Notes Render Card */}
+      {notes && !loading && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Action Buttons Toolbar */}
+          <div 
+            className="rounded-2xl border border-[#333642] shadow-xs overflow-hidden relative"
+            style={{
+              backgroundImage: "url('/summary.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center center"
+            }}
+          >
+            <div className="absolute inset-0 bg-[#18191E]/75 backdrop-blur-md" />
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 p-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#E5F842]/15 text-[#E5F842] flex items-center justify-center font-bold border border-[#E5F842]/30">
+                  <FileCheck className="w-4 h-4 text-[#E5F842]" />
+                </div>
+                <div>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-white">
+                    Structured Lecture Notes
+                  </span>
+                  <p className="text-[11px] text-slate-300 font-medium">
+                    Compiled across {selectedCount > 0 ? `${selectedCount} selected video lessons` : "selected videos"}
+                  </p>
+                </div>
+              </div>
 
-            console.error(error);
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={copyNotes}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#18191E]/90 border border-[#333642] text-white font-bold text-xs hover:bg-[#2E313B] hover:border-[#E5F842]/40 transition-all cursor-pointer shadow-2xs"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-[#E5F842]" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Copy Notes</span>
+                    </>
+                  )}
+                </button>
 
-        } finally {
+                <button
+                  onClick={downloadNotes}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-extrabold text-xs shadow-md shadow-black/20 transition-all cursor-pointer hover:scale-102"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#121316]" />
+                  <span>Download PDF</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
-            setLoading(false);
+          {/* Rendered Markdown Body with custom stylish elements */}
+          <div 
+            className="rounded-3xl border border-[#333642] shadow-2xl relative overflow-hidden"
+            style={{
+              backgroundImage: "url('/summary.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center center"
+            }}
+          >
+            <div className="absolute inset-0 bg-[#18191E]/80 backdrop-blur-md" />
+            <div className="p-6 sm:p-10 relative z-10">
+            {/* Ambient Corner Glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#E5F842]/5 rounded-full blur-3xl pointer-events-none" />
 
-        }
+            <div className="relative z-10 max-w-4xl">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({ children }) => (
+                    <div className="mt-8 mb-4 pb-3 border-b border-[#333642] first:mt-0">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E5F842]/15 text-[#E5F842] text-xs font-black uppercase tracking-wider mb-2 border border-[#E5F842]/30">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Topic Module</span>
+                      </div>
+                      <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                        {children}
+                      </h1>
+                    </div>
+                  ),
+                  h2: ({ children }) => (
+                    <div className="mt-6 mb-3 pt-2">
+                      <h2 className="text-base sm:text-lg font-extrabold text-[#E5F842] tracking-tight flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#E5F842] shadow-xs shrink-0" />
+                        <span>{children}</span>
+                      </h2>
+                    </div>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-sm sm:text-base font-bold text-white mt-4 mb-2">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="text-sm sm:text-[15px] text-slate-300 leading-relaxed mb-4 font-normal">
+                      {children}
+                    </p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="space-y-2.5 my-3 pl-1">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="space-y-2.5 my-3 pl-5 list-decimal text-sm sm:text-[15px] text-slate-300 leading-relaxed">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="flex items-start gap-2.5 text-sm sm:text-[15px] text-slate-200 leading-relaxed group">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#E5F842] mt-2 shrink-0 group-hover:scale-125 transition-transform" />
+                      <div className="flex-1 min-w-0">{children}</div>
+                    </li>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-bold text-white bg-[#25272F] px-1.5 py-0.5 rounded-md border border-[#333642] text-xs sm:text-sm">
+                      {children}
+                    </strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="italic text-slate-200">{children}</em>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="my-4 p-4 rounded-2xl bg-[#25272F]/60 border-l-4 border-[#E5F842] text-slate-300 italic text-sm">
+                      {children}
+                    </blockquote>
+                  ),
+                  code: ({ children }) => (
+                    <code className="px-2 py-0.5 rounded-md bg-[#121316] text-[#E5F842] font-mono text-xs border border-[#333642]">
+                      {children}
+                    </code>
+                  ),
+                  hr: () => <hr className="my-6 border-[#333642]" />
+                }}
+              >
+                {notes}
+              </ReactMarkdown>
+            </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-    }
-
-    function copyNotes() {
-
-        navigator.clipboard.writeText(
-            notes
-        );
-
-    }
-
-    function downloadNotes() {
-        if (!notes) return;
-        generatePDF({
-            title: "AI Study Notes",
-            videoTitle: "Selected Video Collection",
-            content: notes,
-            docType: "notes"
-        });
-    }
-
-    return (
-
-        <>
-
-            <Box>
-
-                {
-
-                    hasVideos ? (
-
-                        <Button
-                            variant="contained"
-                            onClick={openDialog}
-                            disabled={loading}
-                            sx={{
-                                bgcolor: "#14B8A6",
-                                color: "#021617",
-                                fontWeight: 700,
-                                borderRadius: 2,
-                                px: 4,
-                                "&:hover": {
-                                    bgcolor: "#10B981"
-                                }
-                            }}
-                        >
-
-                            {
-
-                                loading
-                                    ? <CircularProgress size={22} color="inherit" />
-                                    : "Generate Notes"
-
-                            }
-
-                        </Button>
-
-                    ) : (
-
-                        <Typography
-                            sx={{
-                                color: "#14B8A6"
-                            }}
-                        >
-                            Please upload and process a video first.
-                        </Typography>
-
-                    )
-
-                }
-
-                {
-
-                    notes && (
-
-                        <>
-
-                            <Box
-                                sx={{
-                                    mt: 4,
-                                    p: 3,
-                                    borderRadius: 2,
-                                    bgcolor: "#071827",
-                                    border: "1px solid rgba(255,255,255,.08)",
-                                    color: "#F8FAFC",
-                                    fontSize: "0.98rem",
-                                    lineHeight: 1.75,
-                                    letterSpacing: "0.15px",
-                                    fontFamily: `'Plus Jakarta Sans', 'Inter', sans-serif`,
-                                    "& h1": {
-                                        color: "#38BDF8",
-                                        fontWeight: 800,
-                                        fontSize: "1.5rem",
-                                        letterSpacing: "-0.5px",
-                                        mt: 3,
-                                        mb: 1.5,
-                                        pb: 1,
-                                        borderBottom: "1px solid rgba(56, 189, 248, 0.2)"
-                                    },
-                                    "& h2": {
-                                        color: "#14B8A6",
-                                        fontWeight: 700,
-                                        fontSize: "1.25rem",
-                                        letterSpacing: "-0.3px",
-                                        mt: 2.5,
-                                        mb: 1.2
-                                    },
-                                    "& h3": {
-                                        color: "#F8FAFC",
-                                        fontWeight: 700,
-                                        fontSize: "1.1rem",
-                                        mt: 2,
-                                        mb: 1
-                                    },
-                                    "& p": {
-                                        my: 1.2,
-                                        color: "#E2E8F0"
-                                    },
-                                    "& ul, & ol": {
-                                        pl: 2.5,
-                                        my: 1.2
-                                    },
-                                    "& li": {
-                                        mb: 0.8,
-                                        lineHeight: 1.7,
-                                        color: "#E2E8F0"
-                                    },
-                                    "& strong": {
-                                        color: "#38BDF8",
-                                        fontWeight: 700
-                                    },
-                                    "& code": {
-                                        bgcolor: "rgba(255, 255, 255, 0.08)",
-                                        color: "#38BDF8",
-                                        px: 1,
-                                        py: 0.3,
-                                        borderRadius: 1,
-                                        fontSize: "0.88rem",
-                                        fontFamily: "monospace"
-                                    },
-                                    "& hr": {
-                                        borderColor: "rgba(255, 255, 255, 0.12)",
-                                        my: 3
-                                    }
-                                }}
-                            >
-
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                >
-                                    {notes}
-                                </ReactMarkdown>
-
-                            </Box>
-
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    gap: 2,
-                                    mt: 3
-                                }}
-                            >
-
-                                <Button
-                                    startIcon={<ContentCopyRoundedIcon />}
-                                    variant="outlined"
-                                    onClick={copyNotes}
-                                    sx={{
-                                        borderRadius: 2,
-                                        borderColor: "#14B8A6",
-                                        color: "#14B8A6"
-                                    }}
-                                >
-                                    Copy
-                                </Button>
-
-                                <Button
-                                    startIcon={<PictureAsPdfRoundedIcon />}
-                                    variant="outlined"
-                                    onClick={downloadNotes}
-                                    sx={{
-                                        borderRadius: 2,
-                                        borderColor: "#14B8A6",
-                                        color: "#14B8A6"
-                                    }}
-                                >
-                                    Download PDF
-                                </Button>
-
-                            </Box>
-
-                        </>
-
-                    )
-
-                }
-
-            </Box>
-
-            <VideoSelectionDialog
-                open={dialogOpen}
-                title="Generate AI Notes"
-                buttonText="Generate Notes"
-                loading={loading}
-                onClose={() => setDialogOpen(false)}
-                onConfirm={generateNotesHandler}
-            />
-
-        </>
-
-    );
-
+      {/* Video Selection Dialog Modal */}
+      <VideoSelectionDialog
+        open={dialogOpen}
+        title={course ? `Generate AI Notes (${course.title})` : "Generate AI Notes"}
+        buttonText="Generate Notes"
+        loading={loading}
+        onClose={() => setDialogOpen(false)}
+        onConfirm={generateNotesHandler}
+        courseId={course?.id}
+        courseTitle={course?.title}
+      />
+    </div>
+  );
 }

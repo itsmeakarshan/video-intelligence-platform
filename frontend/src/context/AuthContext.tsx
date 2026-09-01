@@ -4,12 +4,14 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    role: "admin" | "student" | string;
 }
 
 interface AuthContextType {
     user: User | null;
     token: string | null;
     isAuthenticated: boolean;
+    isAdmin: boolean;
     isLoading: boolean;
     login: (token: string, user: User) => void;
     logout: () => void;
@@ -37,13 +39,11 @@ function isTokenValid(token: string | null): boolean {
                 .join("")
         );
         const payload = JSON.parse(jsonPayload);
-        if (!payload.exp) return true; // No expiration claim, treat as valid
+        if (!payload.exp) return true;
 
         const currentTime = Math.floor(Date.now() / 1000);
         return payload.exp > currentTime;
-    } catch (e) {
-        console.warn("[AuthContext] Token parsing warning:", e);
-        // Fallback for valid 3-part JWT structure: allow session to persist and let backend validate on API calls
+    } catch {
         const parts = cleanToken.split(".");
         return parts.length === 3;
     }
@@ -72,6 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isTokenValid(cleanToken)) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
+                    if (!parsedUser.role) {
+                        parsedUser.role = parsedUser.email === "admin@ex.com" ? "admin" : "student";
+                    }
                     setToken(cleanToken);
                     setUser(parsedUser);
                     setIsAuthenticated(true);
@@ -79,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     clearAuth();
                 }
             } else {
-                console.warn("[AuthContext] Expired or invalid token found on init. Clearing session.");
                 clearAuth();
             }
         } else {
@@ -89,7 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
 
         const handleUnauthorized = () => {
-            console.warn("[AuthContext] Received 401 unauthorized event. Logging out.");
             clearAuth();
         };
 
@@ -101,6 +102,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = (newToken: string, newUser: User) => {
         const cleanToken = newToken.replace(/^"|"$/g, "").trim();
+        if (!newUser.role) {
+            newUser.role = newUser.email === "admin@ex.com" ? "admin" : "student";
+        }
         localStorage.setItem("access_token", cleanToken);
         localStorage.setItem("user", JSON.stringify(newUser));
         setToken(cleanToken);
@@ -112,12 +116,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearAuth();
     };
 
+    const isAdmin = user?.role === "admin";
+
     return (
         <AuthContext.Provider
             value={{
                 user,
                 token,
                 isAuthenticated,
+                isAdmin,
                 isLoading,
                 login,
                 logout

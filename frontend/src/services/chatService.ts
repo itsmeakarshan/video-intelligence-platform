@@ -5,7 +5,8 @@ import { API_URL } from "../utils/constants";
 export async function askAI(
     question: string,
     conversationId?: string,
-    videoIds?: number[]
+    videoIds?: number[],
+    courseId?: number
 ) {
 
     try {
@@ -13,7 +14,8 @@ export async function askAI(
         const response = await api.post("/chat", {
             question,
             conversation_id: conversationId,
-            video_ids: videoIds
+            video_ids: videoIds,
+            course_id: courseId
         });
 
         return response.data;
@@ -133,7 +135,8 @@ export async function askAIStream(
     conversationId: string | undefined,
     videoIds: number[] | undefined,
     onChunk: (chunk: string) => void,
-    onConversationId: (id: string) => void
+    onConversationId: (id: string) => void,
+    courseId?: number
 ) {
 
     const response = await fetch(
@@ -150,7 +153,8 @@ export async function askAIStream(
             body: JSON.stringify({
                 question,
                 conversation_id: conversationId,
-                video_ids: videoIds
+                video_ids: videoIds,
+                course_id: courseId
             })
         }
     );
@@ -210,3 +214,57 @@ export async function askAIStream(
     }
 
 }
+
+export interface CourseChatHistory {
+    conversation_id: string | null;
+    course_id: number;
+    messages: {
+        id: string;
+        role: "user" | "assistant";
+        text: string;
+        created_at: string;
+    }[];
+}
+
+export async function getCourseConversation(courseId: number): Promise<CourseChatHistory> {
+    const response = await api.get(`/chat/course/${courseId}`);
+    return response.data;
+}
+
+export async function clearCourseConversation(courseId: number): Promise<{ success: boolean; detail: string }> {
+    const response = await api.delete(`/chat/course/${courseId}`);
+    return response.data;
+}
+
+export interface ApiKeyStatus {
+    configured: boolean;
+    masked_key: string;
+    model: string;
+}
+
+export interface ApiKeyTestResult {
+    success: boolean;
+    message: string;
+    model?: string;
+}
+
+export async function getApiKeyStatus(): Promise<ApiKeyStatus> {
+    const response = await api.get("/chat/api-key");
+    return response.data;
+}
+
+export async function updateApiKey(apiKey: string): Promise<{ success: boolean; masked_key: string; message: string }> {
+    const response = await api.post("/chat/api-key", { api_key: apiKey });
+    return response.data;
+}
+
+export async function testApiKey(apiKey?: string): Promise<ApiKeyTestResult> {
+    const response = await api.post("/chat/api-key/test", { api_key: apiKey });
+    return response.data;
+}
+
+export async function deleteApiKey(): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete("/chat/api-key");
+    return response.data;
+}
+

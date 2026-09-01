@@ -1,480 +1,165 @@
-import {
-    Alert,
-    Box,
-    Button,
-    CircularProgress,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Select,
-    TextField,
-    Typography
-} from "@mui/material";
-
-import YouTubeIcon from "@mui/icons-material/YouTube";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-
 import { useState } from "react";
-
 import { downloadYouTubeVideo } from "../../api/api";
+import {
+  Video,
+  Link as LinkIcon,
+  Download,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Sparkles
+} from "lucide-react";
+import toast from "react-hot-toast";
 
+interface Props {
+  courseId?: number;
+  onDownloaded?: () => void;
+}
 
-export default function YouTubeDownloader() {
+export default function YouTubeDownloader({ courseId, onDownloaded }: Props = {}) {
+  const [url, setUrl] = useState("");
+  const [quality, setQuality] = useState("720");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-    const [url, setUrl] = useState("");
+  async function handleDownload(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    setError("");
+    setSuccess("");
 
-    const [quality, setQuality] = useState("720");
+    const trimmedUrl = url.trim();
 
-    const [loading, setLoading] = useState(false);
-
-    const [error, setError] = useState("");
-
-    const [success, setSuccess] = useState("");
-
-
-    async function handleDownload() {
-
-        setError("");
-        setSuccess("");
-
-        const trimmedUrl = url.trim();
-
-        if (!trimmedUrl) {
-
-            setError(
-                "Please paste a YouTube video link."
-            );
-
-            return;
-        }
-
-        if (
-            !trimmedUrl.includes("youtube.com/") &&
-            !trimmedUrl.includes("youtu.be/")
-        ) {
-
-            setError(
-                "Please enter a valid YouTube URL."
-            );
-
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-
-            const result =
-                await downloadYouTubeVideo(
-                    trimmedUrl,
-                    quality
-                );
-
-            setSuccess(
-                result?.message ||
-                "YouTube video downloaded successfully."
-            );
-
-            window.dispatchEvent(
-                new Event("videosUpdated")
-            );
-
-            setUrl("");
-
-        } catch (error: any) {
-
-            setError(
-                error?.message ||
-                "Unable to download the YouTube video."
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
+    if (!trimmedUrl) {
+      setError("Please paste a YouTube video link.");
+      return;
     }
 
+    if (
+      !trimmedUrl.includes("youtube.com/") &&
+      !trimmedUrl.includes("youtu.be/")
+    ) {
+      setError("Please enter a valid YouTube URL (e.g. https://www.youtube.com/watch?v=...)");
+      return;
+    }
 
-    return (
+    setLoading(true);
 
-        <Box
-            sx={{
-                width: "100%",
-                maxWidth: 900,
-                mx: "auto"
-            }}
-        >
+    try {
+      const result = await downloadYouTubeVideo(trimmedUrl, quality, courseId);
+      const msg = result?.message || "YouTube video downloaded and indexed successfully.";
+      setSuccess(msg);
+      toast.success("YouTube video imported into course!");
+      window.dispatchEvent(new Event("videosUpdated"));
+      onDownloaded?.();
+      setUrl("");
+    } catch (err: any) {
+      const msg = err?.message || "Unable to download the YouTube video. Please try another link.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-            {/* Header */}
+  return (
+    <div className="w-full space-y-4 pt-2 text-white">
+      {/* Subheader */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-[#25272F] text-[#E5F842] flex items-center justify-center font-bold shrink-0 border border-[#333642]">
+          <Video className="w-5 h-5 text-[#E5F842]" />
+        </div>
+        <div>
+          <h3 className="text-sm font-extrabold text-white">
+            Import from YouTube
+          </h3>
+          <p className="text-xs text-slate-400 font-medium">
+            Paste any public YouTube URL to download, transcribe, and index into your platform.
+          </p>
+        </div>
+      </div>
 
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    mb: 2
-                }}
+      {/* Form Container */}
+      <form
+        onSubmit={handleDownload}
+        className="p-5 rounded-2xl bg-[#18191E] border border-[#333642] space-y-3.5"
+      >
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* URL Input */}
+          <div className="relative flex-grow">
+            <LinkIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={url}
+              disabled={loading}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setError("");
+                setSuccess("");
+              }}
+              placeholder="Paste YouTube video link (e.g. https://youtu.be/...)"
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#25272F] rounded-xl border border-[#333642] focus:outline-hidden focus:border-[#E5F842] text-white placeholder:text-slate-500 transition-all font-medium"
+            />
+          </div>
+
+          {/* Quality Select */}
+          <div className="shrink-0 w-full sm:w-40">
+            <select
+              value={quality}
+              disabled={loading}
+              onChange={(e) => setQuality(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-sm bg-[#25272F] rounded-xl border border-[#333642] focus:outline-hidden focus:border-[#E5F842] text-white font-semibold transition-all cursor-pointer"
             >
+              <option value="360">360p Standard</option>
+              <option value="480">480p Medium</option>
+              <option value="720">720p HD (Fast)</option>
+              <option value="1080">1080p Full HD</option>
+            </select>
+          </div>
 
-                <Box
-                    sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        bgcolor: "rgba(20,184,166,.10)",
-                        border:
-                            "1px solid rgba(20,184,166,.22)"
-                    }}
-                >
+          {/* Download Button */}
+          <button
+            type="submit"
+            disabled={loading || !url.trim()}
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-extrabold text-sm shadow-md shadow-black/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-[#121316]" />
+                <span>Importing...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 text-[#121316]" />
+                <span>Download</span>
+              </>
+            )}
+          </button>
+        </div>
 
-                    <YouTubeIcon
-                        sx={{
-                            color: "#14B8A6",
-                            fontSize: 25
-                        }}
-                    />
+        <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#E5F842] shrink-0" />
+          <span>
+            Whisper transcription and vector chunk embeddings will automatically generate upon download.
+          </span>
+        </p>
 
-                </Box>
+        {/* Error Alert */}
+        {error && (
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
-                <Box>
-
-                    <Typography
-                        sx={{
-                            color: "#F8FAFC",
-                            fontSize: "1.1rem",
-                            fontWeight: 700
-                        }}
-                    >
-                        Add YouTube Video
-                    </Typography>
-
-                    <Typography
-                        sx={{
-                            color: "#64748B",
-                            fontSize: "0.85rem"
-                        }}
-                    >
-                        Download a YouTube video and add it
-                        to your video library.
-                    </Typography>
-
-                </Box>
-
-            </Box>
-
-
-            {/* Main Card */}
-
-            <Box
-                sx={{
-                    p: { xs: 2.5, sm: 3 },
-                    borderRadius: 2.5,
-                    bgcolor: "rgba(15,23,42,.72)",
-                    border:
-                        "1px solid rgba(20,184,166,.14)",
-                    boxShadow:
-                        "0 12px 35px rgba(0,0,0,.22)",
-                    backdropFilter: "blur(16px)"
-                }}
-            >
-
-                {/* URL + Quality */}
-
-                <Box
-                    sx={{
-                        display: "flex",
-                        gap: 1.5,
-                        alignItems: "stretch",
-                        flexDirection: {
-                            xs: "column",
-                            sm: "row"
-                        }
-                    }}
-                >
-
-                    {/* URL */}
-
-                    <TextField
-                        fullWidth
-                        value={url}
-                        onChange={(event) => {
-                            setUrl(event.target.value);
-                            setError("");
-                            setSuccess("");
-                        }}
-                        placeholder="Paste YouTube video link..."
-                        disabled={loading}
-                        InputProps={{
-                            startAdornment: (
-                                <LinkRoundedIcon
-                                    sx={{
-                                        color: "#64748B",
-                                        mr: 1
-                                    }}
-                                />
-                            )
-                        }}
-                        sx={{
-                            "& .MuiOutlinedInput-root": {
-                                minHeight: 52,
-                                color: "#F8FAFC",
-                                borderRadius: 2,
-
-                                bgcolor:
-                                    "rgba(2,6,23,.45)",
-
-                                "& fieldset": {
-                                    borderColor:
-                                        "rgba(255,255,255,.10)"
-                                },
-
-                                "&:hover fieldset": {
-                                    borderColor:
-                                        "rgba(20,184,166,.45)"
-                                },
-
-                                "&.Mui-focused fieldset": {
-                                    borderColor:
-                                        "#14B8A6"
-                                }
-                            },
-
-                            "& .MuiInputBase-input::placeholder": {
-                                color: "#64748B",
-                                opacity: 1
-                            }
-                        }}
-                    />
-
-
-                    {/* Quality */}
-
-                    <FormControl
-                        sx={{
-                            minWidth: {
-                                xs: "100%",
-                                sm: 145
-                            }
-                        }}
-                    >
-
-                        <InputLabel
-                            sx={{
-                                color: "#94A3B8",
-                                "&.Mui-focused": {
-                                    color: "#14B8A6"
-                                }
-                            }}
-                        >
-                            Quality
-                        </InputLabel>
-
-                        <Select
-                            value={quality}
-                            label="Quality"
-                            disabled={loading}
-                            onChange={(event) =>
-                                setQuality(
-                                    event.target.value
-                                )
-                            }
-                            sx={{
-                                minHeight: 52,
-                                color: "#F8FAFC",
-                                borderRadius: 2,
-                                bgcolor:
-                                    "rgba(2,6,23,.45)",
-
-                                "& .MuiOutlinedInput-notchedOutline": {
-                                    borderColor:
-                                        "rgba(255,255,255,.10)"
-                                },
-
-                                "&:hover .MuiOutlinedInput-notchedOutline": {
-                                    borderColor:
-                                        "rgba(20,184,166,.45)"
-                                },
-
-                                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                                    borderColor:
-                                        "#14B8A6"
-                                },
-
-                                "& .MuiSvgIcon-root": {
-                                    color: "#94A3B8"
-                                }
-                            }}
-
-                            MenuProps={{
-                                PaperProps: {
-                                    sx: {
-                                        bgcolor: "#0F172A",
-                                        color: "#F8FAFC",
-                                        border:
-                                            "1px solid rgba(20,184,166,.15)",
-
-                                        "& .MuiMenuItem-root:hover": {
-                                            bgcolor:
-                                                "rgba(20,184,166,.10)"
-                                        },
-
-                                        "& .Mui-selected": {
-                                            bgcolor:
-                                                "rgba(20,184,166,.14) !important"
-                                        }
-                                    }
-                                }
-                            }}
-                        >
-
-                            <MenuItem value="360">
-                                360p
-                            </MenuItem>
-
-                            <MenuItem value="480">
-                                480p
-                            </MenuItem>
-
-                            <MenuItem value="720">
-                                720p HD
-                            </MenuItem>
-
-                            <MenuItem value="1080">
-                                1080p Full HD
-                            </MenuItem>
-
-                        </Select>
-
-                    </FormControl>
-
-
-                    {/* Download */}
-
-                    <Button
-                        variant="contained"
-                        onClick={handleDownload}
-                        disabled={loading}
-                        startIcon={
-                            loading
-                                ? undefined
-                                : <DownloadRoundedIcon />
-                        }
-                        sx={{
-                            minHeight: 52,
-                            minWidth: {
-                                xs: "100%",
-                                sm: 165
-                            },
-                            borderRadius: 2,
-                            bgcolor: "#14B8A6",
-                            color: "#021617",
-                            fontWeight: 800,
-                            textTransform: "none",
-                            boxShadow:
-                                "0 4px 18px rgba(20,184,166,.20)",
-
-                            "&:hover": {
-                                bgcolor: "#10B981",
-                                boxShadow:
-                                    "0 6px 24px rgba(16,185,129,.28)"
-                            },
-
-                            "&.Mui-disabled": {
-                                bgcolor:
-                                    "rgba(20,184,166,.45)",
-                                color:
-                                    "rgba(2,22,23,.65)"
-                            }
-                        }}
-                    >
-
-                        {loading ? (
-                            <CircularProgress
-                                size={22}
-                                sx={{
-                                    color: "#021617"
-                                }}
-                            />
-                        ) : (
-                            "Download"
-                        )}
-
-                    </Button>
-
-                </Box>
-
-
-                {/* Quality information */}
-
-                <Typography
-                    sx={{
-                        mt: 1.5,
-                        color: "#64748B",
-                        fontSize: "0.78rem"
-                    }}
-                >
-                    Higher quality may require more time and
-                    storage. If the selected quality isn't
-                    available, the best available quality will
-                    be downloaded.
-                </Typography>
-
-
-                {/* Error */}
-
-                {error && (
-
-                    <Alert
-                        severity="error"
-                        sx={{
-                            mt: 2,
-                            borderRadius: 2,
-                            bgcolor:
-                                "rgba(127,29,29,.20)",
-                            border:
-                                "1px solid rgba(248,113,113,.15)"
-                        }}
-                    >
-                        {error}
-                    </Alert>
-
-                )}
-
-
-                {/* Success */}
-
-                {success && (
-
-                    <Alert
-                        icon={
-                            <CheckCircleRoundedIcon
-                                fontSize="inherit"
-                            />
-                        }
-                        severity="success"
-                        sx={{
-                            mt: 2,
-                            borderRadius: 2,
-                            bgcolor:
-                                "rgba(16,185,129,.08)",
-                            border:
-                                "1px solid rgba(16,185,129,.18)"
-                        }}
-                    >
-                        {success}
-                    </Alert>
-
-                )}
-
-            </Box>
-
-        </Box>
-
-    );
+        {/* Success Alert */}
+        {success && (
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-[#E5F842]/15 border border-[#E5F842]/30 text-[#E5F842] text-xs font-semibold">
+            <CheckCircle2 className="w-4 h-4 text-[#E5F842] shrink-0 mt-0.5" />
+            <span>{success}</span>
+          </div>
+        )}
+      </form>
+    </div>
+  );
 }
