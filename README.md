@@ -1,15 +1,6 @@
 # 🎥 AI Video Intelligence & Learning Platform
 
 > **Transforming passive video watching into an active, intelligent, and personalized learning experience.**
-
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-[![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
-[![Faster-Whisper](https://img.shields.io/badge/Faster--Whisper-CTranslate2-FF6F00?logo=python&logoColor=white)](https://github.com/SYSTRAN/faster-whisper)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-
 ---
 
 ## 🎯 What This App Solves
