@@ -307,25 +307,22 @@ using (var scope = app.Services.CreateScope())
 
         // ----------------------------------------------------
         // Seed Demo Users (Admin & Students)
+        // Strictly preserves existing data; only seeds missing accounts
         // ----------------------------------------------------
         var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
-        var initialUserCount = db.Users.Count();
+        var existingUsers = db.Users.ToList();
+
+        if (existingUsers.Any())
+        {
+            Console.WriteLine($"[Database] Existing users preserved: {existingUsers.Count} user(s) found in database.");
+        }
 
         var seedUsers = new[]
         {
             new { Name = "Administrator", Email = "admin@example.com", Password = "admin123", Role = "admin" },
-            new { Name = "Administrator", Email = "admin@ex.com", Password = "admin123", Role = "admin" },
-            new { Name = "Demo Learner", Email = "user@ex.com", Password = "password", Role = "student" },
-            new { Name = "Alex Johnson", Email = "student1@learn.com", Password = "Student1@123", Role = "student" },
-            new { Name = "Sarah Miller", Email = "student2@learn.com", Password = "Student2@123", Role = "student" },
-            new { Name = "David Chen", Email = "student3@learn.com", Password = "Student3@123", Role = "student" },
-            new { Name = "Emily Davis", Email = "student4@learn.com", Password = "Student4@123", Role = "student" },
-            new { Name = "Michael Brown", Email = "student5@learn.com", Password = "Student5@123", Role = "student" },
-            new { Name = "Jessica Taylor", Email = "student6@learn.com", Password = "Student6@123", Role = "student" },
-            new { Name = "Daniel Wilson", Email = "student7@learn.com", Password = "Student7@123", Role = "student" },
-            new { Name = "Olivia Martinez", Email = "student8@learn.com", Password = "Student8@123", Role = "student" },
-            new { Name = "James Anderson", Email = "student9@learn.com", Password = "Student9@123", Role = "student" },
-            new { Name = "Sophia Thomas", Email = "student10@learn.com", Password = "Student10@123", Role = "student" }
+            new { Name = "Administrator", Email = "admin@ex.com", Password = "password", Role = "admin" },
+            new { Name = "User", Email = "user@ex.com", Password = "password", Role = "student" },
+            new { Name = "Alex Johnson", Email = "student1@learn.com", Password = "Student1@123", Role = "student" }
         };
 
         foreach (var su in seedUsers)
@@ -356,14 +353,7 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        if (initialUserCount > 0)
-        {
-            Console.WriteLine($"[Database] Existing users preserved: {initialUserCount} user(s) found in database.");
-        }
-
-        // ----------------------------------------------------
-        // Seed Starter Courses if None Exist
-        // ----------------------------------------------------
+        // Only seed starter course if the database has ZERO courses (fresh deploy)
         if (!db.Courses.Any())
         {
             var adminUser = db.Users.FirstOrDefault(u => u.Role == "admin");
@@ -376,70 +366,11 @@ using (var scope = app.Services.CreateScope())
                     UserId = adminUser?.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
-                },
-                new Course
-                {
-                    Title = "C Programming",
-                    Description = "Comprehensive introduction to C language syntax, pointer mechanics, and memory allocation.",
-                    UserId = adminUser?.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                },
-                new Course
-                {
-                    Title = "COMPLETE PYTHON",
-                    Description = "Python programming from baseline syntax through functions, modules, and data processing.",
-                    UserId = adminUser?.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
                 }
             };
             db.Courses.AddRange(starterCourses);
             db.SaveChanges();
-            Console.WriteLine("[Database] Seeded starter courses for fresh deployment.");
-        }
-
-        // ----------------------------------------------------
-        // Ensure Course Enrollments & Doubt Channels for Students
-        // ----------------------------------------------------
-        var allCourses = db.Courses.ToList();
-        var allStudents = db.Users.Where(u => u.Role == "student").ToList();
-        if (allCourses.Any() && allStudents.Any())
-        {
-            var adminUser = db.Users.FirstOrDefault(u => u.Role == "admin");
-            foreach (var student in allStudents)
-            {
-                foreach (var course in allCourses)
-                {
-                    var isEnrolled = db.CourseEnrollments.Any(e => e.CourseId == course.Id && e.UserId == student.Id);
-                    if (!isEnrolled)
-                    {
-                        db.CourseEnrollments.Add(new CourseEnrollment
-                        {
-                            CourseId = course.Id,
-                            UserId = student.Id,
-                            EnrolledAt = DateTime.UtcNow,
-                            AmountPaid = 0.0m
-                        });
-                    }
-                }
-
-                var hasChannel = db.InstructorChatChannels.Any(c => c.StudentId == student.Id);
-                if (!hasChannel)
-                {
-                    var primaryCourse = allCourses.First();
-                    db.InstructorChatChannels.Add(new InstructorChatChannel
-                    {
-                        CourseId = primaryCourse.Id,
-                        StudentId = student.Id,
-                        InstructorId = adminUser?.Id ?? primaryCourse.UserId,
-                        Title = "Instructor Doubts & Q&A",
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    });
-                }
-            }
-            db.SaveChanges();
+            Console.WriteLine("[Database] Seeded starter course for fresh deployment.");
         }
     }
     catch (Exception ex)
