@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VideoIntelligencePlatform.Backend.Data;
+using VideoIntelligencePlatform.Backend.Models;
 using VideoIntelligencePlatform.Backend.Services;
 
 // ----------------------------------------------------
@@ -300,6 +301,145 @@ using (var scope = app.Services.CreateScope())
         if (!courseColumns.Contains("price"))
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE courses ADD COLUMN price NUMERIC NOT NULL DEFAULT 0.0;");
+        }
+
+        Console.WriteLine($"[Database] Database initialized at: {dbFullPath}");
+
+        // ----------------------------------------------------
+        // Seed Demo Users (Admin & Students)
+        // ----------------------------------------------------
+        var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+        var initialUserCount = db.Users.Count();
+
+        var seedUsers = new[]
+        {
+            new { Name = "Administrator", Email = "admin@example.com", Password = "admin123", Role = "admin" },
+            new { Name = "Administrator", Email = "admin@ex.com", Password = "admin123", Role = "admin" },
+            new { Name = "Demo Learner", Email = "user@ex.com", Password = "password", Role = "student" },
+            new { Name = "Alex Johnson", Email = "student1@learn.com", Password = "Student1@123", Role = "student" },
+            new { Name = "Sarah Miller", Email = "student2@learn.com", Password = "Student2@123", Role = "student" },
+            new { Name = "David Chen", Email = "student3@learn.com", Password = "Student3@123", Role = "student" },
+            new { Name = "Emily Davis", Email = "student4@learn.com", Password = "Student4@123", Role = "student" },
+            new { Name = "Michael Brown", Email = "student5@learn.com", Password = "Student5@123", Role = "student" },
+            new { Name = "Jessica Taylor", Email = "student6@learn.com", Password = "Student6@123", Role = "student" },
+            new { Name = "Daniel Wilson", Email = "student7@learn.com", Password = "Student7@123", Role = "student" },
+            new { Name = "Olivia Martinez", Email = "student8@learn.com", Password = "Student8@123", Role = "student" },
+            new { Name = "James Anderson", Email = "student9@learn.com", Password = "Student9@123", Role = "student" },
+            new { Name = "Sophia Thomas", Email = "student10@learn.com", Password = "Student10@123", Role = "student" }
+        };
+
+        foreach (var su in seedUsers)
+        {
+            var normalizedEmail = su.Email.Trim().ToLowerInvariant();
+            var existing = db.Users.FirstOrDefault(u => u.Email == normalizedEmail);
+            if (existing == null)
+            {
+                var user = new User
+                {
+                    Name = su.Name,
+                    Email = normalizedEmail,
+                    PasswordHash = authService.HashPassword(su.Password),
+                    Role = su.Role,
+                    CreatedAt = DateTime.UtcNow
+                };
+                db.Users.Add(user);
+                db.SaveChanges();
+
+                if (su.Role == "admin")
+                {
+                    Console.WriteLine($"[Database] Demo admin account created: {su.Email} (Role: {su.Role})");
+                }
+                else
+                {
+                    Console.WriteLine($"[Database] Demo student account created: {su.Email} (Role: {su.Role})");
+                }
+            }
+        }
+
+        if (initialUserCount > 0)
+        {
+            Console.WriteLine($"[Database] Existing users preserved: {initialUserCount} user(s) found in database.");
+        }
+
+        // ----------------------------------------------------
+        // Seed Starter Courses if None Exist
+        // ----------------------------------------------------
+        if (!db.Courses.Any())
+        {
+            var adminUser = db.Users.FirstOrDefault(u => u.Role == "admin");
+            var starterCourses = new[]
+            {
+                new Course
+                {
+                    Title = "Computer",
+                    Description = "Fundamental computer hardware, operating system architectures, and core software concepts.",
+                    UserId = adminUser?.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Course
+                {
+                    Title = "C Programming",
+                    Description = "Comprehensive introduction to C language syntax, pointer mechanics, and memory allocation.",
+                    UserId = adminUser?.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Course
+                {
+                    Title = "COMPLETE PYTHON",
+                    Description = "Python programming from baseline syntax through functions, modules, and data processing.",
+                    UserId = adminUser?.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+            db.Courses.AddRange(starterCourses);
+            db.SaveChanges();
+            Console.WriteLine("[Database] Seeded starter courses for fresh deployment.");
+        }
+
+        // ----------------------------------------------------
+        // Ensure Course Enrollments & Doubt Channels for Students
+        // ----------------------------------------------------
+        var allCourses = db.Courses.ToList();
+        var allStudents = db.Users.Where(u => u.Role == "student").ToList();
+        if (allCourses.Any() && allStudents.Any())
+        {
+            var adminUser = db.Users.FirstOrDefault(u => u.Role == "admin");
+            foreach (var student in allStudents)
+            {
+                foreach (var course in allCourses)
+                {
+                    var isEnrolled = db.CourseEnrollments.Any(e => e.CourseId == course.Id && e.UserId == student.Id);
+                    if (!isEnrolled)
+                    {
+                        db.CourseEnrollments.Add(new CourseEnrollment
+                        {
+                            CourseId = course.Id,
+                            UserId = student.Id,
+                            EnrolledAt = DateTime.UtcNow,
+                            AmountPaid = 0.0m
+                        });
+                    }
+                }
+
+                var hasChannel = db.InstructorChatChannels.Any(c => c.StudentId == student.Id);
+                if (!hasChannel)
+                {
+                    var primaryCourse = allCourses.First();
+                    db.InstructorChatChannels.Add(new InstructorChatChannel
+                    {
+                        CourseId = primaryCourse.Id,
+                        StudentId = student.Id,
+                        InstructorId = adminUser?.Id ?? primaryCourse.UserId,
+                        Title = "Instructor Doubts & Q&A",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            db.SaveChanges();
         }
     }
     catch (Exception ex)
