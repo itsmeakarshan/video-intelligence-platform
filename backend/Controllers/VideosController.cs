@@ -99,6 +99,7 @@ public class VideosController : ControllerBase
     }
 
     [HttpGet("{videoId:int}/file")]
+    [HttpGet("{videoId:int}/stream")]
     public async Task<IActionResult> GetVideoFile(int videoId, [FromQuery(Name = "access_token")] string? accessToken)
     {
         int? userId = null;

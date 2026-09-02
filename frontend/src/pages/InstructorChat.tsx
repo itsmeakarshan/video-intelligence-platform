@@ -54,11 +54,23 @@ export default function InstructorChat() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [videoModalUrl, setVideoModalUrl] = useState<{ url: string; title: string } | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatFeedRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const token = (localStorage.getItem("access_token") || "").replace(/^"|"$/g, "").trim();
+
+  const resolveMediaUrl = (rawUrl?: string | null): string => {
+    if (!rawUrl) return "";
+    if (rawUrl.startsWith("http://localhost:8000") || rawUrl.startsWith("http://127.0.0.1:8000")) {
+      const pathAndQuery = rawUrl.replace(/^http:\/\/(localhost|127\.0\.0\.1):8000/, "");
+      return `${API_URL}${pathAndQuery.startsWith("/") ? "" : "/"}${pathAndQuery}`;
+    }
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://") || rawUrl.startsWith("blob:")) {
+      return rawUrl;
+    }
+    return `${API_URL}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+  };
 
   // Load channels on mount
   useEffect(() => {
@@ -78,9 +90,11 @@ export default function InstructorChat() {
     return () => clearInterval(interval);
   }, [activeChannelId]);
 
-  // Scroll to bottom when messages update
+  // Scroll ONLY the message feed container to bottom without shifting parent containers
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatFeedRef.current) {
+      chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
+    }
   }, [messages]);
 
   async function loadChannels() {
@@ -233,8 +247,8 @@ export default function InstructorChat() {
     if (!activeChannelId) return;
 
     try {
-      const videoStreamUrl = `${API_URL}/videos/${video.id}/stream${token ? `?access_token=${token}` : ""}`;
-      const thumbUrl = `${API_URL}/videos/${video.id}/thumbnail${token ? `?access_token=${token}` : ""}`;
+      const videoStreamUrl = `/videos/${video.id}/stream${token ? `?access_token=${token}` : ""}`;
+      const thumbUrl = `/videos/${video.id}/thumbnail${token ? `?access_token=${token}` : ""}`;
 
       const newMsg = await sendInstructorChatMessage(activeChannelId, {
         text: video.title || video.filename,
@@ -326,12 +340,12 @@ export default function InstructorChat() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex flex-col">
+    <div className="h-screen bg-transparent flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-6 flex flex-col">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-4 flex flex-col min-h-0">
         {/* Main Chat Studio Container */}
-        <div className="flex-1 min-h-[600px] h-[calc(100vh-140px)] rounded-3xl border border-[#333642] bg-[#18191E]/95 backdrop-blur-md shadow-2xl overflow-hidden flex flex-col md:flex-row">
+        <div className="flex-1 min-h-0 rounded-3xl border border-[#333642] bg-[#18191E]/95 backdrop-blur-md shadow-2xl overflow-hidden flex flex-col md:flex-row">
           
           {/* Left Sidebar: Threads / Channels - ONLY FOR ADMIN */}
           {isAdmin && (
@@ -470,7 +484,7 @@ export default function InstructorChat() {
                 </div>
 
                 {/* Messages Feed Area */}
-                <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
+                <div ref={chatFeedRef} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
                   {loadingMessages ? (
                     <div className="h-full py-24 text-center text-slate-400 flex flex-col items-center justify-center">
                       <Loader2 className="w-7 h-7 animate-spin text-[#E5F842] mb-2" />
@@ -492,9 +506,7 @@ export default function InstructorChat() {
                     messages.map((msg) => {
                       const isMe = msg.sender_id === user?.id;
                       const isInstructorMsg = msg.sender_role === "admin";
-                      const mediaFullUrl = msg.media_url?.startsWith("http")
-                        ? msg.media_url
-                        : `${API_URL}${msg.media_url}`;
+                      const mediaFullUrl = resolveMediaUrl(msg.media_url);
 
                       return (
                         <div
@@ -621,33 +633,32 @@ export default function InstructorChat() {
                                     if (msg.extra_data) extra = JSON.parse(msg.extra_data);
                                   } catch {}
 
-                                  const thumb = extra.thumbnailUrl || "";
+                                  const thumb = resolveMediaUrl(extra.thumbnailUrl);
                                   const videoTitle = extra.videoTitle || msg.file_name || msg.text;
+                                  const videoPlayUrl = resolveMediaUrl(
+                                    msg.media_url || (extra.videoId ? `/videos/${extra.videoId}/file${token ? `?access_token=${token}` : ""}` : "")
+                                  );
 
                                   return (
                                     <div className="rounded-2xl border border-[#333642] bg-[#141519] overflow-hidden shadow-lg group">
                                       <div
                                         onClick={() =>
                                           setVideoModalUrl({
-                                            url: mediaFullUrl,
+                                            url: videoPlayUrl,
                                             title: videoTitle
                                           })
                                         }
-                                        className="relative aspect-video bg-black cursor-pointer overflow-hidden"
+                                        className="relative aspect-video bg-gradient-to-br from-[#1C1E26] via-[#141519] to-black cursor-pointer overflow-hidden flex items-center justify-center"
                                       >
-                                        {thumb ? (
+                                        {thumb && (
                                           <img
                                             src={thumb}
                                             alt={videoTitle}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                             onError={(e) => {
                                               (e.target as HTMLElement).style.display = "none";
                                             }}
                                           />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-[#25272F]">
-                                            <Film className="w-8 h-8 text-slate-500" />
-                                          </div>
                                         )}
 
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/20 transition-colors">
@@ -669,7 +680,7 @@ export default function InstructorChat() {
                                         <button
                                           onClick={() =>
                                             setVideoModalUrl({
-                                              url: mediaFullUrl,
+                                              url: videoPlayUrl,
                                               title: videoTitle
                                             })
                                           }
@@ -706,7 +717,6 @@ export default function InstructorChat() {
                       );
                     })
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Bottom Input & Attachment Toolbar */}

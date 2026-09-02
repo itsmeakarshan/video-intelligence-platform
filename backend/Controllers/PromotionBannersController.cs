@@ -238,9 +238,23 @@ public class PromotionBannersController : ControllerBase
         }
 
         var safeFileName = Path.GetFileName(fileName);
-        var filePath = Path.Combine(_bannersDirectory, safeFileName);
+        var candidates = new[]
+        {
+            Path.Combine(_bannersDirectory, safeFileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "uploads", "banners", safeFileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "backend", "uploads", "banners", safeFileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "seed_uploads", "banners", safeFileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "backend", "seed_uploads", "banners", safeFileName),
+            Path.Combine(AppContext.BaseDirectory, "uploads", "banners", safeFileName),
+            Path.Combine(AppContext.BaseDirectory, "seed_uploads", "banners", safeFileName),
+            Path.Combine("/app/backend/uploads/banners", safeFileName),
+            Path.Combine("/app/backend/seed_uploads/banners", safeFileName),
+            Path.Combine("/app/uploads/banners", safeFileName)
+        };
 
-        if (!System.IO.File.Exists(filePath))
+        var filePath = candidates.FirstOrDefault(System.IO.File.Exists);
+
+        if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
         {
             return NotFound();
         }

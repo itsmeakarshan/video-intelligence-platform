@@ -425,9 +425,23 @@ public class CoursesController : ControllerBase
     public IActionResult GetThumbnail(string filename)
     {
         var safeFilename = Path.GetFileName(filename);
-        var filePath = Path.Combine(_thumbnailsDirectory, safeFilename);
+        var candidates = new[]
+        {
+            Path.Combine(_thumbnailsDirectory, safeFilename),
+            Path.Combine(Directory.GetCurrentDirectory(), "uploads", "thumbnails", safeFilename),
+            Path.Combine(Directory.GetCurrentDirectory(), "backend", "uploads", "thumbnails", safeFilename),
+            Path.Combine(Directory.GetCurrentDirectory(), "seed_uploads", "thumbnails", safeFilename),
+            Path.Combine(Directory.GetCurrentDirectory(), "backend", "seed_uploads", "thumbnails", safeFilename),
+            Path.Combine(AppContext.BaseDirectory, "uploads", "thumbnails", safeFilename),
+            Path.Combine(AppContext.BaseDirectory, "seed_uploads", "thumbnails", safeFilename),
+            Path.Combine("/app/backend/uploads/thumbnails", safeFilename),
+            Path.Combine("/app/backend/seed_uploads/thumbnails", safeFilename),
+            Path.Combine("/app/uploads/thumbnails", safeFilename)
+        };
 
-        if (!System.IO.File.Exists(filePath))
+        var filePath = candidates.FirstOrDefault(System.IO.File.Exists);
+
+        if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
         {
             return NotFound(new { detail = "Thumbnail image not found." });
         }

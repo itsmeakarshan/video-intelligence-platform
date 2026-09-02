@@ -42,3 +42,4 @@ ml/data/
 .idea/
 .DS_Store
 Thumbs.db
+backend/db/

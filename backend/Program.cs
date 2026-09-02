@@ -108,6 +108,57 @@ if (!string.IsNullOrEmpty(dbDir) && !Directory.Exists(dbDir))
     Directory.CreateDirectory(dbDir);
 }
 
+// ----------------------------------------------------
+// Ensure Uploads & Thumbnails are populated (handles empty Docker volumes on EC2)
+// ----------------------------------------------------
+void EnsureUploadsSeeded()
+{
+    var currentDir = Directory.GetCurrentDirectory();
+    var possibleSeedDirs = new[]
+    {
+        Path.Combine(currentDir, "seed_uploads"),
+        Path.Combine(currentDir, "backend", "seed_uploads"),
+        Path.Combine(AppContext.BaseDirectory, "seed_uploads"),
+        Path.Combine("/app/backend/seed_uploads")
+    };
+
+    var seedDir = possibleSeedDirs.FirstOrDefault(Directory.Exists);
+    if (seedDir == null) return;
+
+    var uploadsDir = Path.Combine(currentDir, "uploads");
+    Directory.CreateDirectory(uploadsDir);
+
+    void CopyDirectoryRecursively(string source, string target)
+    {
+        Directory.CreateDirectory(target);
+        foreach (var file in Directory.GetFiles(source))
+        {
+            var destFile = Path.Combine(target, Path.GetFileName(file));
+            if (!File.Exists(destFile) || new FileInfo(destFile).Length == 0)
+            {
+                File.Copy(file, destFile, overwrite: true);
+            }
+        }
+        foreach (var subDir in Directory.GetDirectories(source))
+        {
+            var destSub = Path.Combine(target, Path.GetFileName(subDir));
+            CopyDirectoryRecursively(subDir, destSub);
+        }
+    }
+
+    try
+    {
+        CopyDirectoryRecursively(seedDir, uploadsDir);
+        Console.WriteLine($"[Media Seed] Uploads directory synchronized from {seedDir}");
+    }
+    catch (Exception seedEx)
+    {
+        Console.WriteLine($"[Media Seed Note] Could not sync seed media: {seedEx.Message}");
+    }
+}
+
+EnsureUploadsSeeded();
+
 Console.WriteLine("============================================================");
 Console.WriteLine("VIDEO INTELLIGENCE PLATFORM (.NET C# BACKEND)");
 Console.WriteLine($"Database Path : {dbFullPath}");
