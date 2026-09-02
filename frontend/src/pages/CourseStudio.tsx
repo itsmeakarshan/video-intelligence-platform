@@ -861,11 +861,11 @@ export default function CourseStudio() {
                         return (
                           <div
                             key={s.id}
-                            className="p-5 sm:p-6 rounded-2xl bg-[#3B3618] border border-[#E5F842]/35 hover:border-[#E5F842]/75 transition-all flex flex-col justify-between shadow-md group"
+                            className="p-5 sm:p-6 rounded-2xl bg-[#18191E] border border-[#333642] hover:border-[#E5F842]/50 hover:bg-[#1C1D24] transition-all flex flex-col justify-between shadow-lg group"
                           >
                             <div>
                               <div className="flex items-center justify-between gap-2 mb-3">
-                                <span className="text-xs font-black uppercase tracking-wider text-[#E5F842] bg-[#22242B] px-3 py-1 rounded-lg border border-[#E5F842]/25">
+                                <span className="text-xs font-black uppercase tracking-wider text-slate-300 bg-[#25272F] px-3 py-1 rounded-lg border border-[#333642]">
                                   {s.category}
                                 </span>
                                 <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -886,7 +886,7 @@ export default function CourseStudio() {
                                 </div>
                               </div>
 
-                              <h4 className="text-base sm:text-lg font-black text-white mb-2 leading-snug tracking-tight">
+                              <h4 className="text-base sm:text-lg font-black text-white mb-2 leading-snug tracking-tight group-hover:text-[#E5F842] transition-colors">
                                 {s.name}
                               </h4>
                               <p className="text-sm text-slate-300 font-normal leading-relaxed">
@@ -895,7 +895,7 @@ export default function CourseStudio() {
                             </div>
 
                             {/* Class Progress on Skill Card */}
-                            <div className="mt-5 pt-4 border-t border-[#E5F842]/20 flex items-center justify-between gap-4">
+                            <div className="mt-5 pt-4 border-t border-[#333642]/60 flex items-center justify-between gap-4">
                               <div className="space-y-1 flex-1 min-w-0">
                                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
                                   Class Progress

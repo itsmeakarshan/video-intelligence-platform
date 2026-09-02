@@ -211,19 +211,19 @@ export default function CourseSkillMasteryCard({
           return (
             <div
               key={skill.skill_id}
-              className="p-5 sm:p-6 rounded-2xl border transition-all flex flex-col justify-between shadow-md bg-[#3B3618] border-[#E5F842]/35 hover:border-[#E5F842]/75 hover:shadow-lg"
+              className="p-5 sm:p-6 rounded-2xl border transition-all flex flex-col justify-between shadow-lg bg-[#18191E] border-[#333642] hover:border-[#E5F842]/50 hover:bg-[#1C1D24] group"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <span className="text-xs font-black text-[#E5F842] uppercase tracking-wider bg-[#22242B] px-3 py-1 rounded-lg border border-[#E5F842]/25">
+                  <span className="text-xs font-black text-slate-300 uppercase tracking-wider bg-[#25272F] px-3 py-1 rounded-lg border border-[#333642]">
                     {skill.category}
                   </span>
                   <span
                     className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider ${
                       isMastered
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                         : isPractice
-                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
                         : "bg-slate-800 text-slate-300 border border-slate-700"
                     }`}
                   >
@@ -233,17 +233,17 @@ export default function CourseSkillMasteryCard({
                   </span>
                 </div>
 
-                <h4 className="text-base sm:text-lg font-black text-white mb-2 leading-snug tracking-tight">
+                <h4 className="text-base sm:text-lg font-black text-white mb-2 leading-snug tracking-tight group-hover:text-[#E5F842] transition-colors">
                   {skill.skill_name}
                 </h4>
-                <p className="text-sm text-slate-300 font-medium leading-relaxed mb-4">
+                <p className="text-sm text-slate-300 font-normal leading-relaxed mb-4">
                   {skill.description}
                 </p>
               </div>
 
               <div>
                 {/* Accuracy Pie Chart & Breakdown */}
-                <div className="mt-4 pt-4 border-t border-[#E5F842]/20 flex items-center justify-between gap-4 mb-3.5">
+                <div className="mt-4 pt-4 border-t border-[#333642]/60 flex items-center justify-between gap-4 mb-3.5">
                   <div className="space-y-1 flex-1 min-w-0">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
                       Topic Accuracy
@@ -275,11 +275,11 @@ export default function CourseSkillMasteryCard({
                 {isPractice && showPracticeAction && (
                   <button
                     onClick={() => navigate("/quiz", { state: { courseId: profile.course_id } })}
-                    className="w-full py-2.5 px-4 text-xs font-black uppercase tracking-wider rounded-xl bg-[#E5F842]/15 hover:bg-[#E5F842]/25 text-[#E5F842] border border-[#E5F842]/35 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                    className="w-full py-2.5 px-4 text-xs font-black uppercase tracking-wider rounded-xl bg-[#E5F842] hover:bg-[#d8ea38] text-[#121316] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md font-extrabold"
                   >
-                    <Sparkles className="w-4 h-4 text-[#E5F842]" />
+                    <Sparkles className="w-4 h-4 text-[#121316]" />
                     <span>Practice Topic in Quiz</span>
-                    <ArrowRight className="w-4 h-4 text-[#E5F842]" />
+                    <ArrowRight className="w-4 h-4 text-[#121316]" />
                   </button>
                 )}
               </div>
