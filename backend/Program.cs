@@ -79,7 +79,27 @@ else
         Path.Combine(parent, "backend", "video_intelligence.db")
     };
 
-    dbFullPath = possibleLocations.FirstOrDefault(File.Exists) ?? Path.Combine(curr, "video_intelligence.db");
+    var targetPath = Path.Combine(curr, rawDbPath);
+    var existingSeed = possibleLocations.FirstOrDefault(File.Exists);
+    if (!File.Exists(targetPath) && existingSeed != null && existingSeed != targetPath)
+    {
+        var targetDir = Path.GetDirectoryName(targetPath);
+        if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+        {
+            Directory.CreateDirectory(targetDir);
+        }
+        try
+        {
+            File.Copy(existingSeed, targetPath, overwrite: false);
+            Console.WriteLine($"[Database] Initialized {targetPath} from seed template: {existingSeed}");
+        }
+        catch (Exception copyEx)
+        {
+            Console.WriteLine($"[Database Note] Could not copy seed template: {copyEx.Message}");
+        }
+    }
+
+    dbFullPath = possibleLocations.FirstOrDefault(File.Exists) ?? targetPath;
 }
 
 var dbDir = Path.GetDirectoryName(dbFullPath);

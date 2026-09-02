@@ -39,8 +39,13 @@ COPY --from=build /app/publish /app/backend
 
 WORKDIR /app/backend
 
-# Runtime storage folders
-RUN mkdir -p uploads temp_audio outputs db
+# Copy starter database & seed media assets (courses, thumbnails, banners, processed videos)
+COPY backend/video_intelligence.db* /app/backend/
+COPY backend/uploads /app/backend/uploads
+
+# Runtime storage folders & ensure db volume seed exists
+RUN mkdir -p uploads/thumbnails uploads/chat_media uploads/banners temp_audio outputs db \
+    && if [ -f /app/backend/video_intelligence.db ]; then cp /app/backend/video_intelligence.db /app/backend/db/video_intelligence.db; fi
 
 EXPOSE 8000
 ENV PORT=8000
