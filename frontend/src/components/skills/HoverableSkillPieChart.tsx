@@ -8,6 +8,7 @@ interface HoverableSkillPieChartProps {
   size?: number;
   strokeWidth?: number;
   isCohort?: boolean;
+  cardBackground?: "dark" | "yellow";
 }
 
 export default function HoverableSkillPieChart({
@@ -17,7 +18,8 @@ export default function HoverableSkillPieChart({
   status = "Unassessed",
   size = 80,
   strokeWidth = 8,
-  isCohort = false
+  isCohort = false,
+  cardBackground = "dark"
 }: HoverableSkillPieChartProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -42,7 +44,15 @@ export default function HoverableSkillPieChart({
   const isPractice = pct > 0 && pct < 80;
   const hasAttempts = validTotal > 0 || pct > 0;
 
-  const correctColor = isCohort
+  const isYellow = cardBackground === "yellow";
+
+  const correctColor = isYellow
+    ? isMastered
+      ? "#047857"
+      : isPractice
+      ? "#B45309"
+      : "rgba(18, 19, 22, 0.3)"
+    : isCohort
     ? isMastered
       ? "#10B981"
       : isPractice
@@ -54,8 +64,17 @@ export default function HoverableSkillPieChart({
     ? "#F59E0B"
     : "#64748B";
 
+  const incorrectColor = isYellow ? "#BE123C" : "#F43F5E";
+  const trackStroke = isYellow ? "rgba(18, 19, 22, 0.15)" : "#25272F";
+
   const glowShadow = isHovered
-    ? isMastered
+    ? isYellow
+      ? isMastered
+        ? "drop-shadow(0 0 6px rgba(4, 120, 87, 0.5))"
+        : isPractice
+        ? "drop-shadow(0 0 6px rgba(180, 83, 9, 0.5))"
+        : "none"
+      : isMastered
       ? "drop-shadow(0 0 8px rgba(16, 185, 129, 0.6))"
       : isPractice
       ? "drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))"
@@ -83,7 +102,7 @@ export default function HoverableSkillPieChart({
           cy={center}
           r={radius}
           fill="none"
-          stroke="#25272F"
+          stroke={trackStroke}
           strokeWidth={strokeWidth}
           className="transition-colors duration-200"
         />
@@ -95,7 +114,7 @@ export default function HoverableSkillPieChart({
             cy={center}
             r={radius}
             fill="none"
-            stroke="#F43F5E"
+            stroke={incorrectColor}
             strokeWidth={strokeWidth}
             strokeDasharray={`${incorrectStrokeLength} ${circumference}`}
             strokeDashoffset={-correctStrokeLength}
@@ -127,7 +146,9 @@ export default function HoverableSkillPieChart({
           className={`font-black tracking-tighter leading-none transition-colors duration-200 ${
             size >= 76 ? "text-base sm:text-lg" : size >= 64 ? "text-xs sm:text-sm" : "text-[11px]"
           } ${
-            isMastered
+            isYellow
+              ? "text-[#121316]"
+              : isMastered
               ? "text-emerald-400"
               : isPractice
               ? "text-amber-400"

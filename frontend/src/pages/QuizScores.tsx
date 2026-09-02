@@ -34,7 +34,17 @@ export default function QuizScores() {
   }, [selectedCourseId]);
 
   useEffect(() => {
-    const cId = selectedCourseId || (courses.length > 0 ? courses[0].id : null);
+    // Determine active course ID:
+    // 1. Explicitly selected course
+    // 2. Course from the student's quiz attempt history
+    // 3. "Computer" (ID: 3) where student has established quiz history
+    // 4. Any course from the list
+    const attemptCourseId = attempts.find((a) => a?.course_id)?.course_id;
+    const cId = selectedCourseId 
+      || attemptCourseId 
+      || (courses.find((c) => c.title.toLowerCase().includes("computer"))?.id) 
+      || (courses.length > 0 ? courses[courses.length - 1].id : null);
+
     if (cId) {
       setMasteryLoading(true);
       getStudentCourseMastery(cId)
@@ -44,7 +54,7 @@ export default function QuizScores() {
     } else {
       setMasteryProfile(null);
     }
-  }, [selectedCourseId, courses]);
+  }, [selectedCourseId, courses, attempts]);
 
   async function loadData() {
     setLoading(true);
@@ -221,9 +231,43 @@ export default function QuizScores() {
           </div>
         </div>
 
+        {/* Course Switcher for Curriculum Skill Mastery */}
+        {courses.length > 0 && (
+          <div className="mt-8 flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-[#333642]/60">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Curriculum Topic Mastery:
+              </span>
+              <span className="text-xs font-black text-[#E5F842] px-2.5 py-1 rounded-lg bg-[#E5F842]/10 border border-[#E5F842]/30">
+                {masteryProfile?.course_title || "Computer"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {courses.map((c) => {
+                const isSelected = (selectedCourseId === c.id) || (!selectedCourseId && (masteryProfile?.course_id === c.id));
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCourseId(c.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? "bg-[#E5F842] text-[#121316] shadow-sm font-black"
+                        : "bg-[#25272F] text-slate-300 hover:text-white hover:bg-[#2E313B] border border-[#333642]"
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {c.title}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Curriculum Skill Mastery Profile */}
         {masteryProfile && (
-          <div className="mt-8">
+          <div className="mt-4">
             <CourseSkillMasteryCard
               profile={masteryProfile}
               loading={masteryLoading}

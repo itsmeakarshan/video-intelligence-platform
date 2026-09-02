@@ -189,18 +189,6 @@ export default function Navbar() {
                   </div>
 
                   <div className="p-1.5 space-y-1">
-                    {!isAdmin && (
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          navigate("/scores");
-                        }}
-                        className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-[#18191E] hover:text-white font-semibold transition-colors cursor-pointer"
-                      >
-                        <Trophy className="w-4 h-4 text-[#E5F842]" />
-                        My Quiz Scores & Attempts
-                      </button>
-                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 font-semibold transition-colors cursor-pointer"

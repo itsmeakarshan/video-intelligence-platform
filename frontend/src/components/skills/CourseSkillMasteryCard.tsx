@@ -211,11 +211,11 @@ export default function CourseSkillMasteryCard({
           return (
             <div
               key={skill.skill_id}
-              className="p-5 sm:p-6 rounded-2xl border transition-all flex flex-col justify-between shadow-md bg-[#1b2320] border-emerald-500/40 hover:border-emerald-500/70"
+              className="p-5 sm:p-6 rounded-2xl border transition-all flex flex-col justify-between shadow-md bg-[#3B3618] border-[#E5F842]/35 hover:border-[#E5F842]/75 hover:shadow-lg"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <span className="text-xs font-black text-slate-200 uppercase tracking-wider bg-[#23252E] px-3 py-1 rounded-lg border border-[#333642]">
+                  <span className="text-xs font-black text-[#E5F842] uppercase tracking-wider bg-[#22242B] px-3 py-1 rounded-lg border border-[#E5F842]/25">
                     {skill.category}
                   </span>
                   <span
@@ -243,7 +243,7 @@ export default function CourseSkillMasteryCard({
 
               <div>
                 {/* Accuracy Pie Chart & Breakdown */}
-                <div className="mt-4 pt-4 border-t border-[#333642]/60 flex items-center justify-between gap-4 mb-3.5">
+                <div className="mt-4 pt-4 border-t border-[#E5F842]/20 flex items-center justify-between gap-4 mb-3.5">
                   <div className="space-y-1 flex-1 min-w-0">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
                       Topic Accuracy
@@ -267,6 +267,7 @@ export default function CourseSkillMasteryCard({
                     status={skill.status}
                     size={84}
                     strokeWidth={8}
+                    cardBackground="dark"
                   />
                 </div>
 
@@ -274,11 +275,11 @@ export default function CourseSkillMasteryCard({
                 {isPractice && showPracticeAction && (
                   <button
                     onClick={() => navigate("/quiz", { state: { courseId: profile.course_id } })}
-                    className="w-full py-2.5 px-4 text-xs font-black uppercase tracking-wider rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-4 text-xs font-black uppercase tracking-wider rounded-xl bg-[#E5F842]/15 hover:bg-[#E5F842]/25 text-[#E5F842] border border-[#E5F842]/35 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 text-[#E5F842]" />
                     <span>Practice Topic in Quiz</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 text-[#E5F842]" />
                   </button>
                 )}
               </div>

@@ -861,11 +861,11 @@ export default function CourseStudio() {
                         return (
                           <div
                             key={s.id}
-                            className="p-5 sm:p-6 rounded-2xl bg-[#1b2320] border border-emerald-500/40 hover:border-emerald-500/70 transition-all flex flex-col justify-between shadow-md group"
+                            className="p-5 sm:p-6 rounded-2xl bg-[#3B3618] border border-[#E5F842]/35 hover:border-[#E5F842]/75 transition-all flex flex-col justify-between shadow-md group"
                           >
                             <div>
                               <div className="flex items-center justify-between gap-2 mb-3">
-                                <span className="text-xs font-black uppercase tracking-wider text-slate-200 bg-[#25272F] px-3 py-1 rounded-lg border border-[#333642]">
+                                <span className="text-xs font-black uppercase tracking-wider text-[#E5F842] bg-[#22242B] px-3 py-1 rounded-lg border border-[#E5F842]/25">
                                   {s.category}
                                 </span>
                                 <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -895,7 +895,7 @@ export default function CourseStudio() {
                             </div>
 
                             {/* Class Progress on Skill Card */}
-                            <div className="mt-5 pt-4 border-t border-[#2A2D37] flex items-center justify-between gap-4">
+                            <div className="mt-5 pt-4 border-t border-[#E5F842]/20 flex items-center justify-between gap-4">
                               <div className="space-y-1 flex-1 min-w-0">
                                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
                                   Class Progress
@@ -920,6 +920,7 @@ export default function CourseStudio() {
                                 size={80}
                                 strokeWidth={8}
                                 isCohort={true}
+                                cardBackground="dark"
                               />
                             </div>
                           </div>
