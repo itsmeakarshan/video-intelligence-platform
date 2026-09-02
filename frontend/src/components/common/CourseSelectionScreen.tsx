@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCourses, type CourseItem } from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
-import { API_URL } from "../../utils/constants";
 import {
   BookOpen,
   Layers,
@@ -12,14 +11,8 @@ import {
   CheckCircle2,
   ArrowRightLeft
 } from "lucide-react";
-
-export function getThumbnailFullUrl(url?: string | null) {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-    return url;
-  }
-  return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-}
+import { getThumbnailFullUrl } from "../../utils/media";
+export { getThumbnailFullUrl };
 
 interface Props {
   studioTitle: string;

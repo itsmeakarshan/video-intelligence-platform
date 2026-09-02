@@ -7,6 +7,7 @@ import {
   Loader2
 } from "lucide-react";
 import { getQuizAttemptRecommendations } from "../../api/api";
+import { getThumbnailFullUrl } from "../../utils/media";
 
 interface WeakTopic {
   topic: string;
@@ -154,7 +155,7 @@ export default function QuizRecommendations({ attemptId }: Props) {
             >
               <div className="relative aspect-video bg-black/60 overflow-hidden">
                 <img
-                  src={rec.thumbnail_url}
+                  src={getThumbnailFullUrl(rec.thumbnail_url)}
                   alt={rec.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

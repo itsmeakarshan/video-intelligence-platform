@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import { getCourses, type CourseItem } from "../api/api";
-import { API_URL } from "../utils/constants";
+import { getThumbnailFullUrl } from "../utils/media";
 import { useAuth } from "../context/AuthContext";
 import {
   Bot,
@@ -41,13 +41,6 @@ export default function Dashboard() {
     }
   }
 
-  function getThumbnailFullUrl(url?: string | null) {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-      return url;
-    }
-    return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-  }
 
   return (
     <div className="min-h-screen bg-transparent text-white pb-16">

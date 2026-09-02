@@ -13,7 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { enrollInCourse, type CourseItem } from "../../api/api";
-import { API_URL } from "../../utils/constants";
+import { getThumbnailFullUrl } from "../../utils/media";
 
 interface EnrollCourseModalProps {
   isOpen: boolean;
@@ -36,14 +36,6 @@ export default function EnrollCourseModal({
 
   const price = course.price ?? 0;
   const isFree = price === 0;
-
-  function getThumbnailFullUrl(url?: string | null) {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-      return url;
-    }
-    return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-  }
 
   const fullThumbUrl = getThumbnailFullUrl(course.thumbnail_url);
 

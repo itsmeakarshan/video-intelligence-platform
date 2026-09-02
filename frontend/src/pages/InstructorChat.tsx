@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { API_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/media";
 import Navbar from "../components/layout/Navbar";
 import VoiceRecorder from "../components/chat/VoiceRecorder";
 import VoiceMessagePlayer from "../components/chat/VoiceMessagePlayer";
@@ -59,18 +59,6 @@ export default function InstructorChat() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const token = (localStorage.getItem("access_token") || "").replace(/^"|"$/g, "").trim();
-
-  const resolveMediaUrl = (rawUrl?: string | null): string => {
-    if (!rawUrl) return "";
-    if (rawUrl.startsWith("http://localhost:8000") || rawUrl.startsWith("http://127.0.0.1:8000")) {
-      const pathAndQuery = rawUrl.replace(/^http:\/\/(localhost|127\.0\.0\.1):8000/, "");
-      return `${API_URL}${pathAndQuery.startsWith("/") ? "" : "/"}${pathAndQuery}`;
-    }
-    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://") || rawUrl.startsWith("blob:")) {
-      return rawUrl;
-    }
-    return `${API_URL}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
-  };
 
   // Load channels on mount
   useEffect(() => {

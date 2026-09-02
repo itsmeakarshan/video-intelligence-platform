@@ -16,7 +16,7 @@ import {
   togglePromotionBanner,
   type PromotionBanner
 } from "../../api/bannerApi";
-import { API_URL } from "../../utils/constants";
+import { getBannerImageUrl } from "../../utils/media";
 import AddBannerModal from "./AddBannerModal";
 import ConfirmDialog from "../common/ConfirmDialog";
 
@@ -96,13 +96,6 @@ export default function PromotionalBannerCarousel({ isAdmin }: PromotionalBanner
     }
   }
 
-  function getBannerImageUrl(url: string) {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-      return url;
-    }
-    return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-  }
 
   function handleBannerClick(banner: PromotionBanner) {
     if (banner.target_url) {

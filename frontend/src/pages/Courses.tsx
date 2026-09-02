@@ -25,7 +25,7 @@ import {
   uploadCourseThumbnail,
   type CourseItem
 } from "../api/api";
-import { API_URL } from "../utils/constants";
+import { getThumbnailFullUrl } from "../utils/media";
 import Navbar from "../components/layout/Navbar";
 import ConfirmDialog from "../components/common/ConfirmDialog";
 import PromotionalBannerCarousel from "../components/banners/PromotionalBannerCarousel";
@@ -214,13 +214,6 @@ export default function Courses() {
     }
   }
 
-  function getThumbnailFullUrl(url?: string | null) {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-      return url;
-    }
-    return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-  }
 
   const filteredCourses = courses.filter((c) =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

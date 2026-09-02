@@ -35,7 +35,7 @@ import Upload from "../components/upload/Upload";
 import YouTubeDownloader from "../components/video/YouTubeDownloader";
 import Navbar from "../components/layout/Navbar";
 import ConfirmDialog from "../components/common/ConfirmDialog";
-import { API_URL } from "../utils/constants";
+import { getThumbnailFullUrl } from "../utils/media";
 
 export default function CourseStudio() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -290,13 +290,6 @@ export default function CourseStudio() {
     }
   }
 
-  function getThumbnailFullUrl(url?: string | null) {
-    if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-      return url;
-    }
-    return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
-  }
 
   if (loading) {
     return (
