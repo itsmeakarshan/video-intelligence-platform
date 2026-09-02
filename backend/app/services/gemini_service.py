@@ -95,34 +95,56 @@ def remove_api_key() -> bool:
         return False
 
 
+FALLBACK_MODELS = [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+    "gemini-3.5-flash",
+]
+
+
+def _get_models_to_try() -> list:
+    primary = getattr(settings, "GEMINI_MODEL", "gemini-3.6-flash") or "gemini-3.6-flash"
+    result = [primary]
+    for m in FALLBACK_MODELS:
+        if m not in result:
+            result.append(m)
+    return result
+
+
 async def test_api_key_async(test_key: Optional[str] = None) -> Tuple[bool, str, Optional[str]]:
     key_to_use = test_key.strip() if test_key and test_key.strip() else get_active_api_key()
     if not key_to_use:
         return False, "No API key provided to test. Please enter a Gemini API key.", None
 
-    model = settings.GEMINI_MODEL
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key_to_use}"
+    models_to_try = _get_models_to_try()
+    for model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key_to_use}"
+        request_obj = {
+            "contents": [{"parts": [{"text": "Respond with 'OK' if you can read this."}]}],
+            "generationConfig": {"maxOutputTokens": 10},
+        }
 
-    request_obj = {
-        "contents": [{"parts": [{"text": "Respond with 'OK' if you can read this."}]}],
-        "generationConfig": {"maxOutputTokens": 10},
-    }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(url, json=request_obj)
 
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(url, json=request_obj)
+                if response.is_success:
+                    return True, f"Connection successful! {model} is responsive.", model
 
-            if response.is_success:
-                return True, f"Connection successful! {model} is responsive.", model
+                if response.status_code in (503, 500, 502, 504, 404):
+                    continue
 
-            try:
-                err_data = response.json()
-                msg = err_data.get("error", {}).get("message", response.text)
-                return False, f"Gemini API Error ({response.status_code}): {msg}", model
-            except Exception:
-                return False, f"Gemini API returned status {response.status_code}: {response.reason_phrase}", model
-    except Exception as ex:
-        return False, f"Connection error: {str(ex)}", model
+                try:
+                    err_data = response.json()
+                    msg = err_data.get("error", {}).get("message", response.text)
+                    return False, f"Gemini API Error ({response.status_code}): {msg}", model
+                except Exception:
+                    return False, f"Gemini API returned status {response.status_code}: {response.reason_phrase}", model
+        except Exception:
+            continue
+
+    return False, "Unable to reach Gemini API. Please check your internet connection or Gemini API key.", None
 
 
 async def generate_content_async(
@@ -138,9 +160,6 @@ async def generate_content_async(
             "Gemini API key is not configured. Please add your Gemini API key using the 'Gemini API Key' "
             "button in the chat header."
         )
-
-    model = settings.GEMINI_MODEL
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
     generation_config: dict = {
         "maxOutputTokens": max_tokens,
@@ -162,9 +181,12 @@ async def generate_content_async(
             "parts": [{"text": system_instruction}]
         }
 
-    for attempt in range(3):
+    models_to_try = _get_models_to_try()
+
+    for model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
+            async with httpx.AsyncClient(timeout=40.0) as client:
                 response = await client.post(url, json=request_obj)
 
                 if response.status_code == 429:
@@ -174,17 +196,15 @@ async def generate_content_async(
                     )
 
                 if not response.is_success:
-                    error_body = response.text
-                    logger.warning(f"Gemini error (attempt {attempt}): {response.status_code} - {error_body}")
-                    if response.status_code >= 500 and attempt < 2:
-                        await asyncio.sleep(2**attempt)
+                    logger.warning(f"Gemini error with model {model}: {response.status_code} - {response.text[:120]}")
+                    if response.status_code in (503, 500, 502, 504, 404):
                         continue
                     return "The AI service could not process the request. Please check the Gemini API configuration."
 
                 data = response.json()
                 candidates = data.get("candidates", [])
                 if not candidates:
-                    return "I couldn't generate an answer from the available information."
+                    continue
 
                 content = candidates[0].get("content", {})
                 parts = content.get("parts", [])
@@ -205,15 +225,11 @@ async def generate_content_async(
                         if t:
                             return t.strip()
 
-                return "I couldn't generate an answer from the available information."
-
         except Exception as ex:
-            logger.error(f"Exception calling Gemini API (attempt {attempt}): {ex}")
-            if attempt >= 2:
-                return "An unexpected error occurred while generating the AI response."
-            await asyncio.sleep(2**attempt)
+            logger.error(f"Exception calling Gemini API with {model}: {ex}")
+            continue
 
-    return "Sorry, Gemini is currently unavailable."
+    return "The AI service could not process the request. Please check the Gemini API configuration."
 
 
 async def stream_content_async(
