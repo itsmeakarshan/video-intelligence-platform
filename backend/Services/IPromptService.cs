@@ -8,5 +8,6 @@ public interface IPromptService
     string BuildMentionPrompt(string question, string occurrencesSummary, int occurrenceCount);
     string BuildSummaryPrompt(string context);
     string BuildNotesPrompt(string context);
-    string BuildQuizPrompt(string context, string difficulty = "Medium", int questions = 10);
+    string BuildQuizPrompt(string context, string difficulty = "Medium", int questions = 10, List<string>? skills = null);
+    string BuildCourseSkillsPrompt(string courseTitle, string context);
 }

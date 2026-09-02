@@ -43,14 +43,26 @@ export interface UserProfile {
     role: "admin" | "student" | string;
 }
 
+export interface CourseRevenueStat {
+    course_id: number;
+    course_title: string;
+    price: number;
+    enrolled_students_count: number;
+    total_earnings: number;
+    percentage_of_earnings: number;
+    percentage_of_students: number;
+}
+
 export interface AdminUserListItem {
     id: number;
     name: string;
     email: string;
     role: string;
     created_at: string;
-    enrolled_courses_count?: number;
-    quiz_attempt_count: number;
+    enrolled_courses_count: number;
+    total_spent: number;
+    enrolled_courses: string[];
+    quiz_attempt_count?: number;
     last_score_percentage?: number | null;
     average_score_percentage?: number | null;
 }
@@ -60,8 +72,12 @@ export interface AdminPlatformStats {
     total_admins: number;
     total_videos: number;
     completed_videos: number;
-    total_quiz_attempts: number;
-    platform_average_score: number;
+    total_courses: number;
+    total_enrollments: number;
+    total_earnings: number;
+    course_revenue_stats: CourseRevenueStat[];
+    total_quiz_attempts?: number;
+    platform_average_score?: number;
 }
 
 export interface CourseItem {

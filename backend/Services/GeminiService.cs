@@ -389,9 +389,15 @@ public class GeminiService : IGeminiService
         return GenerateContentAsync(prompt, maxTokens: 4096);
     }
 
-    public Task<string> AskQuizAsync(string context, string difficulty = "Medium", int questions = 10)
+    public Task<string> AskQuizAsync(string context, string difficulty = "Medium", int questions = 10, List<string>? skills = null)
     {
-        var prompt = _promptService.BuildQuizPrompt(context, difficulty, questions);
+        var prompt = _promptService.BuildQuizPrompt(context, difficulty, questions, skills);
+        return GenerateContentAsync(prompt, maxTokens: 8192, responseMimeType: "application/json");
+    }
+
+    public Task<string> AskCourseSkillsAsync(string courseTitle, string context)
+    {
+        var prompt = _promptService.BuildCourseSkillsPrompt(courseTitle, context);
         return GenerateContentAsync(prompt, maxTokens: 8192, responseMimeType: "application/json");
     }
 

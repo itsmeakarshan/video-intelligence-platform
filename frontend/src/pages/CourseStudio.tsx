@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   BookOpen,
   ArrowLeft,
@@ -13,7 +13,10 @@ import {
   ArrowDown,
   Sparkles,
   Layers,
-  X
+  X,
+  Brain,
+  Plus,
+  Award
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
@@ -29,17 +32,32 @@ import {
   type CourseDetail,
   type CourseVideoItem
 } from "../api/api";
+import {
+  getCourseSkills,
+  generateCourseSkills,
+  createCourseSkill,
+  updateCourseSkill,
+  deleteCourseSkill,
+  getStudentCourseMastery,
+  getCourseAdminMasterySummary,
+  type CourseSkillItem,
+  type CourseMasteryProfile,
+  type CourseAdminMasterySummary
+} from "../api/skillApi";
 import VideoPlayer from "../components/video/VideoPlayer";
 import Chat from "../components/chat/Chat";
 import Upload from "../components/upload/Upload";
 import YouTubeDownloader from "../components/video/YouTubeDownloader";
 import Navbar from "../components/layout/Navbar";
 import ConfirmDialog from "../components/common/ConfirmDialog";
+import CourseSkillMasteryCard from "../components/skills/CourseSkillMasteryCard";
+import HoverableSkillPieChart from "../components/skills/HoverableSkillPieChart";
 import { getThumbnailFullUrl } from "../utils/media";
 
 export default function CourseStudio() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin } = useAuth();
 
   const {
@@ -56,7 +74,24 @@ export default function CourseStudio() {
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"lessons" | "upload" | "youtube">("lessons");
+  const [activeTab, setActiveTab] = useState<"lessons" | "upload" | "youtube" | "skills">(() => {
+    return (location.state as any)?.tab === "skills" ? "skills" : "lessons";
+  });
+
+  // Skills & Mastery State
+  const [skills, setSkills] = useState<CourseSkillItem[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [generatingSkills, setGeneratingSkills] = useState(false);
+  const [studentMastery, setStudentMastery] = useState<CourseMasteryProfile | null>(null);
+  const [adminSummary, setAdminSummary] = useState<CourseAdminMasterySummary | null>(null);
+
+  // Skill Add/Edit Modal
+  const [skillModalOpen, setSkillModalOpen] = useState(false);
+  const [editingSkill, setEditingSkill] = useState<CourseSkillItem | null>(null);
+  const [skillName, setSkillName] = useState("");
+  const [skillCategory, setSkillCategory] = useState("Core Concepts");
+  const [skillDesc, setSkillDesc] = useState("");
+  const [skillSaving, setSkillSaving] = useState(false);
 
   // Rename Video Modal
   const [renamingVideo, setRenamingVideo] = useState<CourseVideoItem | null>(null);
@@ -79,6 +114,7 @@ export default function CourseStudio() {
       const cId = Number(courseId);
       fetchCourseDetails(cId);
       switchCourse(cId);
+      loadSkillsAndMastery(cId);
     }
     return () => {
       switchCourse(null);
@@ -105,6 +141,7 @@ export default function CourseStudio() {
     try {
       const data = await getCourse(id);
       setCourse(data);
+      localStorage.setItem("last_active_course_id", String(id));
 
       const mappedVideos = data.videos.map((v) => ({
         id: v.id,
@@ -290,6 +327,104 @@ export default function CourseStudio() {
     }
   }
 
+  async function loadSkillsAndMastery(cId: number) {
+    setSkillsLoading(true);
+    try {
+      const skillsData = await getCourseSkills(cId);
+      setSkills(skillsData);
+
+      if (isAdmin) {
+        const adminData = await getCourseAdminMasterySummary(cId);
+        setAdminSummary(adminData);
+      }
+      const masteryData = await getStudentCourseMastery(cId);
+      setStudentMastery(masteryData);
+    } catch (err) {
+      console.error("Failed to load course skills/mastery:", err);
+    } finally {
+      setSkillsLoading(false);
+    }
+  }
+
+  async function handleGenerateSkills() {
+    if (!course) return;
+    setGeneratingSkills(true);
+    try {
+      const res = await generateCourseSkills(course.id);
+      setSkills(res.skills);
+      toast.success(res.message || "Course skill set generated successfully!");
+      await loadSkillsAndMastery(course.id);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to generate course skills.");
+    } finally {
+      setGeneratingSkills(false);
+    }
+  }
+
+  function openCreateSkillModal() {
+    setEditingSkill(null);
+    setSkillName("");
+    setSkillCategory("Core Concepts");
+    setSkillDesc("");
+    setSkillModalOpen(true);
+  }
+
+  function openEditSkillModal(skill: CourseSkillItem) {
+    setEditingSkill(skill);
+    setSkillName(skill.name);
+    setSkillCategory(skill.category);
+    setSkillDesc(skill.description);
+    setSkillModalOpen(true);
+  }
+
+  async function handleSaveSkill(e: React.FormEvent) {
+    e.preventDefault();
+    if (!course || !skillName.trim()) return;
+    setSkillSaving(true);
+    try {
+      if (editingSkill) {
+        const updated = await updateCourseSkill(course.id, editingSkill.id, {
+          name: skillName.trim(),
+          category: skillCategory.trim(),
+          description: skillDesc.trim()
+        });
+        setSkills(skills.map(s => s.id === updated.id ? updated : s));
+        toast.success("Skill updated successfully!");
+      } else {
+        const created = await createCourseSkill(course.id, {
+          name: skillName.trim(),
+          category: skillCategory.trim(),
+          description: skillDesc.trim()
+        });
+        setSkills([...skills, created]);
+        toast.success("Skill added successfully!");
+      }
+      setSkillModalOpen(false);
+      setEditingSkill(null);
+      setSkillName("");
+      setSkillCategory("Core Concepts");
+      setSkillDesc("");
+      loadSkillsAndMastery(course.id);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to save skill.");
+    } finally {
+      setSkillSaving(false);
+    }
+  }
+
+  async function handleDeleteSkill(skillId: number) {
+    if (!course) return;
+    if (!window.confirm("Are you sure you want to delete this course skill?")) return;
+    try {
+      await deleteCourseSkill(course.id, skillId);
+      setSkills(skills.filter(s => s.id !== skillId));
+      toast.success("Skill deleted successfully.");
+      loadSkillsAndMastery(course.id);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to delete skill.");
+    }
+  }
+
 
   if (loading) {
     return (
@@ -365,8 +500,36 @@ export default function CourseStudio() {
             </div>
           </div>
 
-          {isAdmin && (
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto flex-wrap">
+            <button
+              onClick={() => {
+                if (activeTab === "skills") {
+                  setActiveTab("lessons");
+                } else {
+                  setActiveTab("skills");
+                  if (course) loadSkillsAndMastery(course.id);
+                  document.getElementById("course-curriculum-tabs")?.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#E5F842] hover:bg-[#d6ea35] text-[#121316] font-extrabold text-sm shadow-sm transition-all duration-150 cursor-pointer"
+              title="View AI Course Skills & Mastery"
+            >
+              <Brain className="w-4 h-4 text-[#121316]" />
+              <span>Skills & Mastery</span>
+            </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => navigate(`/courses/${courseId}/roster`)}
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#25272F] hover:bg-[#2E313B] text-slate-200 border border-[#333642] font-extrabold text-sm transition-all cursor-pointer shadow-sm"
+                title="View Class-Wide Student Mastery Roster"
+              >
+                <Award className="w-4 h-4 text-[#E5F842]" />
+                <span>Student Roster</span>
+              </button>
+            )}
+
+            {isAdmin && (
               <button
                 onClick={openEditCourseModal}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#18191E] border border-[#333642] hover:bg-[#2E313B] text-slate-300 font-bold text-xs transition-colors cursor-pointer"
@@ -374,8 +537,8 @@ export default function CourseStudio() {
                 <Edit className="w-3.5 h-3.5" />
                 <span>Edit Course Info</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* 2. ROW: VIDEO PLAYER (50%) & AI ASSISTANT CHAT (50%) */}
@@ -392,7 +555,7 @@ export default function CourseStudio() {
         </div>
 
         {/* 4. FULL-WIDTH ROW: COURSE CURRICULUM & VIDEO LIBRARY */}
-        <div className="w-full bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-xs space-y-5">
+        <div id="course-curriculum-tabs" className="w-full bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-xs space-y-5">
           {/* Navigation Tabs */}
           <div className="flex items-center gap-2 p-1.5 bg-[#18191E] border border-[#333642] rounded-2xl max-w-xl">
             <button
@@ -608,6 +771,173 @@ export default function CourseStudio() {
               />
             </div>
           )}
+
+          {/* TAB 4: COURSE SKILLS & MASTERY */}
+          {activeTab === "skills" && (
+            <div className="space-y-6">
+              {isAdmin ? (
+                <>
+                  {/* Admin Action Bar */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 sm:p-7 rounded-3xl bg-[#18191E] border border-[#333642] shadow-lg">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-black uppercase tracking-widest text-[#E5F842] bg-[#E5F842]/15 px-3.5 py-1 rounded-lg border border-[#E5F842]/30">
+                          Curriculum Skill Tree
+                        </span>
+                        <span className="text-xs font-bold text-slate-300 bg-[#25272F] px-3 py-1 rounded-lg border border-[#333642]">
+                          {skills.length} Skills Extracted
+                        </span>
+                      </div>
+                      <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                        AI Course Skill Set & Concept Coverage
+                      </h3>
+                      <p className="text-sm text-slate-300 font-medium max-w-2xl leading-relaxed">
+                        AI extracts skills from lecture transcripts to generate balanced quizzes and profile which topics students master vs need to practice.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                      <button
+                        onClick={openCreateSkillModal}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25272F] hover:bg-[#2E313B] text-white border border-[#333642] text-sm font-extrabold transition-all cursor-pointer shadow-sm"
+                      >
+                        <Plus className="w-4 h-4 text-[#E5F842]" />
+                        <span>Add Skill</span>
+                      </button>
+
+                      <button
+                        onClick={handleGenerateSkills}
+                        disabled={generatingSkills}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] text-sm font-black transition-all shadow-md shadow-[#E5F842]/10 cursor-pointer disabled:opacity-50"
+                      >
+                        {generatingSkills ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Extracting Skills with AI...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>{skills.length > 0 ? "Regenerate Skill Set" : "Generate Skill Set with AI"}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Skills Grid */}
+                  {skillsLoading ? (
+                    <div className="p-12 text-center bg-[#18191E] rounded-3xl border border-[#333642]">
+                      <Loader2 className="w-10 h-10 text-[#E5F842] animate-spin mx-auto mb-4" />
+                      <p className="text-sm font-bold text-slate-300">Loading course curriculum skills...</p>
+                    </div>
+                  ) : skills.length === 0 ? (
+                    <div className="p-12 text-center flex flex-col items-center justify-center space-y-4 bg-[#18191E] border border-dashed border-[#333642] rounded-3xl">
+                      <div className="w-16 h-16 rounded-3xl bg-[#25272F] border border-[#333642] text-[#E5F842] flex items-center justify-center shadow-lg">
+                        <Brain className="w-8 h-8" />
+                      </div>
+                      <h4 className="text-lg font-black text-white">No Skills Extracted Yet</h4>
+                      <p className="text-sm text-slate-300 max-w-md leading-relaxed">
+                        Click "Generate Skill Set with AI" to analyze all lecture transcripts and automatically construct the course skill tree.
+                      </p>
+                      <button
+                        onClick={handleGenerateSkills}
+                        disabled={generatingSkills}
+                        className="mt-2 flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] text-sm font-black cursor-pointer shadow-md shadow-[#E5F842]/10"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Generate Skill Set with AI</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {skills.map((s) => {
+                        const stat = adminSummary?.skill_summaries?.find(
+                          (ss) => ss.skill_id === s.id
+                        );
+                        const hasActivity = stat && stat.total_tested_students > 0;
+                        const isHighMastery = (stat?.average_mastery ?? 0) >= 80;
+
+                        return (
+                          <div
+                            key={s.id}
+                            className="p-5 sm:p-6 rounded-2xl bg-[#1b2320] border border-emerald-500/40 hover:border-emerald-500/70 transition-all flex flex-col justify-between shadow-md group"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-3">
+                                <span className="text-xs font-black uppercase tracking-wider text-slate-200 bg-[#25272F] px-3 py-1 rounded-lg border border-[#333642]">
+                                  {s.category}
+                                </span>
+                                <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => openEditSkillModal(s)}
+                                    className="p-1.5 text-slate-400 hover:text-[#E5F842] hover:bg-[#25272F] rounded-lg transition-colors cursor-pointer"
+                                    title="Edit skill"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSkill(s.id)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer"
+                                    title="Delete skill"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <h4 className="text-base sm:text-lg font-black text-white mb-2 leading-snug tracking-tight">
+                                {s.name}
+                              </h4>
+                              <p className="text-sm text-slate-300 font-normal leading-relaxed">
+                                {s.description}
+                              </p>
+                            </div>
+
+                            {/* Class Progress on Skill Card */}
+                            <div className="mt-5 pt-4 border-t border-[#2A2D37] flex items-center justify-between gap-4">
+                              <div className="space-y-1 flex-1 min-w-0">
+                                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                                  Class Progress
+                                </span>
+                                <div className="text-sm font-bold text-white truncate">
+                                  {hasActivity
+                                    ? `${stat.students_mastered_count} of ${stat.total_tested_students} mastered`
+                                    : "No student activity yet"}
+                                </div>
+                                <div className="text-xs text-slate-400 font-medium truncate">
+                                  {hasActivity
+                                    ? `${stat.students_needing_practice_count} students need practice`
+                                    : "Hover chart for topic stats"}
+                                </div>
+                              </div>
+
+                              <HoverableSkillPieChart
+                                percentage={hasActivity ? stat.average_mastery : 0}
+                                correct={hasActivity ? stat.students_mastered_count : 0}
+                                total={hasActivity ? stat.total_tested_students : 0}
+                                status={hasActivity ? (isHighMastery ? "Mastered" : "Needs Practice") : "Untested"}
+                                size={80}
+                                strokeWidth={8}
+                                isCohort={true}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Learner Mastery Card */
+                <CourseSkillMasteryCard
+                  profile={studentMastery}
+                  loading={skillsLoading}
+                  onRefresh={() => course && loadSkillsAndMastery(course.id)}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -746,6 +1076,97 @@ export default function CourseStudio() {
                       <span>Save Changes</span>
                     </>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD / EDIT SKILL MODAL */}
+      {skillModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-[#25272F] rounded-3xl border border-[#333642] shadow-2xl max-w-md w-full p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#E5F842] text-[#121316] flex items-center justify-center font-extrabold">
+                  <Brain className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">
+                    {editingSkill ? "Edit Course Skill" : "Add Course Skill"}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">Define curriculum topic for skill-balanced quizzes</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSkillModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSkill} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Skill / Topic Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={skillName}
+                  onChange={(e) => setSkillName(e.target.value)}
+                  placeholder="e.g. Binary Search Logic"
+                  className="w-full bg-[#18191E] border border-[#333642] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-hidden focus:border-[#E5F842]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Category
+                </label>
+                <select
+                  value={skillCategory}
+                  onChange={(e) => setSkillCategory(e.target.value)}
+                  className="w-full bg-[#18191E] border border-[#333642] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-hidden focus:border-[#E5F842]"
+                >
+                  <option value="Core Concepts">Core Concepts</option>
+                  <option value="Hardware & Architecture">Hardware & Architecture</option>
+                  <option value="Software Systems">Software Systems</option>
+                  <option value="Problem Solving">Problem Solving</option>
+                  <option value="Implementation">Implementation</option>
+                  <option value="Advanced Architecture">Advanced Architecture</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={skillDesc}
+                  onChange={(e) => setSkillDesc(e.target.value)}
+                  placeholder="Brief description of what student learns in this skill..."
+                  className="w-full bg-[#18191E] border border-[#333642] rounded-xl px-4 py-2 text-sm text-white focus:outline-hidden focus:border-[#E5F842]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSkillModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={skillSaving || !skillName.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] text-xs font-extrabold cursor-pointer disabled:opacity-50"
+                >
+                  {skillSaving ? "Saving..." : editingSkill ? "Save Changes" : "Create Skill"}
                 </button>
               </div>
             </form>

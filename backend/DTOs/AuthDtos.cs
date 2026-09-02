@@ -75,9 +75,22 @@ public class AdminUserListItemDto
     public string Role { get; set; } = "student";
     public DateTime CreatedAt { get; set; }
     public int EnrolledCoursesCount { get; set; }
+    public double TotalSpent { get; set; }
+    public List<string> EnrolledCourses { get; set; } = new();
     public int QuizAttemptCount { get; set; }
     public double? LastScorePercentage { get; set; }
     public double? AverageScorePercentage { get; set; }
+}
+
+public class CourseRevenueStatDto
+{
+    public int CourseId { get; set; }
+    public string CourseTitle { get; set; } = string.Empty;
+    public double Price { get; set; }
+    public int EnrolledStudentsCount { get; set; }
+    public double TotalEarnings { get; set; }
+    public double PercentageOfEarnings { get; set; }
+    public double PercentageOfStudents { get; set; }
 }
 
 public class AdminPlatformStatsDto
@@ -86,6 +99,10 @@ public class AdminPlatformStatsDto
     public int TotalAdmins { get; set; }
     public int TotalVideos { get; set; }
     public int CompletedVideos { get; set; }
+    public int TotalCourses { get; set; }
+    public int TotalEnrollments { get; set; }
+    public double TotalEarnings { get; set; }
+    public List<CourseRevenueStatDto> CourseRevenueStats { get; set; } = new();
     public int TotalQuizAttempts { get; set; }
     public double PlatformAverageScore { get; set; }
 }

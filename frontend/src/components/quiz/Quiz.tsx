@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Sparkles,
@@ -12,7 +12,8 @@ import {
   Check,
   Video,
   GraduationCap,
-  CheckCircle
+  CheckCircle,
+  Brain
 } from "lucide-react";
 import { generateQuiz } from "../../services/chatService";
 import { getVideos, saveQuizAttempt, type CourseItem } from "../../api/api";
@@ -248,7 +249,7 @@ export default function Quiz({ course }: Props) {
     setQuizError("");
 
     try {
-      const result = await generateQuiz(videoIds, difficulty, questions);
+      const result = await generateQuiz(videoIds, difficulty, questions, course?.id);
       const parsed = parseQuizResponse(result);
 
       setQuiz(parsed.questions);
@@ -347,6 +348,29 @@ export default function Quiz({ course }: Props) {
     setSubmitError("");
     setQuizError("");
   }
+
+  const skillBreakdown = useMemo(() => {
+    if (!attemptSaved || quiz.length === 0) return [];
+    const map = new Map<string, { total: number; correct: number }>();
+    quiz.forEach((q, idx) => {
+      const topic = q.topic && q.topic.trim() ? q.topic.trim() : "Core Concept";
+      const isCorrect = selectedAnswers[idx] === q.answer;
+      const entry = map.get(topic) || { total: 0, correct: 0 };
+      entry.total += 1;
+      if (isCorrect) entry.correct += 1;
+      map.set(topic, entry);
+    });
+    return Array.from(map.entries()).map(([topic, stat]) => {
+      const accuracy = Math.round((stat.correct / stat.total) * 100);
+      return {
+        topic,
+        total: stat.total,
+        correct: stat.correct,
+        accuracy,
+        isMastered: accuracy >= 80,
+      };
+    });
+  }, [attemptSaved, quiz, selectedAnswers]);
 
   const extraContent = (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -481,8 +505,9 @@ export default function Quiz({ course }: Props) {
                       Question {index + 1} of {quiz.length}
                     </span>
                     {q.topic && (
-                      <span className="text-xs font-semibold text-slate-400 bg-[#18191E] px-2.5 py-0.5 rounded-md border border-[#333642]">
-                        {q.topic}
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E5F842] bg-[#E5F842]/10 px-2.5 py-1 rounded-lg border border-[#E5F842]/20">
+                        <Brain className="w-3.5 h-3.5" />
+                        <span>Skill: {q.topic}</span>
                       </span>
                     )}
                   </div>
@@ -678,13 +703,79 @@ export default function Quiz({ course }: Props) {
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                {/* Skill Tree Progress Breakdown */}
+                {skillBreakdown.length > 0 && (
+                  <div className="mt-7 pt-6 border-t border-[#333642] text-left space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#E5F842]/15 border border-[#E5F842]/30 flex items-center justify-center text-[#E5F842]">
+                          <Brain className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm sm:text-base font-black text-white">
+                            Skill Tree Progress Recorded
+                          </h4>
+                          <p className="text-xs text-slate-400 font-medium">
+                            Your performance was saved to your curriculum mastery profile.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black text-[#E5F842] bg-[#E5F842]/10 border border-[#E5F842]/20 px-3 py-1 rounded-lg self-start sm:self-auto">
+                        {skillBreakdown.filter((s) => s.isMastered).length} of {skillBreakdown.length} Mastered
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {skillBreakdown.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${
+                            item.isMastered
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                              : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <span className="block text-xs font-bold text-white truncate">
+                              {item.topic}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              {item.correct} of {item.total} correct ({item.accuracy}%)
+                            </span>
+                          </div>
+                          <span
+                            className={`text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                              item.isMastered
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                                : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                            }`}
+                          >
+                            {item.isMastered ? "Mastered" : "Needs Practice"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                   <button
                     onClick={openDialog}
-                    className="px-6 py-2.5 rounded-2xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-extrabold text-xs shadow-md shadow-black/40 transition-all cursor-pointer"
+                    className="px-6 py-2.5 rounded-2xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-black text-xs shadow-md shadow-black/40 transition-all cursor-pointer"
                   >
                     Take Another Quiz
                   </button>
+
+                  {course && (
+                    <button
+                      onClick={() => navigate(`/courses/${course.id}`, { state: { tab: "skills" } })}
+                      className="px-6 py-2.5 rounded-2xl bg-[#25272F] hover:bg-[#2E313B] border border-[#E5F842]/40 text-[#E5F842] font-black text-xs transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+                    >
+                      <Brain className="w-4 h-4 text-[#E5F842]" />
+                      <span>View Course Skill Tree</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => navigate("/scores")}
                     className="px-6 py-2.5 rounded-2xl bg-[#18191E] hover:bg-[#202229] border border-[#333642] text-white font-bold text-xs transition-all cursor-pointer flex items-center gap-2"

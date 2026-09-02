@@ -15,14 +15,39 @@ import {
   Video,
   Shield,
   Trash2,
-  TrendingUp,
   Search,
-  Award,
   RefreshCw,
-  BookOpen
+  BookOpen,
+  GraduationCap,
+  PieChart as PieChartIcon,
+  BarChart3,
+  TrendingUp,
+  Coins
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
 import toast, { Toaster } from "react-hot-toast";
 import ConfirmDialog from "../components/common/ConfirmDialog";
+
+// Electric lime / Yellowish-green and complementary color palette
+const CHART_COLORS = [
+  "#E5F842", // Primary Electric Lime
+  "#A3E635", // Vibrant Lime
+  "#4ADE80", // Emerald Green
+  "#2DD4BF", // Teal
+  "#38BDF8", // Cyan Sky
+  "#FBBF24"  // Warm Amber
+];
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -32,7 +57,7 @@ export default function AdminPanel() {
   const [stats, setStats] = useState<AdminPlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -127,180 +152,449 @@ export default function AdminPanel() {
       return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
     });
 
+  // Prepare chart data from real stats
+  const revenueChartData = (stats?.course_revenue_stats || []).map((c) => ({
+    name: c.course_title,
+    earnings: c.total_earnings,
+    students: c.enrolled_students_count,
+    price: c.price,
+    percentage: c.percentage_of_earnings
+  }));
+
+  const enrollmentPieData = (stats?.course_revenue_stats || []).map((c) => ({
+    name: c.course_title,
+    value: c.enrolled_students_count,
+    earnings: c.total_earnings,
+    percentage: c.percentage_of_students,
+    price: c.price
+  }));
+
   return (
-    <div className="min-h-screen bg-transparent text-white pb-16">
+    <div className="min-h-screen bg-[#121316] text-white flex flex-col">
       <Navbar />
       <Toaster position="top-right" />
 
-      <main className="w-full px-4 sm:px-6 lg:px-8 pt-8">
+      {/* Full-width Natural Container */}
+      <main className="w-full flex-1 px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-14 py-8 space-y-8">
         
-        {/* Header Banner */}
+        {/* Header Banner - Full Width */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#333642]">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#25272F] border border-[#333642] text-[#E5F842] flex items-center justify-center shadow-lg shadow-black/40">
+            <div className="w-14 h-14 rounded-2xl bg-[#25272F] border border-[#333642] text-[#E5F842] flex items-center justify-center shadow-lg shadow-black/40 shrink-0">
               <Shield className="w-8 h-8 text-[#E5F842]" />
             </div>
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                   Instructor & Admin Control Room
                 </h1>
-                <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30 rounded-full">
-                  RBAC Mode
+                <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30 rounded-full">
+                  Financial & Platform Intelligence
                 </span>
               </div>
               <p className="text-sm text-slate-400 mt-1 font-medium">
-                Manage student accounts, curated video repository, and system-wide learning analytics.
+                Live platform earnings calculation, course enrollment analytics, and complete learner accounts administration.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={loadData}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25272F] border border-[#333642] text-white font-semibold text-sm hover:bg-[#2E313B] hover:border-[#E5F842]/40 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25272F] border border-[#333642] text-white font-semibold text-sm hover:bg-[#2E313B] hover:border-[#E5F842]/40 transition-all cursor-pointer shadow-xs"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#E5F842]" : "text-slate-400"}`} />
-              Refresh
+              Refresh Data
             </button>
             <button
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E5F842] hover:bg-[#D6EA35] text-[#121316] font-extrabold text-sm shadow-md shadow-black/30 transition-all duration-150 cursor-pointer"
             >
-              <UserPlus className="w-4.5 h-4.5" />
+              <UserPlus className="w-4.5 h-4.5 text-[#121316]" />
               Create New User
             </button>
           </div>
         </div>
 
-        {/* Platform Overview Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-8">
-          <div className="bg-[#25272F] rounded-3xl p-5 border border-[#333642] shadow-xs">
+        {/* Top Metric Cards - Natural 4-Column Responsive Layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          
+          {/* Card 1: Total Earnings Till Now */}
+          <div className="bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-sm hover:border-[#E5F842]/50 transition-all flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Enrolled Students
+                Total Earnings Till Now
               </span>
-              <div className="w-8 h-8 rounded-xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
-                <Users className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center font-extrabold text-lg">
+                <Coins className="w-5 h-5 text-[#E5F842]" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-3xl font-extrabold text-white">
+            <div className="mt-4">
+              <span className="text-3xl sm:text-4xl font-extrabold text-[#E5F842] tracking-tight">
+                {stats ? `£${stats.total_earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "--"}
+              </span>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E5F842] bg-[#E5F842]/10 px-2 py-0.5 rounded-md border border-[#E5F842]/20">
+                  <TrendingUp className="w-3 h-3" />
+                  Realtime Revenue
+                </span>
+                <span className="text-xs text-slate-400 font-medium truncate">
+                  {stats ? `${stats.total_enrollments} total enrollments` : "Loading..."}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Enrolled Students */}
+          <div className="bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-sm hover:border-[#E5F842]/50 transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Active Students
+              </span>
+              <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
+                <Users className="w-5 h-5 text-[#E5F842]" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
                 {stats ? stats.total_students : "--"}
               </span>
-              <p className="text-xs text-slate-400 mt-1 font-medium">
-                {stats ? `${stats.total_students} Active Student${stats.total_students === 1 ? "" : "s"}` : "Loading..."}
+              <p className="text-xs text-slate-400 mt-2 font-medium">
+                {stats ? `${stats.total_students} registered student accounts` : "Loading..."}
               </p>
             </div>
           </div>
 
-          <div className="bg-[#25272F] rounded-3xl p-5 border border-[#333642] shadow-xs">
+          {/* Card 3: Total Course Enrollments */}
+          <div className="bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-sm hover:border-[#E5F842]/50 transition-all flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Curated Videos
+                Total Course Enrollments
               </span>
-              <div className="w-8 h-8 rounded-xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
-                <Video className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-[#E5F842]" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-3xl font-extrabold text-[#E5F842]">
-                {stats ? stats.completed_videos : "--"}
+            <div className="mt-4">
+              <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                {stats ? stats.total_enrollments : "--"}
               </span>
-              <p className="text-xs text-slate-400 mt-1 font-medium">
-                {stats ? `${stats.total_videos} total uploaded` : "Loading..."}
+              <p className="text-xs text-slate-400 mt-2 font-medium">
+                {stats ? `Across ${stats.total_courses} published courses` : "Loading..."}
               </p>
             </div>
           </div>
 
-          <div className="bg-[#25272F] rounded-3xl p-5 border border-[#333642] shadow-xs">
+          {/* Card 4: Curated Courses & Videos */}
+          <div className="bg-[#25272F] rounded-3xl p-6 border border-[#333642] shadow-sm hover:border-[#E5F842]/50 transition-all flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Quizzes Completed
+                Curated Courses & Lessons
               </span>
-              <div className="w-8 h-8 rounded-xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
-                <Award className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
+                <Video className="w-5 h-5 text-[#E5F842]" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-3xl font-extrabold text-white">
-                {stats ? stats.total_quiz_attempts : "--"}
+            <div className="mt-4">
+              <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                {stats ? `${stats.total_courses} Courses` : "--"}
               </span>
-              <p className="text-xs text-slate-400 mt-1 font-medium">
-                Across all student sessions
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-[#25272F] rounded-3xl p-5 border border-[#333642] shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Platform Avg Score
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-3">
-              <span className="text-3xl font-extrabold text-[#E5F842]">
-                {stats ? `${stats.platform_average_score}%` : "--%"}
-              </span>
-              <p className="text-xs text-slate-400 mt-1 font-medium">
-                Average learner mastery
+              <p className="text-xs text-slate-400 mt-2 font-medium">
+                {stats ? `${stats.completed_videos} processed video modules` : "Loading..."}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Student Management Section */}
-        <div className="mt-10 bg-[#25272F] rounded-3xl border border-[#333642] shadow-sm overflow-hidden">
+        {/* Visual Analytics Section (Bar Graph + Pie Chart) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* BAR GRAPH: Earnings by Course */}
+          <div className="bg-[#25272F] rounded-3xl p-6 sm:p-7 border border-[#333642] shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-[#333642] flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-5 h-5 text-[#E5F842]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">
+                      Course Revenue & Earnings
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Calculated from enrolled students & course price (£ GBP)
+                    </p>
+                  </div>
+                </div>
+
+                <span className="px-3 py-1 text-xs font-bold rounded-xl bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30">
+                  {stats ? `£${stats.total_earnings.toFixed(2)} Total Revenue` : "--"}
+                </span>
+              </div>
+
+              {/* Bar Chart Container */}
+              <div className="h-80 w-full pt-6">
+                {revenueChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={revenueChartData}
+                      margin={{ top: 15, right: 15, left: -5, bottom: 25 }}
+                    >
+                      <XAxis
+                        dataKey="name"
+                        stroke="#94A3B8"
+                        fontSize={12}
+                        tickLine={false}
+                        interval={0}
+                        angle={-15}
+                        textAnchor="end"
+                      />
+                      <YAxis
+                        stroke="#94A3B8"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) => `£${val}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#18191E",
+                          border: "1px solid #333642",
+                          borderRadius: "1rem",
+                          color: "#FFFFFF",
+                          boxShadow: "0 15px 30px -5px rgba(0, 0, 0, 0.6)",
+                          padding: "12px 16px"
+                        }}
+                        cursor={{ fill: "rgba(229, 248, 66, 0.08)" }}
+                        formatter={(val: any, _name: any, item: any) => [
+                          `£${Number(val).toFixed(2)} (${item.payload.students} students @ £${item.payload.price})`,
+                          "Total Earned"
+                        ]}
+                      />
+                      <Bar
+                        dataKey="earnings"
+                        fill="#E5F842"
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={50}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-500 text-xs font-medium">
+                    No course earnings data found.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom summary pill list */}
+            <div className="pt-4 border-t border-[#333642] grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {revenueChartData.slice(0, 3).map((item, idx) => (
+                <div key={idx} className="p-3 rounded-2xl bg-[#18191E] border border-[#333642]">
+                  <p className="text-xs font-semibold text-slate-400 truncate">
+                    {item.name}
+                  </p>
+                  <p className="text-sm font-extrabold text-[#E5F842] mt-0.5">
+                    £{item.earnings.toFixed(2)}
+                  </p>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {item.students} students • {item.percentage}% revenue
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* PIE CHART: Student Enrollment Distribution */}
+          <div className="bg-[#25272F] rounded-3xl p-6 sm:p-7 border border-[#333642] shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-[#333642] flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#18191E] border border-[#333642] text-[#E5F842] flex items-center justify-center shrink-0">
+                    <PieChartIcon className="w-5 h-5 text-[#E5F842]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">
+                      Students Enrolled by Course
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Distribution of student enrollments per course
+                    </p>
+                  </div>
+                </div>
+
+                <span className="px-3 py-1 text-xs font-bold rounded-xl bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30">
+                  {stats ? `${stats.total_enrollments} Total Seats` : "--"}
+                </span>
+              </div>
+
+              {/* Pie Chart Container */}
+              <div className="h-80 w-full pt-2">
+                {enrollmentPieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={enrollmentPieData}
+                        cx="50%"
+                        cy="48%"
+                        innerRadius={60}
+                        outerRadius={95}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {enrollmentPieData.map((_entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            stroke="#18191E"
+                            strokeWidth={2.5}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#18191E",
+                          border: "1px solid #333642",
+                          borderRadius: "1rem",
+                          color: "#FFFFFF",
+                          boxShadow: "0 15px 30px -5px rgba(0, 0, 0, 0.6)",
+                          padding: "12px 16px"
+                        }}
+                        formatter={(val: any, _name: any, item: any) => [
+                          `${val} Students (${item.payload.percentage}% of total enrollments)`,
+                          item.payload.name
+                        ]}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={40}
+                        formatter={(value) => (
+                          <span className="text-xs font-semibold text-slate-300">
+                            {value}
+                          </span>
+                        )}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-500 text-xs font-medium">
+                    No course enrollment data found.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom summary row */}
+            <div className="pt-4 border-t border-[#333642] flex items-center justify-between text-xs text-slate-400 font-medium">
+              <span>Active courses: <strong className="text-white">{enrollmentPieData.length}</strong></span>
+              <span>Total enrollments: <strong className="text-[#E5F842]">{stats?.total_enrollments ?? 0}</strong></span>
+              <span>Total revenue: <strong className="text-[#E5F842]">£{stats?.total_earnings.toFixed(2) ?? "0.00"}</strong></span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Course Performance Breakdown Table - Full Width */}
+        {stats && stats.course_revenue_stats && stats.course_revenue_stats.length > 0 && (
+          <div className="bg-[#25272F] rounded-3xl border border-[#333642] shadow-sm p-6 sm:p-7">
+            <div className="flex items-center justify-between pb-4 border-b border-[#333642] mb-4">
+              <div>
+                <h3 className="text-base font-extrabold text-white">
+                  Course Financial & Enrollment Ledger
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Detailed revenue calculation for each published curriculum
+                </p>
+              </div>
+              <span className="text-xs font-bold text-slate-400">
+                {stats.course_revenue_stats.length} Courses Total
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {stats.course_revenue_stats.map((course, idx) => (
+                <div
+                  key={course.course_id || idx}
+                  className="p-4 rounded-2xl bg-[#18191E] border border-[#333642] hover:border-[#E5F842]/40 transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                    />
+                    <span className="text-xs font-bold text-slate-400">
+                      £{course.price.toFixed(2)} / seat
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-extrabold text-white truncate" title={course.course_title}>
+                      {course.course_title}
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {course.enrolled_students_count} students enrolled
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#333642]/60 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-medium">Earned</span>
+                    <span className="text-sm font-extrabold text-[#E5F842]">
+                      £{course.total_earnings.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Student Accounts Management Table - Full Width */}
+        <div className="bg-[#25272F] rounded-3xl border border-[#333642] shadow-sm overflow-hidden">
           <div className="p-6 border-b border-[#333642] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-extrabold text-white">
-                Enrolled Students & Performance
+                Enrolled Students & Accounts
               </h2>
               <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                Inspect student learning progress, quiz attempts, and individual mastery metrics.
+                Manage student profiles, inspect enrolled courses, and track individual fees paid.
               </p>
             </div>
 
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search students by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm bg-[#18191E] text-white placeholder-slate-500 rounded-xl border border-[#333642] focus:outline-hidden focus:border-[#E5F842] transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#18191E] text-white placeholder-slate-500 rounded-xl border border-[#333642] focus:outline-hidden focus:border-[#E5F842] transition-colors"
               />
             </div>
           </div>
 
-          {/* Table */}
+          {/* Table Container */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-[#18191E] text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-[#333642]">
                 <tr>
                   <th className="px-6 py-4">Student</th>
                   <th className="px-6 py-4 text-center">Enrolled Courses</th>
+                  <th className="px-6 py-4 text-center">Total Fees Paid</th>
                   <th className="px-6 py-4">Joined Date</th>
-                  <th className="px-6 py-4 text-center">Quizzes Taken</th>
-                  <th className="px-6 py-4 text-center">Last Score</th>
-                  <th className="px-6 py-4 text-center">Average Score</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#333642]">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-medium">
                       Loading user accounts...
                     </td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-medium">
                       No matching user accounts found.
                     </td>
                   </tr>
@@ -313,7 +607,7 @@ export default function AdminPanel() {
                       <tr key={u.id} className="hover:bg-[#2E313B] transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${
                               u.role === "admin"
                                 ? "bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30"
                                 : "bg-[#18191E] text-slate-300 border border-[#333642]"
@@ -322,9 +616,9 @@ export default function AdminPanel() {
                             </div>
                             <div>
                               <div className="font-bold text-white flex items-center gap-2">
-                                {u.name}
+                                <span>{u.name}</span>
                                 {isCurrentUser && (
-                                  <span className="text-[10px] bg-[#18191E] text-[#E5F842] border border-[#E5F842]/30 px-1.5 py-0.2 rounded-md font-semibold">
+                                  <span className="text-[10px] bg-[#18191E] text-[#E5F842] border border-[#E5F842]/30 px-2 py-0.5 rounded-md font-bold">
                                     You
                                   </span>
                                 )}
@@ -343,6 +637,10 @@ export default function AdminPanel() {
                           </span>
                         </td>
 
+                        <td className="px-6 py-4 text-center font-extrabold text-[#E5F842] text-sm">
+                          £{u.total_spent ? u.total_spent.toFixed(2) : "0.00"}
+                        </td>
+
                         <td className="px-6 py-4 text-xs text-slate-400">
                           {new Date(u.created_at).toLocaleDateString("en-US", {
                             year: "numeric",
@@ -351,42 +649,12 @@ export default function AdminPanel() {
                           })}
                         </td>
 
-                        <td className="px-6 py-4 text-center font-semibold text-slate-200">
-                          {u.quiz_attempt_count}
-                        </td>
-
-                        <td className="px-6 py-4 text-center">
-                          {u.last_score_percentage != null ? (
-                            <span className={`font-bold text-xs px-2.5 py-1 rounded-lg ${
-                              u.last_score_percentage >= 70
-                                ? "bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/30"
-                                : u.last_score_percentage >= 50
-                                ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                                : "bg-rose-500/15 text-rose-300 border border-rose-500/30"
-                            }`}>
-                              {Math.round((u.last_score_percentage / 100) * 10)}/10 ({u.last_score_percentage.toFixed(0)}%)
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-500">None</span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 text-center">
-                          {u.average_score_percentage != null ? (
-                            <span className="font-bold text-xs text-white">
-                              {u.average_score_percentage.toFixed(1)}%
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-500">--</span>
-                          )}
-                        </td>
-
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-2">
                             {!isCurrentUser && (
                               <button
                                 onClick={() => handleDeleteUser(u.id, u.name)}
-                                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-rose-500/30"
                                 title="Delete user account"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -527,7 +795,7 @@ export default function AdminPanel() {
       <ConfirmDialog
         isOpen={!!deletingUser}
         title={`Delete User "${deletingUser?.name}"?`}
-        message={`Are you sure you want to permanently delete user "${deletingUser?.name}"? All their quiz history and performance records will be permanently removed.`}
+        message={`Are you sure you want to permanently delete user "${deletingUser?.name}"? All their course enrollments and records will be permanently removed.`}
         confirmText="Delete User"
         cancelText="Cancel"
         isDestructive={true}

@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<InstructorChatMessage> InstructorChatMessages => Set<InstructorChatMessage>();
     public DbSet<PromotionBanner> PromotionBanners => Set<PromotionBanner>();
     public DbSet<CourseEnrollment> CourseEnrollments => Set<CourseEnrollment>();
+    public DbSet<CourseSkill> CourseSkills => Set<CourseSkill>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +58,13 @@ public class AppDbContext : DbContext
             .HasOne(e => e.User)
             .WithMany()
             .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // CourseSkill relationships
+        modelBuilder.Entity<CourseSkill>()
+            .HasOne(s => s.Course)
+            .WithMany(c => c.Skills)
+            .HasForeignKey(s => s.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Video relationships

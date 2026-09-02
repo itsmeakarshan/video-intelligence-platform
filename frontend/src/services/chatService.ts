@@ -77,28 +77,24 @@ export async function generateNotes(
 export async function generateQuiz(
     videoIds: number[],
     difficulty: string,
-    questions: number
+    questions: number,
+    courseId?: number
 ) {
-
     try {
+        const payload: Record<string, any> = {
+            video_ids: videoIds,
+            difficulty,
+            questions
+        };
+        if (courseId) {
+            payload.course_id = courseId;
+        }
 
-        const response = await api.post(
-            "/chat/quiz",
-            {
-                video_ids: videoIds,
-                difficulty,
-                questions
-            }
-        );
-
+        const response = await api.post("/chat/quiz", payload);
         return response.data;
-
     } catch (error: any) {
-
         handleError(error);
-
     }
-
 }
 
 function handleError(

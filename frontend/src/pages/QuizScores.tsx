@@ -15,19 +15,36 @@ import {
   Video
 } from "lucide-react";
 import { getQuizAttempts, type QuizAttemptItem, getCourses, type CourseItem } from "../api/api";
+import { getStudentCourseMastery, type CourseMasteryProfile } from "../api/skillApi";
 import QuizRecommendations from "../components/quiz/QuizRecommendations";
+import CourseSkillMasteryCard from "../components/skills/CourseSkillMasteryCard";
 
 export default function QuizScores() {
   const navigate = useNavigate();
   const [attempts, setAttempts] = useState<QuizAttemptItem[]>([]);
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [masteryProfile, setMasteryProfile] = useState<CourseMasteryProfile | null>(null);
+  const [masteryLoading, setMasteryLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedAttemptForRecs, setSelectedAttemptForRecs] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    const cId = selectedCourseId || (courses.length > 0 ? courses[0].id : null);
+    if (cId) {
+      setMasteryLoading(true);
+      getStudentCourseMastery(cId)
+        .then((res) => setMasteryProfile(res))
+        .catch(() => setMasteryProfile(null))
+        .finally(() => setMasteryLoading(false));
+    } else {
+      setMasteryProfile(null);
+    }
+  }, [selectedCourseId, courses]);
 
   async function loadData() {
     setLoading(true);
@@ -203,6 +220,17 @@ export default function QuizScores() {
             </p>
           </div>
         </div>
+
+        {/* Curriculum Skill Mastery Profile */}
+        {masteryProfile && (
+          <div className="mt-8">
+            <CourseSkillMasteryCard
+              profile={masteryProfile}
+              loading={masteryLoading}
+              showPracticeAction={true}
+            />
+          </div>
+        )}
 
         {/* Filter Toolbar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-10">

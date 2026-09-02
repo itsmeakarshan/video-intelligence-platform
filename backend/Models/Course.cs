@@ -39,4 +39,5 @@ public class Course
 
     public ICollection<Video> Videos { get; set; } = new List<Video>();
     public ICollection<CourseEnrollment> Enrollments { get; set; } = new List<CourseEnrollment>();
+    public ICollection<CourseSkill> Skills { get; set; } = new List<CourseSkill>();
 }

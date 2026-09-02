@@ -7,7 +7,8 @@ public interface IGeminiService
     Task<string> AskGeminiAsync(string question, string context);
     Task<string> AskSummaryAsync(string context);
     Task<string> AskNotesAsync(string context);
-    Task<string> AskQuizAsync(string context, string difficulty = "Medium", int questions = 10);
+    Task<string> AskQuizAsync(string context, string difficulty = "Medium", int questions = 10, List<string>? skills = null);
+    Task<string> AskCourseSkillsAsync(string courseTitle, string context);
     Task<(bool Success, string Message, string? Model)> TestApiKeyAsync(string? testKey = null);
     bool UpdateApiKey(string newKey);
     bool RemoveApiKey();

@@ -62,13 +62,20 @@ public class AdminController : ControllerBase
             .OrderByDescending(u => u.CreatedAt)
             .ToListAsync();
 
-        var chatChannels = await _db.InstructorChatChannels.ToListAsync();
-        var totalCourses = await _db.Courses.CountAsync();
+        var enrollments = await _db.CourseEnrollments
+            .Include(ce => ce.Course)
+            .ToListAsync();
+
+        var enrollmentsByUser = enrollments
+            .GroupBy(ce => ce.UserId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         var result = users.Select(u =>
         {
-            var userChannelCount = chatChannels.Where(c => c.StudentId == u.Id).Select(c => c.CourseId).Distinct().Count();
-            var enrolledCount = userChannelCount > 0 ? userChannelCount : (u.Role == "admin" ? totalCourses : Math.Max(1, totalCourses));
+            var userEnrollments = enrollmentsByUser.TryGetValue(u.Id, out var list) ? list : new List<CourseEnrollment>();
+            var enrolledCount = userEnrollments.Count;
+            var totalSpent = userEnrollments.Sum(e => (double)e.Course.Price);
+            var courseTitles = userEnrollments.Select(e => e.Course.Title).ToList();
 
             return new AdminUserListItemDto
             {
@@ -78,6 +85,8 @@ public class AdminController : ControllerBase
                 Role = u.Role,
                 CreatedAt = u.CreatedAt,
                 EnrolledCoursesCount = enrolledCount,
+                TotalSpent = Math.Round(totalSpent, 2),
+                EnrolledCourses = courseTitles,
                 QuizAttemptCount = u.QuizAttempts.Count,
                 LastScorePercentage = u.QuizAttempts.OrderByDescending(q => q.CreatedAt).FirstOrDefault()?.Percentage,
                 AverageScorePercentage = u.QuizAttempts.Any() 
@@ -183,12 +192,46 @@ public class AdminController : ControllerBase
             ? await _db.QuizAttempts.AverageAsync(q => q.Percentage) 
             : 0.0;
 
+        var courses = await _db.Courses.ToListAsync();
+        var enrollments = await _db.CourseEnrollments.ToListAsync();
+
+        var totalEarningsRaw = enrollments
+            .Join(courses, e => e.CourseId, c => c.Id, (e, c) => (double)c.Price)
+            .Sum();
+        var totalEarnings = Math.Round(totalEarningsRaw, 2);
+
+        var totalEnrollmentsCount = enrollments.Count;
+
+        var courseStats = courses.Select(c =>
+        {
+            var courseEnrollments = enrollments.Where(e => e.CourseId == c.Id).ToList();
+            var studentCount = courseEnrollments.Count;
+            var earnings = Math.Round(studentCount * (double)c.Price, 2);
+            var pctEarnings = totalEarnings > 0 ? Math.Round((earnings / totalEarnings) * 100.0, 1) : 0.0;
+            var pctStudents = totalEnrollmentsCount > 0 ? Math.Round(((double)studentCount / totalEnrollmentsCount) * 100.0, 1) : 0.0;
+
+            return new CourseRevenueStatDto
+            {
+                CourseId = c.Id,
+                CourseTitle = c.Title,
+                Price = (double)c.Price,
+                EnrolledStudentsCount = studentCount,
+                TotalEarnings = earnings,
+                PercentageOfEarnings = pctEarnings,
+                PercentageOfStudents = pctStudents
+            };
+        }).OrderByDescending(cs => cs.TotalEarnings).ToList();
+
         return Ok(new AdminPlatformStatsDto
         {
             TotalStudents = totalStudents,
             TotalAdmins = totalAdmins,
             TotalVideos = totalVideos,
             CompletedVideos = completedVideos,
+            TotalCourses = courses.Count,
+            TotalEnrollments = totalEnrollmentsCount,
+            TotalEarnings = totalEarnings,
+            CourseRevenueStats = courseStats,
             TotalQuizAttempts = totalQuizzes,
             PlatformAverageScore = Math.Round(avgScoreRaw, 1)
         });

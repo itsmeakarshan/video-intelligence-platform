@@ -111,8 +111,30 @@ public class QuizAttemptsController : ControllerBase
 
         if (request.Questions != null && request.Questions.Any())
         {
+            int? detectedCourseId = validVideos.FirstOrDefault(v => v.CourseId.HasValue)?.CourseId;
+            List<CourseSkill>? courseSkills = null;
+            if (detectedCourseId.HasValue)
+            {
+                courseSkills = await _db.CourseSkills
+                    .Where(s => s.CourseId == detectedCourseId.Value)
+                    .ToListAsync();
+            }
+
             foreach (var q in request.Questions)
             {
+                var assignedTopic = !string.IsNullOrWhiteSpace(q.Topic) ? q.Topic.Trim() : "General Concept";
+
+                if (courseSkills != null && courseSkills.Any())
+                {
+                    var matchedSkill = courseSkills.FirstOrDefault(s =>
+                        CourseSkillsController.MatchesSkill(assignedTopic, s.Name));
+
+                    if (matchedSkill != null)
+                    {
+                        assignedTopic = matchedSkill.Name;
+                    }
+                }
+
                 var qEntity = new QuizAttemptQuestion
                 {
                     QuizAttemptId = attempt.Id,
@@ -121,9 +143,7 @@ public class QuizAttemptsController : ControllerBase
                     SelectedAnswer = q.SelectedAnswer,
                     CorrectAnswer = q.CorrectAnswer,
                     IsCorrect = q.IsCorrect,
-                    Topic = !string.IsNullOrWhiteSpace(q.Topic) 
-                        ? (q.Topic.Length > 200 ? q.Topic.Substring(0, 200) : q.Topic) 
-                        : "General Concept",
+                    Topic = assignedTopic.Length > 200 ? assignedTopic.Substring(0, 200) : assignedTopic,
                     Explanation = q.Explanation != null && q.Explanation.Length > 1000 
                         ? q.Explanation.Substring(0, 1000) 
                         : q.Explanation

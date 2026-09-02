@@ -139,7 +139,7 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> Quiz([FromBody] QuizRequestDto request)
     {
         var userId = GetCurrentUserId();
-        var response = await _aiService.QuizWithAiAsync(userId, request.Difficulty, request.Questions, request.VideoIds);
+        var response = await _aiService.QuizWithAiAsync(userId, request.Difficulty, request.Questions, request.VideoIds, request.CourseId);
         return Ok(response);
     }
 

@@ -10,7 +10,8 @@ import {
   ChevronDown,
   MessagesSquare,
   GraduationCap,
-  Trophy
+  Trophy,
+  Award
 } from "lucide-react";
 
 export default function Navbar() {
@@ -43,13 +44,25 @@ export default function Navbar() {
         ]
       : [
           { label: "Student Q&A", path: "/doubts", icon: MessagesSquare },
+          { label: "Mastery Roster", path: "/roster", icon: Award },
           { label: "Admin Panel", path: "/admin", icon: Shield, badge: "Admin" }
         ])
   ];
 
   const isActive = (path: string) => {
     if (path === "/courses") {
-      return location.pathname === "/courses" || location.pathname.startsWith("/courses/") || location.pathname === "/";
+      return (
+        (location.pathname === "/courses" || location.pathname.startsWith("/courses/") || location.pathname === "/") &&
+        !location.pathname.includes("/roster") &&
+        !location.pathname.includes("/mastery")
+      );
+    }
+    if (path === "/roster") {
+      return (
+        location.pathname === "/roster" ||
+        location.pathname.includes("/roster") ||
+        location.pathname.includes("/mastery")
+      );
     }
     if (path === "/dashboard") {
       return location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");

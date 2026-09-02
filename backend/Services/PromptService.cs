@@ -333,13 +333,29 @@ SUPPLIED VIDEO CONTEXT
 """;
     }
 
-    public string BuildQuizPrompt(string context, string difficulty = "Medium", int questions = 10)
+    public string BuildQuizPrompt(string context, string difficulty = "Medium", int questions = 10, List<string>? skills = null)
     {
+        var skillsInstruction = "";
+        if (skills != null && skills.Any())
+        {
+            var skillsList = string.Join("\n- ", skills);
+            skillsInstruction = $"""
+IMPORTANT SKILL BALANCE REQUIREMENT:
+The course focuses on these specific Course Skills/Topics:
+- {skillsList}
+
+You MUST balance the {questions} questions across these Course Skills (e.g. 1 question per skill).
+For each question, set the "topic" field to the EXACT Name of the corresponding Course Skill from the list above!
+""";
+        }
+
         return $$"""
 {{SystemPrompt}}
 
 Generate a {{difficulty}} difficulty quiz containing {{questions}} multiple choice questions
 based ONLY on the supplied video context below.
+
+{{skillsInstruction}}
 
 Return valid JSON in this exact structure:
 {
@@ -358,11 +374,46 @@ STRICT MANDATES:
 1. Return ONLY the JSON object. Do not add any text before or after the JSON.
 2. "correct_answer" MUST be a 0-indexed integer (0, 1, 2, or 3) corresponding to the correct option index in "options".
 3. Each question MUST have exactly 4 options.
-4. "topic" should describe the specific concept or sub-topic tested.
+4. "topic" should describe the specific concept or sub-topic tested (matching one of the course skills if provided).
 5. "explanation" must explain why the correct option is right based ONLY on the video context.
 
 ============================================================
 SUPPLIED VIDEO CONTEXT
+============================================================
+
+{{context}}
+""";
+    }
+
+    public string BuildCourseSkillsPrompt(string courseTitle, string context)
+    {
+        return $$"""
+{{SystemPrompt}}
+
+You are an expert curriculum designer and senior technical educator.
+Analyze the following lecture transcripts for the course "{{courseTitle}}".
+Extract a structured, comprehensive curriculum skill set consisting of 6 to 12 distinct, high-impact skills/topics taught in these lessons.
+
+Return valid JSON in this exact structure:
+{
+  "skills": [
+    {
+      "name": "Skill Name (Concise, 2-4 words, e.g. 'Binary Search Algorithm')",
+      "description": "Clear 1-2 sentence explanation of what the student learns and applies in this skill.",
+      "category": "Core Concepts | Implementation | Problem Solving | Advanced Architecture"
+    }
+  ]
+}
+
+STRICT MANDATES:
+1. Return ONLY the JSON object. No intro, no commentary, no markdown text outside the JSON.
+2. Each skill must represent a distinct testable topic covered in the transcripts.
+3. "name" must be clear, title-cased, and specific (avoid generic labels like 'Topic 1').
+4. "description" must directly reflect what was taught in the provided context.
+5. Provide between 6 and 12 skills.
+
+============================================================
+SUPPLIED COURSE LECTURE TRANSCRIPTS
 ============================================================
 
 {{context}}

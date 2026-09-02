@@ -24,6 +24,7 @@ public class NotesRequestDto
 public class QuizRequestDto
 {
     public List<int>? VideoIds { get; set; }
+    public int? CourseId { get; set; }
     public string Difficulty { get; set; } = "Medium";
     public int Questions { get; set; } = 10;
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -309,12 +310,35 @@ TRANSCRIPT:
         };
     }
 
-    public async Task<ChatResponseDto> QuizWithAiAsync(int userId, string difficulty = "Medium", int questions = 10, List<int>? videoIds = null)
+    public async Task<ChatResponseDto> QuizWithAiAsync(int userId, string difficulty = "Medium", int questions = 10, List<int>? videoIds = null, int? courseId = null)
     {
+        if ((!courseId.HasValue || courseId.Value <= 0) && videoIds != null && videoIds.Any())
+        {
+            courseId = await _db.Videos
+                .Where(v => videoIds.Contains(v.Id) && v.CourseId.HasValue)
+                .Select(v => v.CourseId)
+                .FirstOrDefaultAsync();
+        }
+
         var (context, sources) = await BuildFullVideoContextAsync(videoIds);
 
-        var rawAnswer = await _geminiService.AskQuizAsync(context, difficulty, questions);
-        var validatedJson = ValidateQuizResponse(rawAnswer, context, difficulty, questions);
+        List<string>? skillNames = null;
+        if (courseId.HasValue && courseId.Value > 0)
+        {
+            var skills = await _db.CourseSkills
+                .Where(s => s.CourseId == courseId.Value)
+                .OrderBy(s => s.OrderIndex)
+                .Select(s => s.Name)
+                .ToListAsync();
+
+            if (skills.Any())
+            {
+                skillNames = skills;
+            }
+        }
+
+        var rawAnswer = await _geminiService.AskQuizAsync(context, difficulty, questions, skillNames);
+        var validatedJson = ValidateQuizResponse(rawAnswer, context, difficulty, questions, skillNames);
 
         return new ChatResponseDto
         {
@@ -323,11 +347,11 @@ TRANSCRIPT:
         };
     }
 
-    private string ValidateQuizResponse(string answer, string context, string difficulty, int requestedCount)
+    private string ValidateQuizResponse(string answer, string context, string difficulty, int requestedCount, List<string>? skills = null)
     {
         if (string.IsNullOrWhiteSpace(answer))
         {
-            return GenerateFallbackQuiz(context, requestedCount);
+            return GenerateFallbackQuiz(context, requestedCount, skills);
         }
 
         var cleaned = answer.Trim();
@@ -378,7 +402,7 @@ TRANSCRIPT:
         catch
         {
             // If direct JSON parse fails, try fallback generation
-            return GenerateFallbackQuiz(context, requestedCount);
+            return GenerateFallbackQuiz(context, requestedCount, skills);
         }
 
         JsonArray? questionsList = null;
@@ -489,6 +513,24 @@ TRANSCRIPT:
             }
 
             var topic = q["topic"]?.GetValue<string>() ?? "Core Concept";
+
+            if (skills != null && skills.Any())
+            {
+                var matched = skills.FirstOrDefault(s => 
+                    s.Equals(topic, StringComparison.OrdinalIgnoreCase) ||
+                    topic.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    s.Contains(topic, StringComparison.OrdinalIgnoreCase));
+                
+                if (matched != null)
+                {
+                    topic = matched;
+                }
+                else
+                {
+                    topic = skills[i % skills.Count];
+                }
+            }
+
             var explanation = q["explanation"]?.GetValue<string>() ?? $"Option {ansIdx + 1} is correct according to the video lesson.";
 
             normalizedList.Add(new
@@ -504,13 +546,13 @@ TRANSCRIPT:
 
         if (!normalizedList.Any())
         {
-            return GenerateFallbackQuiz(context, requestedCount);
+            return GenerateFallbackQuiz(context, requestedCount, skills);
         }
 
         return JsonSerializer.Serialize(new { questions = normalizedList });
     }
 
-    private static string GenerateFallbackQuiz(string context, int count)
+    private static string GenerateFallbackQuiz(string context, int count, List<string>? skills = null)
     {
         var questions = new List<object>();
         var cleanContext = context.Replace("NO_RELEVANT_VIDEO_CONTEXT", "").Trim();
@@ -543,6 +585,10 @@ TRANSCRIPT:
                 qText = $"Based on the video lesson, which statement accurately describes: \"{line}\"?";
             }
 
+            var topic = (skills != null && skills.Any()) 
+                ? skills[i % skills.Count] 
+                : "Video Knowledge Check";
+
             questions.Add(new
             {
                 question = qText,
@@ -555,11 +601,186 @@ TRANSCRIPT:
                 },
                 correct_answer = 0,
                 answer = 0,
-                topic = "Video Knowledge Check",
+                topic = topic,
                 explanation = $"According to the video lesson: {line}"
             });
         }
 
         return JsonSerializer.Serialize(new { questions = questions });
+    }
+
+    public async Task<List<CourseSkillDto>> ExtractCourseSkillsAsync(int courseId)
+    {
+        var course = await _db.Courses
+            .Include(c => c.Videos)
+            .FirstOrDefaultAsync(c => c.Id == courseId);
+
+        if (course == null)
+        {
+            throw new KeyNotFoundException("Course not found.");
+        }
+
+        var completedVideos = course.Videos
+            .Where(v => v.Status == "completed")
+            .OrderBy(v => v.OrderIndex)
+            .ToList();
+
+        if (!completedVideos.Any())
+        {
+            throw new InvalidOperationException("No completed videos found for this course. Please process at least one video first.");
+        }
+
+        var sb = new StringBuilder();
+        foreach (var v in completedVideos)
+        {
+            var transcript = await _db.Transcripts.FirstOrDefaultAsync(t => t.VideoId == v.Id);
+            if (transcript != null && !string.IsNullOrWhiteSpace(transcript.TranscriptText))
+            {
+                sb.AppendLine($"=== Lesson Video: {v.Title} ===");
+                sb.AppendLine(transcript.TranscriptText.Trim());
+                sb.AppendLine();
+            }
+        }
+
+        var context = sb.ToString().Trim();
+        if (string.IsNullOrWhiteSpace(context))
+        {
+            foreach (var v in completedVideos)
+            {
+                sb.AppendLine($"=== Lesson: {v.Title} ===");
+            }
+            context = sb.ToString().Trim();
+        }
+
+        string rawJson = string.Empty;
+        try
+        {
+            rawJson = await _geminiService.AskCourseSkillsAsync(course.Title, context);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AiService] Gemini AskCourseSkillsAsync failed: {ex.Message}. Using fallback skill extraction.");
+        }
+
+        var parsedSkills = ParseCourseSkillsJson(rawJson, course.Title, completedVideos);
+
+        // Replace existing skills for this course with newly generated ones
+        var existingSkills = await _db.CourseSkills.Where(s => s.CourseId == courseId).ToListAsync();
+        _db.CourseSkills.RemoveRange(existingSkills);
+
+        var newEntities = new List<CourseSkill>();
+        int order = 1;
+        foreach (var s in parsedSkills)
+        {
+            newEntities.Add(new CourseSkill
+            {
+                CourseId = courseId,
+                Name = s.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(s.Description) ? $"Comprehensive grasp of {s.Name}" : s.Description.Trim(),
+                Category = string.IsNullOrWhiteSpace(s.Category) ? "Core Concepts" : s.Category.Trim(),
+                OrderIndex = order++,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        _db.CourseSkills.AddRange(newEntities);
+        await _db.SaveChangesAsync();
+
+        return newEntities.Select(e => new CourseSkillDto
+        {
+            Id = e.Id,
+            CourseId = e.CourseId,
+            Name = e.Name,
+            Description = e.Description,
+            Category = e.Category,
+            OrderIndex = e.OrderIndex,
+            CreatedAt = e.CreatedAt
+        }).ToList();
+    }
+
+    private static List<CourseSkillCreateDto> ParseCourseSkillsJson(string rawJson, string courseTitle, List<Video> videos)
+    {
+        var result = new List<CourseSkillCreateDto>();
+        if (!string.IsNullOrWhiteSpace(rawJson))
+        {
+            var cleaned = rawJson.Trim();
+            if (cleaned.Contains("```"))
+            {
+                var match = Regex.Match(cleaned, @"```(?:json)?\s*([\s\S]*?)\s*```", RegexOptions.IgnoreCase);
+                if (match.Success) cleaned = match.Groups[1].Value.Trim();
+            }
+
+            int firstBrace = cleaned.IndexOf('{');
+            int lastBrace = cleaned.LastIndexOf('}');
+            if (firstBrace >= 0 && lastBrace > firstBrace)
+            {
+                cleaned = cleaned.Substring(firstBrace, lastBrace - firstBrace + 1).Trim();
+            }
+
+            try
+            {
+                var node = JsonNode.Parse(cleaned);
+                var skillsArr = node?["skills"] as JsonArray;
+                if (skillsArr != null)
+                {
+                    foreach (var item in skillsArr)
+                    {
+                        var name = item?["name"]?.GetValue<string>()?.Trim();
+                        var desc = item?["description"]?.GetValue<string>()?.Trim();
+                        var cat = item?["category"]?.GetValue<string>()?.Trim();
+
+                        if (!string.IsNullOrWhiteSpace(name))
+                        {
+                            result.Add(new CourseSkillCreateDto
+                            {
+                                Name = name,
+                                Description = desc ?? $"Understanding of {name}",
+                                Category = cat ?? "Core Concepts"
+                            });
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        if (!result.Any())
+        {
+            // Smart Fallback based on video titles & curriculum
+            var cats = new[] { "Core Concepts", "Hardware & Architecture", "Software Systems", "Practical Operations" };
+            int catIdx = 0;
+
+            foreach (var v in videos)
+            {
+                var skillName = v.Title.Replace(".mp4", "").Replace(".avi", "").Trim();
+                if (skillName.Length > 35) skillName = skillName.Substring(0, 35);
+
+                result.Add(new CourseSkillCreateDto
+                {
+                    Name = skillName,
+                    Description = $"Mastery of core lecture principles covered in '{v.Title}'.",
+                    Category = cats[catIdx % cats.Length]
+                });
+                catIdx++;
+            }
+
+            if (result.Count < 5)
+            {
+                result.Add(new CourseSkillCreateDto
+                {
+                    Name = $"{courseTitle} Fundamentals",
+                    Description = "Foundational principles and key concepts of the curriculum.",
+                    Category = "Core Concepts"
+                });
+                result.Add(new CourseSkillCreateDto
+                {
+                    Name = $"{courseTitle} Problem Solving",
+                    Description = "Applying concepts to solve practical technical questions and exercises.",
+                    Category = "Problem Solving"
+                });
+            }
+        }
+
+        return result;
     }
 }

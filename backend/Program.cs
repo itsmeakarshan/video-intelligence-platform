@@ -374,6 +374,20 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE courses ADD COLUMN price NUMERIC NOT NULL DEFAULT 0.0;");
         }
 
+        // Ensure course_skills table exists
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS course_skills (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+                name VARCHAR(200) NOT NULL,
+                description VARCHAR(1000) NOT NULL,
+                category VARCHAR(100) NOT NULL DEFAULT 'Core Concepts',
+                order_index INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS ix_course_skills_course_id ON course_skills(course_id);
+        ");
+
         Console.WriteLine($"[Database] Database initialized at: {dbFullPath}");
 
         // ----------------------------------------------------

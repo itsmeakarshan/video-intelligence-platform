@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminPanel from "./pages/AdminPanel";
 import InstructorChat from "./pages/InstructorChat";
+import CourseMasteryRoster from "./pages/CourseMasteryRoster";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
@@ -148,6 +149,38 @@ export default function App() {
                                     element={
                                         <ProtectedRoute>
                                             <CourseStudio />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/courses/:courseId/roster"
+                                    element={
+                                        <ProtectedRoute>
+                                            <CourseMasteryRoster />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/courses/:courseId/mastery"
+                                    element={
+                                        <ProtectedRoute>
+                                            <CourseMasteryRoster />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/roster"
+                                    element={
+                                        <ProtectedRoute>
+                                            <CourseMasteryRoster />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/mastery"
+                                    element={
+                                        <ProtectedRoute>
+                                            <CourseMasteryRoster />
                                         </ProtectedRoute>
                                     }
                                 />
