@@ -72,10 +72,13 @@ else
     var possibleLocations = new[]
     {
         Path.Combine(curr, rawDbPath),
+        Path.Combine(curr, "seed_db", "video_intelligence.db"),
         Path.Combine(curr, "video_intelligence.db"),
         Path.Combine(curr, "backend", rawDbPath),
+        Path.Combine(curr, "backend", "seed_db", "video_intelligence.db"),
         Path.Combine(curr, "backend", "video_intelligence.db"),
         Path.Combine(parent, rawDbPath),
+        Path.Combine(parent, "seed_db", "video_intelligence.db"),
         Path.Combine(parent, "backend", "video_intelligence.db")
     };
 
@@ -486,6 +489,14 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Health check endpoint for AWS ALB, ECS, and Docker health checks
+app.MapGet("/health", () => Results.Ok(new 
+{ 
+    status = "healthy", 
+    service = "vip-backend", 
+    timestamp = DateTime.UtcNow 
+}));
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8000";
 app.Run($"http://0.0.0.0:{port}");
