@@ -37,9 +37,19 @@ htmlcov/
 ml/data/
 .ipynb_checkpoints/
 
+# SQLite runtime WAL & SHM files
+*.db-shm
+*.db-wal
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Temporary audio files
+backend/temp_audio/*
+!backend/temp_audio/.gitkeep
+temp_audio/
+
 # IDE & Operating system files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-backend/db/

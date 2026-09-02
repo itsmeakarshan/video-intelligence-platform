@@ -11,14 +11,14 @@ To immediately test and explore the platform without manually registering or pro
 | Role | Email | Password | Pre-loaded Data |
 | :--- | :--- | :--- | :--- |
 | **Student (Default)** | `user@ex.com` | `password` | Enrolled in Computer Basics, ready with video transcripts & quizzes. |
-| **Student 1** | `student1@learn.com` | `Student1@123` | Enrolled in all 3 courses with 15 completed quiz attempts and analytics. |
+| **Student 1** | `student1@learn.com` | `Student1@123` | Enrolled in all courses with 15 completed quiz attempts and analytics. |
 | **Administrator** | `admin@example.com` | `admin123` | Full access to Admin Panel, Course Management, and Student Doubts Q&A. |
 
 ---
 
 ## 🐳 Option A: Docker Deployment (Recommended)
 
-Run the entire multi-container stack (.NET C# backend + Faster-Whisper + React Nginx frontend) with a single command:
+Run the entire multi-container stack (Python FastAPI backend + Faster-Whisper + React Nginx frontend) with a single command:
 
 ```bash
 # 1. Clone the repository
@@ -47,9 +47,8 @@ docker-compose up --build
 
 | Tool | Version | Purpose |
 | :--- | :--- | :--- |
-| **.NET SDK** | 9.0+ | High-Performance ASP.NET Core Web API |
+| **Python** | 3.10 - 3.12 | High-Performance FastAPI Backend, SQLAlchemy & Faster-Whisper |
 | **Node.js & npm** | 20+ / 22+ | React 19 + Vite Frontend Development |
-| **Python** | 3.10 - 3.12 | Faster-Whisper Speech-to-Text Transcription |
 | **FFmpeg** | 6.0+ | Video processing and audio extraction |
 
 ---
@@ -58,12 +57,11 @@ docker-compose up --build
 
 #### macOS (Homebrew)
 ```bash
-brew install dotnet-sdk node ffmpeg python@3.11
+brew install node ffmpeg python@3.11
 ```
 
 #### Windows (winget / Chocolatey)
 ```powershell
-winget install Microsoft.DotNet.SDK.9
 winget install OpenJS.NodeJS
 winget install Gyan.FFmpeg
 winget install Python.Python.3.11
@@ -71,54 +69,42 @@ winget install Python.Python.3.11
 
 #### Ubuntu / Debian
 ```bash
-sudo apt update && sudo apt install -y dotnet-sdk-9.0 nodejs npm ffmpeg python3 python3-pip python3-venv
+sudo apt update && sudo apt install -y nodejs npm ffmpeg python3 python3-pip python3-venv
 ```
 
 ---
 
-### Step 2: Configure Whisper Speech-to-Text
-
-From the repository root, set up the Python virtual environment for Faster-Whisper:
-
-```bash
-cd backend/ml
-python3 -m venv .venv
-
-# On macOS/Linux:
-source .venv/bin/activate
-
-# On Windows (PowerShell):
-# .venv\Scripts\Activate.ps1
-
-pip install -r requirements.txt
-cd ../..
-```
-
----
-
-### Step 3: Configure and Run the Backend (.NET C#)
+### Step 2: Configure and Run the Backend (Python FastAPI)
 
 Navigate to `backend/`:
 
 ```bash
 cd backend
 
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment:
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows (PowerShell):
+# .venv\Scripts\Activate.ps1
+
+# Install all Python backend dependencies
+pip install -r requirements.txt
+
 # Copy environment configuration
 cp .env.example .env
 
-# Edit backend/.env and set your Gemini API key (or configure via the UI):
-# GEMINI_API_KEY=your_api_key_here
-
-# Restore dependencies and start server
-dotnet restore
-dotnet run
+# Start FastAPI backend server
+python run.py
 ```
 
-* The ASP.NET Core Web API will start listening at: `http://localhost:8000`
+* The FastAPI server will start listening at: `http://localhost:8000` (OpenAPI Interactive Docs available at `http://localhost:8000/docs`)
 
 ---
 
-### Step 4: Configure and Run the Frontend (React + Vite)
+### Step 3: Configure and Run the Frontend (React + Vite)
 
 Open a **new terminal** and navigate to `frontend/`:
 

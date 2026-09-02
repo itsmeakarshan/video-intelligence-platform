@@ -88,8 +88,9 @@ The platform is designed around a cooperative multi-agent architecture powered b
 | Layer | Technology | Description |
 | :--- | :--- | :--- |
 | **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS | High-performance Single Page Application (SPA) with custom dark mode design system. |
-| **Backend API** | C# .NET 9, ASP.NET Core Web API | Clean architecture RESTful API with Argon2 password hashing and JWT authentication. |
-| **Database** | Entity Framework Core, SQLite (WAL Mode) | Consolidated database with Write-Ahead Logging for high-concurrency read/write transactions. |
+| **Backend API** | Python 3.11+, FastAPI, Uvicorn (ASGI) | Modern asynchronous RESTful API with Argon2 password hashing and JWT authentication. |
+| **ORM & Database** | SQLAlchemy 2.0, SQLite (WAL Mode) | Consolidated database with Write-Ahead Logging for high-concurrency read/write transactions. |
+| **Validation & Schemas** | Pydantic v2 | High-speed type-safe data serialization and schema validation. |
 | **Speech-to-Text** | Faster-Whisper (CTranslate2, int8) | 4.5x faster acoustic speech-to-text inference with second-by-second word alignment. |
 | **Generative AI** | Google Gemini 2.5 Flash | Sub-2-second semantic Q&A, structured study notes, and strict JSON-schema quiz generation. |
 | **Media Processing** | FFmpeg, yt-dlp | Asynchronous background audio demuxing, video downloading, and stream normalization. |
@@ -124,7 +125,7 @@ docker-compose up --build
 * **Backend API:** `http://localhost:8000`
 
 ### Option 2: Local Development
-For detailed prerequisites (.NET 9, Node.js 20+, FFmpeg, Python) and step-by-step local commands:
+For detailed prerequisites (Python 3.10+, Node.js 20+, FFmpeg) and step-by-step local commands:
 👉 **[Read the System Setup Guide (SETUP.md)](SETUP.md)**
 
 ---

@@ -1,0 +1,31 @@
+from app.routers import (
+    auth,
+    courses,
+    course_skills,
+    videos,
+    transcripts,
+    chat,
+    instructor_chat,
+    quiz_attempts,
+    banners,
+    admin,
+    youtube,
+    search,
+    root,
+)
+
+__all__ = [
+    "auth",
+    "courses",
+    "course_skills",
+    "videos",
+    "transcripts",
+    "chat",
+    "instructor_chat",
+    "quiz_attempts",
+    "banners",
+    "admin",
+    "youtube",
+    "search",
+    "root",
+]

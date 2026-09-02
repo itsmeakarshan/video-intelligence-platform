@@ -1,69 +1,48 @@
 # ========================================================
-# Video Intelligence Platform - .NET Backend Dockerfile
-# Production-ready multi-stage build for ASP.NET Core & Whisper Engine
+# Video Intelligence Platform - Python Backend Dockerfile
+# Production-ready container for FastAPI, Faster-Whisper & yt-dlp
 # ========================================================
 
-# Stage 1: Build .NET Backend
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
-
-COPY backend/VideoIntelligencePlatform.Backend.csproj backend/
-RUN dotnet restore backend/VideoIntelligencePlatform.Backend.csproj
-
-COPY backend/ backend/
-RUN dotnet publish backend/VideoIntelligencePlatform.Backend.csproj -c Release -o /app/publish
-
-# Stage 2: Runtime Environment
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
-WORKDIR /app
-
-# Install system utilities, ffmpeg, python3, curl, and libgomp1 (OpenMP runtime for Faster-Whisper/CTranslate2)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    python3 \
-    python3-pip \
-    python3-venv \
-    curl \
-    libgomp1 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Setup isolated virtual environment for Whisper & YouTube extraction
-ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# Install Whisper & audio processing requirements into isolated virtualenv
-COPY backend/ml/requirements.txt /app/backend/ml/requirements.txt
-RUN pip install --no-cache-dir -r /app/backend/ml/requirements.txt
-
-# Copy Whisper transcription scripts
-COPY backend/ml /app/backend/ml
-
-# Copy published ASP.NET Core backend
-COPY --from=build /app/publish /app/backend
+FROM python:3.11-slim
 
 WORKDIR /app/backend
 
-# Copy starter database & seed media assets (courses, thumbnails, banners, processed videos)
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000 \
+    DATABASE_PATH=video_intelligence.db \
+    HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
+    TOKENIZERS_PARALLELISM=false
+
+# Install system dependencies (FFmpeg for media processing, libgomp1 for Whisper OpenMP, curl for healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libgomp1 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+
+# Copy Python Backend application
+COPY backend/app /app/backend/app
+COPY backend/run.py /app/backend/run.py
+
+# Copy starter database & seed media assets if available
 COPY backend/video_intelligence.db* /app/backend/
 COPY backend/uploads /app/backend/uploads
 COPY backend/uploads /app/backend/seed_uploads
 
-# Runtime storage folders & ensure db volume seed exists
-RUN mkdir -p uploads/thumbnails uploads/chat_media uploads/banners seed_uploads temp_audio outputs chroma_db db seed_db \
-    && if [ -f /app/backend/video_intelligence.db ]; then \
-         cp /app/backend/video_intelligence.db /app/backend/db/video_intelligence.db; \
-         cp /app/backend/video_intelligence.db /app/backend/seed_db/video_intelligence.db; \
-       fi \
-    && chmod -R 777 uploads temp_audio outputs chroma_db db seed_db
+# Ensure runtime folders and permissions
+RUN mkdir -p uploads/thumbnails uploads/chat_media uploads/banners seed_uploads temp_audio \
+    && chmod -R 777 uploads temp_audio
 
 EXPOSE 8000
-ENV PORT=8000
-ENV ASPNETCORE_URLS=http://+:8000
-ENV ASPNETCORE_ENVIRONMENT=Production
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-ENTRYPOINT ["dotnet", "VideoIntelligencePlatform.Backend.dll"]
+CMD ["python", "run.py"]

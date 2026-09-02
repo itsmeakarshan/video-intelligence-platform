@@ -33,7 +33,7 @@ interface Props {
 }
 
 function parseStartTimestampToSeconds(tsRangeStr: string): number {
-  const clean = tsRangeStr.replace(/[()\[\]]/g, "").trim();
+  const clean = tsRangeStr.replace(/[()\[\]▶►▸▶️\u25b6\u25ba\u25b8]/g, "").trim();
   const firstPart = clean.split(/[\-–—]|to/i)[0].trim();
   const parts = firstPart.split(":").map(Number);
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
@@ -84,7 +84,7 @@ export default function Message({
   }
 
   function renderTextWithTimestamps(content: string) {
-    const regex = /(?:\(|\[)?\b(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—to]+\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\b(?:\)|\])?/g;
+    const regex = /(?:[▶►▸▶️\u25b6\u25ba\u25b8]\s*)?(?:\(|\[)?\s*(?:[▶►▸▶️\u25b6\u25ba\u25b8]\s*)?\b(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—to]+\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\s*(?:\)|\])?/g;
     const elements: (string | React.ReactNode)[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -94,7 +94,7 @@ export default function Message({
         elements.push(content.substring(lastIndex, match.index));
       }
       const tsMatch = match[0];
-      const displayLabel = tsMatch.replace(/[()\[\]]/g, "").trim();
+      const displayLabel = tsMatch.replace(/[()\[\]▶►▸▶️\u25b6\u25ba\u25b8]/g, "").trim();
       elements.push(
         <button
           key={`${match.index}-${tsMatch}`}
@@ -130,6 +130,10 @@ export default function Message({
       ));
     }
     if (React.isValidElement(child)) {
+      // Never re-process inside button or code tags to prevent duplicate buttons or nested button errors
+      if (child.type === "button" || child.type === "code") {
+        return child;
+      }
       const props: any = child.props;
       if (props && props.children) {
         const newChildren = Array.isArray(props.children)
@@ -145,7 +149,8 @@ export default function Message({
   const renderMarkdownComponents = {
     code: ({ children }: any) => {
       const str = String(children).trim();
-      if (/^(?:\(|\[)?\s*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—to]+\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\s*(?:\)|\])?$/.test(str)) {
+      if (/^(?:[▶►▸▶️\u25b6\u25ba\u25b8]\s*)?(?:\(|\[)?\s*(?:[▶►▸▶️\u25b6\u25ba\u25b8]\s*)?(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\s*[\-–—to]+\s*(?:\d{1,2}:)?\d{1,2}:\d{2})?\s*(?:\)|\])?$/.test(str)) {
+        const displayLabel = str.replace(/[()\[\]▶►▸▶️\u25b6\u25ba\u25b8]/g, "").trim();
         return (
           <button
             type="button"
@@ -156,7 +161,7 @@ export default function Message({
             className="inline-flex items-center gap-1 mx-1 my-0.5 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#E5F842]/15 text-[#E5F842] border border-[#E5F842]/35 hover:bg-[#E5F842]/30 hover:border-[#E5F842] cursor-pointer group"
           >
             <Play className="w-2.5 h-2.5 fill-[#E5F842] text-[#E5F842] group-hover:scale-110 transition-transform" />
-            <span>{str.replace(/[()\[\]]/g, "").trim()}</span>
+            <span>{displayLabel}</span>
           </button>
         );
       }
